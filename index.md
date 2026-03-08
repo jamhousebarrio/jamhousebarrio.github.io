@@ -7,7 +7,7 @@ title: JamHouse 2026
 
 ## Live Music on the Playa
 
-JamHouse is an established barrio at [Nowhere](https://goingnowhere.org), the regional Burning Man event held every summer in the Spanish desert. Now entering our **4th year** on the playa, we exist for one purpose: **bringing live music to Nowhere**.
+JamHouse is an established barrio at [Nowhere](https://goingnowhere.org), the regional Burning Man event held every summer in the Spanish desert. Now entering our **3rd year** on the playa, we exist for one purpose: **bringing live music to Nowhere**.
 
 We build a stage, bring instruments, and create a space where musicians and music lovers come together. Whether you play guitar, drums, sing, DJ, or just want to be part of making it happen — JamHouse is your home.
 

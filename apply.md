@@ -7,7 +7,10 @@ title: Apply — JamHouse 2026
 
 Fill out the form below to apply to join JamHouse barrio at Nowhere 2026. We welcome musicians and non-musicians alike — everyone who wants to participate and contribute is welcome.
 
-<form action="https://formspree.io/f/xplaceholder" method="POST">
+<form action="https://formsubmit.co/jamhousebarrio@gmail.com" method="POST">
+<input type="hidden" name="_subject" value="New JamHouse 2026 Application">
+<input type="hidden" name="_captcha" value="true">
+<input type="hidden" name="_next" value="https://jamhousebarrio.github.io/">
 
 <label for="name">Name *</label><br>
 <input type="text" id="name" name="name" required style="width:100%;max-width:400px;padding:8px;margin-bottom:16px"><br>
