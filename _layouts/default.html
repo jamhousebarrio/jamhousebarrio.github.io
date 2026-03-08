@@ -20,130 +20,161 @@
       --body: Inter, sans-serif;
     }
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    html { scroll-behavior: smooth; }
+    html { scroll-behavior: smooth; font-size: 16px; }
     body {
       font-family: var(--body);
       background: var(--bg);
       color: var(--text);
       font-weight: 300;
-      line-height: 1.7;
+      line-height: 1.6;
       min-height: 100vh;
     }
-    .hero {
+    /* ---- HOME PAGE ---- */
+    .page-home .hero {
+      position: relative;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
       text-align: center;
-      padding: 80px 24px 40px;
-      background: linear-gradient(180deg, #1a1208 0%, var(--bg) 100%);
-      border-bottom: 1px solid var(--border);
+      overflow: hidden;
+    }
+    .hero-bg {
+      position: absolute;
+      inset: 0;
+      background: url('/images/hero.jpg') center center / cover no-repeat;
+      filter: brightness(0.35);
+      z-index: 0;
+    }
+    .hero-content {
+      position: relative;
+      z-index: 1;
+      padding: 40px 24px;
+      max-width: 700px;
     }
     .hero-title {
       font-family: var(--heading);
-      font-size: clamp(2.5rem, 8vw, 4.5rem);
+      font-size: clamp(3rem, 10vw, 5.5rem);
       font-weight: 700;
       letter-spacing: -0.02em;
       color: var(--accent);
-      text-shadow: 0 0 60px var(--accent-glow);
-      margin-bottom: 8px;
+      text-shadow: 0 0 80px var(--accent-glow), 0 2px 40px rgba(0,0,0,0.8);
+      margin-bottom: 4px;
     }
     .hero-sub {
       font-family: var(--heading);
-      font-size: clamp(0.9rem, 2.5vw, 1.1rem);
+      font-size: clamp(0.85rem, 2.5vw, 1.05rem);
       font-weight: 400;
-      color: var(--text-muted);
-      letter-spacing: 0.15em;
+      color: rgba(255,255,255,0.7);
+      letter-spacing: 0.2em;
       text-transform: uppercase;
+      margin-bottom: 24px;
     }
-    .container {
-      max-width: 720px;
-      margin: 0 auto;
-      padding: 0 24px;
+    .hero-desc {
+      font-size: clamp(0.95rem, 2vw, 1.1rem);
+      color: rgba(255,255,255,0.85);
+      margin-bottom: 32px;
+      line-height: 1.7;
     }
-    .content {
-      padding: 48px 0 80px;
+    .hero-features {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 32px;
+      text-align: left;
     }
-    h1, h2, h3 {
-      font-family: var(--heading);
-      font-weight: 600;
-      letter-spacing: -0.01em;
-    }
-    .content h1 {
-      font-size: 2.2rem;
-      color: var(--accent);
-      margin-bottom: 16px;
-      padding-bottom: 12px;
-      border-bottom: 1px solid var(--border);
-    }
-    .content h2 {
-      font-size: 1.4rem;
-      color: var(--text);
-      margin-top: 48px;
-      margin-bottom: 16px;
-    }
-    .content p {
-      margin-bottom: 16px;
-      color: var(--text);
-    }
-    .content a {
-      color: var(--accent);
-      text-decoration: none;
-      border-bottom: 1px solid transparent;
-      transition: border-color 0.2s;
-    }
-    .content a:hover {
-      border-bottom-color: var(--accent);
-    }
-    .content strong { font-weight: 500; color: #fff; }
-    .content ul {
-      list-style: none;
-      padding: 0;
-      margin-bottom: 16px;
-    }
-    .content ul li {
-      padding: 12px 16px;
-      margin-bottom: 8px;
-      background: var(--surface);
-      border: 1px solid var(--border);
+    .hero-features .feat {
+      padding: 10px 14px;
+      background: rgba(255,255,255,0.07);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255,255,255,0.1);
       border-radius: 8px;
-      transition: border-color 0.2s;
+      font-size: 0.85rem;
+      color: rgba(255,255,255,0.9);
     }
-    .content ul li:hover {
-      border-color: var(--accent);
+    .hero-features .feat strong {
+      color: var(--accent);
+      font-weight: 500;
     }
-    .content hr {
-      border: none;
-      border-top: 1px solid var(--border);
-      margin: 40px 0;
-    }
-    /* CTA button */
-    .content a[href="apply"],
-    .content a[href="/apply"] {
+    .hero-cta {
       display: inline-block;
-      padding: 14px 40px;
+      padding: 14px 44px;
       background: var(--accent);
       color: var(--bg);
       font-family: var(--heading);
       font-weight: 600;
       font-size: 1.05rem;
       border-radius: 6px;
-      border-bottom: none;
+      text-decoration: none;
       transition: transform 0.2s, box-shadow 0.2s;
-      box-shadow: 0 0 30px var(--accent-glow);
+      box-shadow: 0 0 40px var(--accent-glow);
+      margin-bottom: 16px;
     }
-    .content a[href="apply"]:hover,
-    .content a[href="/apply"]:hover {
+    .hero-cta:hover {
       transform: translateY(-2px);
-      box-shadow: 0 0 50px var(--accent-glow);
-      border-bottom: none;
+      box-shadow: 0 0 60px var(--accent-glow);
     }
-    /* Form styles */
-    form { margin-top: 24px; }
+    .hero-info {
+      font-size: 0.8rem;
+      color: rgba(255,255,255,0.4);
+      margin-top: 8px;
+    }
+    .hero-info a { color: var(--accent); text-decoration: none; }
+    .scroll-arrow {
+      position: absolute;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1;
+      color: rgba(255,255,255,0.3);
+      font-size: 1.5rem;
+      animation: bounce 2s infinite;
+      text-decoration: none;
+    }
+    @keyframes bounce {
+      0%, 100% { transform: translateX(-50%) translateY(0); }
+      50% { transform: translateX(-50%) translateY(8px); }
+    }
+    /* ---- FORM PAGE ---- */
+    .page-form .hero-compact {
+      text-align: center;
+      padding: 40px 24px 24px;
+      background: linear-gradient(180deg, #1a1208 0%, var(--bg) 100%);
+      border-bottom: 1px solid var(--border);
+    }
+    .page-form .hero-compact .hero-title {
+      font-size: clamp(2rem, 6vw, 3rem);
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+    .content { padding: 32px 0 60px; }
+    .content h1 {
+      font-family: var(--heading);
+      font-size: 1.6rem;
+      font-weight: 600;
+      color: var(--accent);
+      margin-bottom: 8px;
+    }
+    .content p {
+      margin-bottom: 16px;
+      color: var(--text-muted);
+      font-size: 0.95rem;
+    }
+    .content a { color: var(--accent); text-decoration: none; }
+    .content a:hover { text-decoration: underline; }
+    /* Form */
+    form { margin-top: 16px; }
     form label {
       display: block;
       font-family: var(--heading);
       font-weight: 500;
-      font-size: 0.9rem;
+      font-size: 0.85rem;
       color: var(--text);
-      margin-bottom: 6px;
-      letter-spacing: 0.02em;
+      margin-bottom: 4px;
     }
     form input[type="text"],
     form input[type="email"],
@@ -151,14 +182,14 @@
     form textarea {
       width: 100% !important;
       max-width: 100% !important;
-      padding: 12px 16px !important;
-      margin-bottom: 20px !important;
+      padding: 10px 14px !important;
+      margin-bottom: 14px !important;
       background: var(--surface) !important;
       border: 1px solid var(--border) !important;
       border-radius: 6px !important;
       color: var(--text) !important;
       font-family: var(--body) !important;
-      font-size: 0.95rem !important;
+      font-size: 0.9rem !important;
       transition: border-color 0.2s !important;
     }
     form input:focus,
@@ -168,17 +199,16 @@
       border-color: var(--accent) !important;
       box-shadow: 0 0 0 3px var(--accent-glow) !important;
     }
-    form select { cursor: pointer; }
-    form textarea { resize: vertical; min-height: 80px; }
+    form textarea { resize: vertical; min-height: 60px; }
     form button[type="submit"] {
-      padding: 14px 48px !important;
+      padding: 12px 44px !important;
       background: var(--accent) !important;
       color: var(--bg) !important;
       border: none !important;
       border-radius: 6px !important;
       font-family: var(--heading) !important;
       font-weight: 600 !important;
-      font-size: 1.05rem !important;
+      font-size: 1rem !important;
       cursor: pointer !important;
       transition: transform 0.2s, box-shadow 0.2s !important;
       box-shadow: 0 0 30px var(--accent-glow) !important;
@@ -188,22 +218,45 @@
       box-shadow: 0 0 50px var(--accent-glow) !important;
     }
     form br { display: none; }
-    form ::placeholder {
-      color: var(--text-muted) !important;
-      opacity: 1;
-    }
+    form ::placeholder { color: var(--text-muted) !important; opacity: 1; }
     footer {
       text-align: center;
-      padding: 32px 24px;
+      padding: 20px 24px;
       border-top: 1px solid var(--border);
       color: var(--text-muted);
-      font-size: 0.85rem;
+      font-size: 0.8rem;
     }
     footer a { color: var(--accent); text-decoration: none; }
+    /* Hide markdown-generated content on home page — we use hero instead */
+    .page-home .content { display: none; }
+    /* Responsive */
+    @media (max-width: 500px) {
+      .hero-features { grid-template-columns: 1fr; }
+      .hero-content { padding: 24px 16px; }
+    }
   </style>
 </head>
-<body>
-  <header class="hero">
+<body class="{{ page.body_class }}">
+  {% if page.body_class == "page-home" %}
+  <section class="hero">
+    <div class="hero-bg"></div>
+    <div class="hero-content">
+      <div class="hero-title">JamHouse</div>
+      <div class="hero-sub">Live Music Barrio &middot; Nowhere 2026</div>
+      <p class="hero-desc">3rd year cooking up musical adventures in the Spanish desert. Impromptu concerts, jam sessions, group singalongs, and harmonious chaos on the playa.</p>
+      <div class="hero-features">
+        <div class="feat"><strong>Open Stage</strong> — grab an instrument and play</div>
+        <div class="feat"><strong>Gear Provided</strong> — amps, drums, guitars, mics</div>
+        <div class="feat"><strong>Singalongs</strong> — everyone can sing, yes even you</div>
+        <div class="feat"><strong>Kid-Friendly</strong> — little ones welcome during the day</div>
+      </div>
+      <a href="/apply" class="hero-cta">Apply for Membership</a>
+      <div class="hero-info">Aragon, Spain &middot; July 2026 &middot; <a href="https://goingnowhere.org">goingnowhere.org</a></div>
+      <div class="hero-info" style="margin-top:12px"><a href="mailto:jamhousebarrio@gmail.com">jamhousebarrio@gmail.com</a></div>
+    </div>
+  </section>
+  {% else %}
+  <header class="hero-compact">
     <a href="/" style="text-decoration:none">
       <div class="hero-title">JamHouse</div>
     </a>
@@ -215,7 +268,8 @@
     </div>
   </main>
   <footer>
-    <a href="/">JamHouse</a> &middot; Barrio at <a href="https://goingnowhere.org">Nowhere</a> &middot; Aragon, Spain
+    <a href="/">JamHouse</a> &middot; <a href="https://goingnowhere.org">Nowhere</a> &middot; Aragon, Spain
   </footer>
+  {% endif %}
 </body>
 </html>

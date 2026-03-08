@@ -1,6 +1,7 @@
 ---
 layout: default
 title: JamHouse 2026
+body_class: page-home
 ---
 
 # The JamHouse
