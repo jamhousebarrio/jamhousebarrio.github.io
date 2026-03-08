@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ page.title }}</title>
+  <meta name="description" content="{{ site.description }}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0a0a0a;
+      --surface: #141414;
+      --border: #2a2a2a;
+      --text: #e8e4df;
+      --text-muted: #8a8580;
+      --accent: #e8a84c;
+      --accent-glow: #e8a84c33;
+      --heading: Space Grotesk, sans-serif;
+      --body: Inter, sans-serif;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: var(--body);
+      background: var(--bg);
+      color: var(--text);
+      font-weight: 300;
+      line-height: 1.7;
+      min-height: 100vh;
+    }
+    .hero {
+      text-align: center;
+      padding: 80px 24px 40px;
+      background: linear-gradient(180deg, #1a1208 0%, var(--bg) 100%);
+      border-bottom: 1px solid var(--border);
+    }
+    .hero-title {
+      font-family: var(--heading);
+      font-size: clamp(2.5rem, 8vw, 4.5rem);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--accent);
+      text-shadow: 0 0 60px var(--accent-glow);
+      margin-bottom: 8px;
+    }
+    .hero-sub {
+      font-family: var(--heading);
+      font-size: clamp(0.9rem, 2.5vw, 1.1rem);
+      font-weight: 400;
+      color: var(--text-muted);
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+    }
+    .container {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+    .content {
+      padding: 48px 0 80px;
+    }
+    h1, h2, h3 {
+      font-family: var(--heading);
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+    .content h1 {
+      font-size: 2.2rem;
+      color: var(--accent);
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    .content h2 {
+      font-size: 1.4rem;
+      color: var(--text);
+      margin-top: 48px;
+      margin-bottom: 16px;
+    }
+    .content p {
+      margin-bottom: 16px;
+      color: var(--text);
+    }
+    .content a {
+      color: var(--accent);
+      text-decoration: none;
+      border-bottom: 1px solid transparent;
+      transition: border-color 0.2s;
+    }
+    .content a:hover {
+      border-bottom-color: var(--accent);
+    }
+    .content strong { font-weight: 500; color: #fff; }
+    .content ul {
+      list-style: none;
+      padding: 0;
+      margin-bottom: 16px;
+    }
+    .content ul li {
+      padding: 12px 16px;
+      margin-bottom: 8px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      transition: border-color 0.2s;
+    }
+    .content ul li:hover {
+      border-color: var(--accent);
+    }
+    .content hr {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 40px 0;
+    }
+    /* CTA button */
+    .content a[href="apply"],
+    .content a[href="/apply"] {
+      display: inline-block;
+      padding: 14px 40px;
+      background: var(--accent);
+      color: var(--bg);
+      font-family: var(--heading);
+      font-weight: 600;
+      font-size: 1.05rem;
+      border-radius: 6px;
+      border-bottom: none;
+      transition: transform 0.2s, box-shadow 0.2s;
+      box-shadow: 0 0 30px var(--accent-glow);
+    }
+    .content a[href="apply"]:hover,
+    .content a[href="/apply"]:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 0 50px var(--accent-glow);
+      border-bottom: none;
+    }
+    /* Form styles */
+    form { margin-top: 24px; }
+    form label {
+      display: block;
+      font-family: var(--heading);
+      font-weight: 500;
+      font-size: 0.9rem;
+      color: var(--text);
+      margin-bottom: 6px;
+      letter-spacing: 0.02em;
+    }
+    form input[type="text"],
+    form input[type="email"],
+    form select,
+    form textarea {
+      width: 100% !important;
+      max-width: 100% !important;
+      padding: 12px 16px !important;
+      margin-bottom: 20px !important;
+      background: var(--surface) !important;
+      border: 1px solid var(--border) !important;
+      border-radius: 6px !important;
+      color: var(--text) !important;
+      font-family: var(--body) !important;
+      font-size: 0.95rem !important;
+      transition: border-color 0.2s !important;
+    }
+    form input:focus,
+    form select:focus,
+    form textarea:focus {
+      outline: none !important;
+      border-color: var(--accent) !important;
+      box-shadow: 0 0 0 3px var(--accent-glow) !important;
+    }
+    form select { cursor: pointer; }
+    form textarea { resize: vertical; min-height: 80px; }
+    form button[type="submit"] {
+      padding: 14px 48px !important;
+      background: var(--accent) !important;
+      color: var(--bg) !important;
+      border: none !important;
+      border-radius: 6px !important;
+      font-family: var(--heading) !important;
+      font-weight: 600 !important;
+      font-size: 1.05rem !important;
+      cursor: pointer !important;
+      transition: transform 0.2s, box-shadow 0.2s !important;
+      box-shadow: 0 0 30px var(--accent-glow) !important;
+    }
+    form button[type="submit"]:hover {
+      transform: translateY(-2px) !important;
+      box-shadow: 0 0 50px var(--accent-glow) !important;
+    }
+    form br { display: none; }
+    form ::placeholder {
+      color: var(--text-muted) !important;
+      opacity: 1;
+    }
+    footer {
+      text-align: center;
+      padding: 32px 24px;
+      border-top: 1px solid var(--border);
+      color: var(--text-muted);
+      font-size: 0.85rem;
+    }
+    footer a { color: var(--accent); text-decoration: none; }
+  </style>
+</head>
+<body>
+  <header class="hero">
+    <a href="/" style="text-decoration:none">
+      <div class="hero-title">JamHouse</div>
+    </a>
+    <div class="hero-sub">Live Music Barrio &middot; Nowhere 2026</div>
+  </header>
+  <main class="container">
+    <div class="content">
+      {{ content }}
+    </div>
+  </main>
+  <footer>
+    <a href="/">JamHouse</a> &middot; Barrio at <a href="https://goingnowhere.org">Nowhere</a> &middot; Aragon, Spain
+  </footer>
+</body>
+</html>

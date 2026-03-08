@@ -3,39 +3,38 @@ layout: default
 title: JamHouse 2026
 ---
 
-# JamHouse 2026
+# The JamHouse
 
-## Live Music on the Playa
+We're cooking up a delicious blend of musical adventures at Nowhere this year. Impromptu concerts, instrument sharing sessions, group singalongs, and harmonious chaos under the Spanish desert sky.
 
-JamHouse is an established barrio at [Nowhere](https://goingnowhere.org), the regional Burning Man event held every summer in the Spanish desert. Now entering our **3rd year** on the playa, we exist for one purpose: **bringing live music to Nowhere**.
+Now in our **3rd year** on the playa, JamHouse is where musicians and music lovers come together to make something beautiful, loud, and unrehearsed.
 
-We build a stage, bring instruments, and create a space where musicians and music lovers come together. Whether you play guitar, drums, sing, DJ, or just want to be part of making it happen — JamHouse is your home.
+Seasoned burners and burn virgins all welcome — the only requirement is your willingness to participate in our harmonious chaos.
 
 ---
 
-## What We Do
+## What Happens at JamHouse
 
-- **Live jam sessions** — open stage for anyone to play
-- **Instruments & gear** — we bring amps, drums, mics, and more
-- **A gathering space** — a shaded, welcoming camp for music and community
-- **Workshops** — group jams, songwriting circles, rhythm sessions
+- **Open stage & jam sessions** — grab an instrument, find a mic, and play
+- **Instruments & gear** — we bring amps, drums, guitars, mics, and more
+- **Group singalongs** — because everyone can sing (yes, even you)
+- **A home on the playa** — shaded, welcoming, always something happening
+- **Kid-friendly during the day** — little ones welcome while the sun's up
 
 ---
 
 ## Nowhere 2026
 
-Nowhere takes place in **July 2026** in the desert of Aragon, Spain. It's a participatory event — no spectators, everyone contributes. JamHouse is how we contribute: through music.
+[Nowhere](https://goingnowhere.org) takes place in **July 2026** in the desert of Aragon, Spain. It's a participatory event — no spectators, no commerce, everyone contributes. JamHouse is how we contribute: through music.
 
 ---
 
-## Join JamHouse
+## Join Us
 
-We're looking for members who want to be part of our barrio for 2026. Musicians and non-musicians welcome — we need people who help build, cook, and keep the camp running just as much as we need players.
+We're looking for people who want to be part of JamHouse for 2026. Musicians and non-musicians welcome — we need builders, cooks, and good energy just as much as we need guitar players.
 
 **[Apply for Membership](apply)**
 
 ---
 
-## Contact
-
-Questions? Reach us at **jamhousebarrio@gmail.com**
+Questions? **jamhousebarrio@gmail.com**
