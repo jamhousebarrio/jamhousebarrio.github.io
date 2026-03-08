@@ -1,6 +1,7 @@
 ---
 layout: default
 title: Apply — JamHouse 2026
+body_class: page-form
 ---
 
 # Apply for Membership
