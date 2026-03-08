@@ -36,6 +36,3 @@ We're looking for people who want to be part of JamHouse for 2026. Musicians and
 
 **[Apply for Membership](apply)**
 
----
-
-Questions? **jamhousebarrio@gmail.com**
