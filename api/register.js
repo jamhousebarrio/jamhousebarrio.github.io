@@ -26,9 +26,9 @@ export default async function handler(req, res) {
       b.email || "",
       b.phone || "",
       b.contactMethods || "",
+      b.contactOther || "",
       b.nationality || "",
       b.gender || "",
-      b.age || "",
       b.language || "",
       b.otherLanguages || "",
       b.firstBurn || "",
@@ -54,6 +54,7 @@ export default async function handler(req, res) {
       b.intoleranceDetails || "",
       b.dietaryRestrictions || "",
       b.healthInfo || "",
+      b.deepestSecrets || "",
       b.talents || "",
       b.emergencyName || "",
       b.emergencyPhone || "",
@@ -62,13 +63,12 @@ export default async function handler(req, res) {
       b.specialNeeds || "",
       b.needsDescription || "",
       b.hasTicket || "",
-      b.comments || "",
       "Pending",
     ];
 
     await sheets.spreadsheets.values.append({
       spreadsheetId: process.env.SHEET_ID,
-      range: "Sheet1!A:AS",
+      range: "Sheet1!A:AR",
       valueInputOption: "USER_ENTERED",
       requestBody: { values: [row] },
     });

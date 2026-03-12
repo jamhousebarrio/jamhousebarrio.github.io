@@ -244,6 +244,10 @@ title: Apply - JamHouse 2026
           </div>
         </div>
         <div class="form-group">
+          <label>Other contact method <span class="optional">(optional)</span></label>
+          <input type="text" name="contactOther">
+        </div>
+        <div class="form-group">
           <label>Nationality</label>
           <input type="text" name="nationality">
         </div>
@@ -256,10 +260,6 @@ title: Apply - JamHouse 2026
             <option value="Non-binary">Non-binary</option>
             <option value="Prefer not to say">Prefer not to say</option>
           </select>
-        </div>
-        <div class="form-group">
-          <label>Age</label>
-          <input type="number" name="age" min="18" max="120">
         </div>
         <div class="form-group">
           <label>Primary Language</label>
@@ -374,7 +374,7 @@ title: Apply - JamHouse 2026
             <option value="No">No</option>
           </select>
         </div>
-        <div class="form-group">
+        <div class="form-group" id="movingCarGroup" style="display:none">
           <label>If yes, are you planning to move your car during the festival?</label>
           <select name="movingCar">
             <option value="">Select...</option>
@@ -425,7 +425,7 @@ title: Apply - JamHouse 2026
           <label>Any other intolerances?</label>
           <input type="text" name="otherIntolerance">
         </div>
-        <div class="form-group">
+        <div class="form-group" id="intoleranceDetailsGroup" style="display:none">
           <label>If other, details</label>
           <input type="text" name="intoleranceDetails">
         </div>
@@ -434,8 +434,12 @@ title: Apply - JamHouse 2026
           <input type="text" name="dietaryRestrictions">
         </div>
         <div class="form-group">
-          <label>Health information to share</label>
+          <label>Any additional health / inappropriately personal information you would like to share?</label>
           <textarea name="healthInfo"></textarea>
+        </div>
+        <div class="form-group">
+          <label>Do we need to know your deepest secrets?</label>
+          <textarea name="deepestSecrets"></textarea>
         </div>
       </div>
 
@@ -485,13 +489,9 @@ title: Apply - JamHouse 2026
             <option value="No">No</option>
           </select>
         </div>
-        <div class="form-group">
+        <div class="form-group" id="needsDescriptionGroup" style="display:none">
           <label>If yes, describe</label>
           <textarea name="needsDescription"></textarea>
-        </div>
-        <div class="form-group">
-          <label>Additional comments</label>
-          <textarea name="comments"></textarea>
         </div>
       </div>
 
@@ -500,7 +500,21 @@ title: Apply - JamHouse 2026
   </div>
 
   <script>
-    document.getElementById('applyForm').addEventListener('submit', async function(e) {
+    // Conditional fields
+    const form = document.getElementById('applyForm');
+    form.hasCar.addEventListener('change', function() {
+      document.getElementById('movingCarGroup').style.display = this.value === 'Yes' ? '' : 'none';
+      if (this.value !== 'Yes') form.movingCar.value = '';
+    });
+    form.otherIntolerance.addEventListener('input', function() {
+      document.getElementById('intoleranceDetailsGroup').style.display = this.value.trim() ? '' : 'none';
+    });
+    form.specialNeeds.addEventListener('change', function() {
+      document.getElementById('needsDescriptionGroup').style.display = this.value === 'Yes' ? '' : 'none';
+      if (this.value !== 'Yes') form.needsDescription.value = '';
+    });
+
+    form.addEventListener('submit', async function(e) {
       e.preventDefault();
       const btn = document.getElementById('submitBtn');
       const errorMsg = document.getElementById('errorMsg');
@@ -508,7 +522,6 @@ title: Apply - JamHouse 2026
       btn.disabled = true;
       btn.textContent = 'Submitting...';
 
-      const form = e.target;
       const contactMethods = [];
       if (form.contactWhatsApp.checked) contactMethods.push('WhatsApp');
       if (form.contactTelegram.checked) contactMethods.push('Telegram');
@@ -520,9 +533,9 @@ title: Apply - JamHouse 2026
         email: form.email.value,
         phone: form.phone.value,
         contactMethods: contactMethods.join(','),
+        contactOther: form.contactOther.value,
         nationality: form.nationality.value,
         gender: form.gender.value,
-        age: form.age.value,
         language: form.language.value,
         otherLanguages: form.otherLanguages.value,
         firstBurn: form.firstBurn.value,
@@ -549,14 +562,14 @@ title: Apply - JamHouse 2026
         intoleranceDetails: form.intoleranceDetails.value,
         dietaryRestrictions: form.dietaryRestrictions.value,
         healthInfo: form.healthInfo.value,
+        deepestSecrets: form.deepestSecrets.value,
         talents: form.talents.value,
         emergencyName: form.emergencyName.value,
         emergencyPhone: form.emergencyPhone.value,
         emergencyRelationship: form.emergencyRelationship.value,
         howHeard: form.howHeard.value,
         specialNeeds: form.specialNeeds.value,
-        needsDescription: form.needsDescription.value,
-        comments: form.comments.value
+        needsDescription: form.needsDescription.value
       };
 
       try {
