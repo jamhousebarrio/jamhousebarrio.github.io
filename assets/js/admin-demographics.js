@@ -4,12 +4,13 @@
 
   var val = JH.val;
 
+  // Filter to approved only
+  members = members.filter(function(m) { return val(m, 'Status').toLowerCase() === 'approved'; });
+
   // Stats
   document.getElementById('stat-total').textContent = members.length;
-  var approved = members.filter(function(m) { return val(m, 'Status').toLowerCase() === 'approved'; }).length;
-  var pending = members.length - approved;
-  document.getElementById('stat-approved').textContent = approved;
-  document.getElementById('stat-pending').textContent = pending;
+  document.getElementById('stat-approved').textContent = members.length;
+  document.getElementById('stat-pending').textContent = 0;
   var ages = members.map(function(m) { return parseInt(val(m, 'Age')); }).filter(function(a) { return !isNaN(a); });
   document.getElementById('stat-avg-age').textContent = ages.length ? Math.round(ages.reduce(function(a, b) { return a + b; }, 0) / ages.length) : '-';
 
@@ -67,11 +68,8 @@
   JH.makeBar('burns-chart', Object.keys(burnData), Object.values(burnData));
 
   // Roster table
-  document.getElementById('roster-count').textContent = members.length + ' members';
+  document.getElementById('roster-count').textContent = members.length + ' approved members';
   document.getElementById('members-tbody').innerHTML = members.map(function(m) {
-    var status = val(m, 'Status').toLowerCase();
-    var statusClass = status === 'approved' ? 'status-approved' : 'status-pending';
-    var statusText = status === 'approved' ? 'Approved' : 'Pending';
     return '<tr>' +
       '<td class="name">' + val(m, 'Name') + '</td>' +
       '<td><span class="location-badge">' + val(m, 'Location') + '</span></td>' +
@@ -79,7 +77,6 @@
       '<td>' + val(m, 'Age') + '</td>' +
       '<td>' + val(m, 'Gender') + '</td>' +
       '<td>' + val(m, 'First Burn') + '</td>' +
-      '<td><span class="' + statusClass + '">' + statusText + '</span></td>' +
       '</tr>';
   }).join('');
 })();
