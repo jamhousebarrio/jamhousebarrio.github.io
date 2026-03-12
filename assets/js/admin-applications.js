@@ -139,5 +139,5 @@
     renderTable(this.value);
   });
 
-  renderTable('pending');
+  renderTable('all');
 })();
