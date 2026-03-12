@@ -1,0 +1,206 @@
+---
+layout: none
+title: Applications - JamHouse Admin
+---
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Applications - JamHouse Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/admin.css">
+  <style>
+    .app-table tr { cursor: pointer; }
+    .app-table tr:hover { background: rgba(232,168,76,0.08); }
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      z-index: 100;
+      justify-content: center;
+      align-items: center;
+    }
+    .modal-overlay.active { display: flex; }
+    .modal {
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      border-radius: 12px;
+      max-width: 650px;
+      width: 90%;
+      max-height: 85vh;
+      overflow-y: auto;
+      padding: 2rem;
+    }
+    .modal h2 {
+      font-family: 'Space Grotesk', sans-serif;
+      color: #e8a84c;
+      margin: 0 0 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .modal-close {
+      background: none;
+      border: none;
+      color: #888;
+      font-size: 1.5rem;
+      cursor: pointer;
+    }
+    .modal-close:hover { color: #e0e0e0; }
+    .detail-row {
+      display: grid;
+      grid-template-columns: 140px 1fr;
+      gap: 0.5rem;
+      padding: 0.6rem 0;
+      border-bottom: 1px solid #222;
+      font-size: 0.9rem;
+    }
+    .detail-label {
+      color: #888;
+      font-weight: 500;
+    }
+    .detail-value {
+      color: #e0e0e0;
+      word-break: break-word;
+    }
+    .status-actions {
+      margin-top: 1.5rem;
+      padding-top: 1rem;
+      border-top: 1px solid #2a2a2a;
+      display: flex;
+      gap: 0.75rem;
+      align-items: center;
+    }
+    .status-actions select {
+      padding: 0.5rem 0.75rem;
+      background: #0a0a0a;
+      border: 1px solid #2a2a2a;
+      border-radius: 6px;
+      color: #e0e0e0;
+      font-size: 0.9rem;
+    }
+    .status-actions button {
+      padding: 0.5rem 1.5rem;
+      background: #e8a84c;
+      color: #0a0a0a;
+      border: none;
+      border-radius: 6px;
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .status-actions button:hover { opacity: 0.9; }
+    .status-actions .msg {
+      font-size: 0.85rem;
+      margin-left: 0.5rem;
+    }
+    .filter-bar {
+      display: flex;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+      align-items: center;
+    }
+    .filter-bar select {
+      padding: 0.45rem 0.75rem;
+      background: #0a0a0a;
+      border: 1px solid #2a2a2a;
+      border-radius: 6px;
+      color: #e0e0e0;
+      font-size: 0.85rem;
+    }
+    .filter-bar .count {
+      color: #888;
+      font-size: 0.85rem;
+      margin-left: auto;
+    }
+  </style>
+</head>
+<body>
+<nav class="sidebar">
+  <div class="sidebar-brand">JamHouse <span>Admin 2026</span></div>
+  <div class="sidebar-nav">
+    <a class="nav-item active" href="/admin/applications">
+      <span class="icon">&#9993;</span>
+      <span class="nav-item-text">Applications</span>
+    </a>
+    <a class="nav-item" href="/admin/demographics">
+      <span class="icon">&#9776;</span>
+      <span class="nav-item-text">Demographics</span>
+    </a>
+    <a class="nav-item" href="/admin/budget">
+      <span class="icon">&#9733;</span>
+      <span class="nav-item-text">Budget</span>
+    </a>
+  </div>
+  <div class="sidebar-footer">
+    <a href="/">&#8592; Back to Site</a>
+  </div>
+</nav>
+<div class="main">
+  <div class="page-header">
+    <h1><span class="icon">&#9993;</span> Applications</h1>
+    <div class="subtitle">Review and manage membership applications</div>
+  </div>
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-label">Total</div>
+      <div class="stat-number" id="stat-total">-</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Pending</div>
+      <div class="stat-number" id="stat-pending" style="color:#ff9800;">-</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Approved</div>
+      <div class="stat-number" id="stat-approved" style="color:#4caf50;">-</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Rejected</div>
+      <div class="stat-number" id="stat-rejected" style="color:#f44336;">-</div>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="filter-bar">
+      <select id="statusFilter">
+        <option value="all">All Applications</option>
+        <option value="pending" selected>Pending</option>
+        <option value="approved">Approved</option>
+        <option value="rejected">Rejected</option>
+      </select>
+      <span class="count" id="filter-count"></span>
+    </div>
+    <div style="overflow-x:auto;">
+      <table class="data-table app-table">
+        <thead><tr><th>Name</th><th>Playa Name</th><th>Location</th><th>First Burn</th><th>Has Ticket</th><th>Date</th><th>Status</th></tr></thead>
+        <tbody id="app-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <h2>
+      <span id="modal-title">Application</span>
+      <button class="modal-close" id="modalClose">&times;</button>
+    </h2>
+    <div id="modal-details"></div>
+    <div class="status-actions">
+      <select id="modal-status">
+        <option value="Pending">Pending</option>
+        <option value="Approved">Approved</option>
+        <option value="Rejected">Rejected</option>
+      </select>
+      <button id="modal-save">Update Status</button>
+      <span class="msg" id="modal-msg"></span>
+    </div>
+  </div>
+</div>
+
+<script src="/assets/js/admin-auth.js"></script>
+<script src="/assets/js/admin-applications.js"></script>
+</body>
+</html>
