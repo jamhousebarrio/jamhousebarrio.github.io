@@ -7,7 +7,7 @@ export default async function handler(req, res) {
 
   const { password, row, status } = req.body || {};
 
-  if (password !== process.env.ADMIN_WRITE_PASSWORD) {
+  if (!password || password !== process.env.ADMIN_WRITE_PASSWORD) {
     return res.status(401).json({ error: "Unauthorized" });
   }
 

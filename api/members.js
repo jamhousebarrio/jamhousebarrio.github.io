@@ -5,7 +5,8 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
   const { password } = req.body;
-  if (password !== process.env.ADMIN_PASSWORD) {
+  const isAdmin = password === process.env.ADMIN_WRITE_PASSWORD;
+  if (password !== process.env.ADMIN_PASSWORD && !isAdmin) {
     return res.status(401).json({ error: 'Wrong password' });
   }
   try {
@@ -29,7 +30,7 @@ export default async function handler(req, res) {
       headers.forEach((h, i) => { obj[h] = row[i] || ''; });
       return obj;
     });
-    return res.status(200).json(members);
+    return res.status(200).json({ members, admin: isAdmin });
   } catch (e) {
     return res.status(500).json({ error: 'Failed to fetch data' });
   }

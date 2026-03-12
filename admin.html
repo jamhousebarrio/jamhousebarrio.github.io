@@ -35,8 +35,10 @@ permalink: /admin
     try {
       var res = await fetch('/api/members', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: password }) });
       if (!res.ok) { err.textContent = 'Wrong password'; err.style.display = 'block'; return; }
+      var data = await res.json();
       sessionStorage.setItem('jh_pass', password);
-      window.location.href = '/admin/demographics';
+      if (data.admin) { sessionStorage.setItem('jh_admin', '1'); window.location.href = '/admin/applications'; }
+      else { sessionStorage.removeItem('jh_admin'); window.location.href = '/admin/demographics'; }
     } catch (e) { err.textContent = 'Something went wrong'; err.style.display = 'block'; }
   });
   (async function() {
@@ -44,8 +46,11 @@ permalink: /admin
     if (!cached) return;
     try {
       var res = await fetch('/api/members', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: cached }) });
-      if (res.ok) window.location.href = '/admin/demographics';
-      else sessionStorage.removeItem('jh_pass');
+      if (res.ok) {
+        var data = await res.json();
+        if (data.admin) { sessionStorage.setItem('jh_admin', '1'); window.location.href = '/admin/applications'; }
+        else window.location.href = '/admin/demographics';
+      } else { sessionStorage.removeItem('jh_pass'); sessionStorage.removeItem('jh_admin'); }
     } catch (e) {}
   })();
 </script>

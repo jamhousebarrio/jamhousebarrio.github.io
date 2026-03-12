@@ -3,6 +3,7 @@
   if (!members) return;
 
   var val = JH.val;
+  var isAdmin = JH.isAdmin();
   var allMembers = members.map(function(m, i) { m._row = i + 2; return m; });
 
   // Stats
@@ -51,6 +52,16 @@
     ['Needs Description', 'Needs Description'],
   ];
 
+  function refreshStats() {
+    var p = allMembers.filter(function(x) { return val(x, 'Status').toLowerCase() === 'pending'; }).length;
+    var a = allMembers.filter(function(x) { return val(x, 'Status').toLowerCase() === 'approved'; }).length;
+    var r = allMembers.filter(function(x) { return val(x, 'Status').toLowerCase() === 'rejected'; }).length;
+    document.getElementById('stat-total').textContent = allMembers.length;
+    document.getElementById('stat-pending').textContent = p;
+    document.getElementById('stat-approved').textContent = a;
+    document.getElementById('stat-rejected').textContent = r;
+  }
+
   function renderTable(filter) {
     var filtered = filter === 'all' ? allMembers : allMembers.filter(function(m) {
       return val(m, 'Status').toLowerCase() === filter;
@@ -73,7 +84,6 @@
         '</tr>';
     }).join('');
 
-    // Click handlers
     document.querySelectorAll('#app-tbody tr').forEach(function(tr) {
       tr.addEventListener('click', function() {
         var row = parseInt(this.dataset.row);
@@ -91,41 +101,43 @@
       return '<div class="detail-row"><div class="detail-label">' + f[1] + '</div><div class="detail-value">' + v.replace(/</g, '&lt;') + '</div></div>';
     }).join('');
     document.getElementById('modal-details').innerHTML = html;
-    document.getElementById('modal-status').value = val(m, 'Status') || 'Pending';
-    document.getElementById('modal-msg').textContent = '';
-    document.getElementById('modalOverlay').classList.add('active');
 
-    document.getElementById('modal-save').onclick = async function() {
-      var newStatus = document.getElementById('modal-status').value;
-      var adminPass = prompt('Enter admin password to update status:');
-      if (!adminPass) return;
-      document.getElementById('modal-msg').textContent = 'Saving...';
-      try {
-        var res = await fetch('/api/update-status', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ password: adminPass, row: m._row, status: newStatus })
-        });
-        if (!res.ok) {
-          var err = await res.json().catch(function() { return {}; });
-          throw new Error(err.error || 'Failed');
+    var statusActions = document.getElementById('status-actions');
+    if (isAdmin) {
+      statusActions.style.display = 'flex';
+      document.getElementById('modal-status').value = val(m, 'Status') || 'Pending';
+      document.getElementById('modal-msg').textContent = '';
+
+      document.getElementById('modal-save').onclick = async function() {
+        var newStatus = document.getElementById('modal-status').value;
+        var pass = sessionStorage.getItem('jh_pass');
+        document.getElementById('modal-msg').textContent = 'Saving...';
+        document.getElementById('modal-msg').style.color = '#888';
+        try {
+          var res = await fetch('/api/update-status', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ password: pass, row: m._row, status: newStatus })
+          });
+          if (!res.ok) {
+            var err = await res.json().catch(function() { return {}; });
+            throw new Error(err.error || 'Failed');
+          }
+          m['Status'] = newStatus;
+          document.getElementById('modal-msg').textContent = 'Updated!';
+          document.getElementById('modal-msg').style.color = '#4caf50';
+          refreshStats();
+          renderTable(document.getElementById('statusFilter').value);
+        } catch (e) {
+          document.getElementById('modal-msg').textContent = e.message;
+          document.getElementById('modal-msg').style.color = '#f44336';
         }
-        m['Status'] = newStatus;
-        document.getElementById('modal-msg').textContent = 'Updated!';
-        document.getElementById('modal-msg').style.color = '#4caf50';
-        // Refresh stats and table
-        var p = allMembers.filter(function(x) { return val(x, 'Status').toLowerCase() === 'pending'; }).length;
-        var a = allMembers.filter(function(x) { return val(x, 'Status').toLowerCase() === 'approved'; }).length;
-        var r = allMembers.filter(function(x) { return val(x, 'Status').toLowerCase() === 'rejected'; }).length;
-        document.getElementById('stat-pending').textContent = p;
-        document.getElementById('stat-approved').textContent = a;
-        document.getElementById('stat-rejected').textContent = r;
-        renderTable(document.getElementById('statusFilter').value);
-      } catch (e) {
-        document.getElementById('modal-msg').textContent = e.message;
-        document.getElementById('modal-msg').style.color = '#f44336';
-      }
-    };
+      };
+    } else {
+      statusActions.style.display = 'none';
+    }
+
+    document.getElementById('modalOverlay').classList.add('active');
   }
 
   document.getElementById('modalClose').addEventListener('click', function() {
