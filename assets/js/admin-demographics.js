@@ -1,0 +1,79 @@
+(async function() {
+  var members = await JH.authenticate();
+  if (!members) return;
+
+  var val = JH.val;
+
+  // Stats
+  document.getElementById('stat-total').textContent = members.length;
+  var approved = members.filter(function(m) { return val(m, 'Status').toLowerCase() === 'approved'; }).length;
+  var pending = members.length - approved;
+  document.getElementById('stat-approved').textContent = approved;
+  document.getElementById('stat-pending').textContent = pending;
+  var ages = members.map(function(m) { return parseInt(val(m, 'Age')); }).filter(function(a) { return !isNaN(a); });
+  document.getElementById('stat-avg-age').textContent = ages.length ? Math.round(ages.reduce(function(a, b) { return a + b; }, 0) / ages.length) : '-';
+
+  // Age chart
+  var ageBuckets = { '18-25': 0, '26-35': 0, '36-45': 0, '46-55': 0, '56+': 0 };
+  members.forEach(function(m) {
+    var age = parseInt(val(m, 'Age'));
+    if (isNaN(age)) return;
+    if (age <= 25) ageBuckets['18-25']++;
+    else if (age <= 35) ageBuckets['26-35']++;
+    else if (age <= 45) ageBuckets['36-45']++;
+    else if (age <= 55) ageBuckets['46-55']++;
+    else ageBuckets['56+']++;
+  });
+  JH.makeBar('age-chart', Object.keys(ageBuckets), Object.values(ageBuckets));
+
+  // Gender chart
+  var genderCounts = {};
+  members.forEach(function(m) { var v = val(m, 'Gender') || 'Not specified'; genderCounts[v] = (genderCounts[v] || 0) + 1; });
+  var genderColors = { 'Male': '#4fc3f7', 'Female': '#f06292', 'Non-binary': '#ab47bc', 'Prefer not to say': '#78909c', 'Not specified': '#78909c' };
+  var gLabels = Object.keys(genderCounts);
+  var gData = Object.values(genderCounts);
+  var gColors = gLabels.map(function(l) { return genderColors[l] || '#e8a84c'; });
+  new Chart(document.getElementById('gender-chart'), {
+    type: 'doughnut',
+    data: { labels: gLabels, datasets: [{ data: gData, backgroundColor: gColors, borderWidth: 0 }] },
+    options: {
+      responsive: true, maintainAspectRatio: false, cutout: '55%',
+      plugins: { legend: { position: 'bottom', labels: { color: '#e8e4df', padding: 16, usePointStyle: true, pointStyle: 'circle' } } }
+    }
+  });
+
+  // Location chart
+  var locCounts = {};
+  members.forEach(function(m) { var v = val(m, 'Location') || 'Unknown'; locCounts[v] = (locCounts[v] || 0) + 1; });
+  var locSorted = Object.entries(locCounts).sort(function(a, b) { return b[1] - a[1]; });
+  JH.makeBar('location-chart', locSorted.map(function(d) { return d[0]; }), locSorted.map(function(d) { return d[1]; }));
+
+  // Burns chart
+  var burnBuckets = { 'First Timer': 0, '1 Burn': 0, '2-3 Burns': 0, '4-5 Burns': 0, '6+ Burns': 0 };
+  members.forEach(function(m) {
+    var b = parseInt(val(m, 'Burns'));
+    if (isNaN(b)) return;
+    if (b === 0) burnBuckets['First Timer']++;
+    else if (b === 1) burnBuckets['1 Burn']++;
+    else if (b <= 3) burnBuckets['2-3 Burns']++;
+    else if (b <= 5) burnBuckets['4-5 Burns']++;
+    else burnBuckets['6+ Burns']++;
+  });
+  JH.makeBar('burns-chart', Object.keys(burnBuckets), Object.values(burnBuckets));
+
+  // Roster table
+  document.getElementById('roster-count').textContent = members.length + ' members';
+  document.getElementById('members-tbody').innerHTML = members.map(function(m) {
+    var status = val(m, 'Status').toLowerCase();
+    var statusClass = status === 'approved' ? 'status-approved' : 'status-pending';
+    var statusText = status === 'approved' ? 'Approved' : 'Pending';
+    return '<tr>' +
+      '<td class="name">' + val(m, 'Name') + '</td>' +
+      '<td><span class="location-badge">' + val(m, 'Location') + '</span></td>' +
+      '<td>' + val(m, 'Age') + '</td>' +
+      '<td>' + val(m, 'Gender') + '</td>' +
+      '<td>' + val(m, 'Burns') + '</td>' +
+      '<td><span class="' + statusClass + '">' + statusText + '</span></td>' +
+      '</tr>';
+  }).join('');
+})();

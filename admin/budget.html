@@ -1,0 +1,79 @@
+---
+layout: none
+title: Budget - JamHouse Admin
+---
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Budget - JamHouse Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/admin.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+</head>
+<body>
+<nav class="sidebar">
+  <div class="sidebar-brand">JamHouse <span>Admin 2026</span></div>
+  <div class="sidebar-nav">
+    <a class="nav-item" href="/admin/demographics">
+      <span class="icon">&#9776;</span>
+      <span class="nav-item-text">Demographics</span>
+    </a>
+    <a class="nav-item active" href="/admin/budget">
+      <span class="icon">&#9733;</span>
+      <span class="nav-item-text">Budget</span>
+    </a>
+  </div>
+  <div class="sidebar-footer">
+    <a href="/">&#8592; Back to Site</a>
+  </div>
+</nav>
+<div class="main">
+  <div class="page-header">
+    <h1><span class="icon">&#9733;</span> Budget</h1>
+    <div class="subtitle">Budget allocation by category</div>
+  </div>
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-label">Total Budget</div>
+      <div class="stat-number" id="stat-budget-total">-</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Categories</div>
+      <div class="stat-number" id="stat-budget-categories">-</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Largest Category</div>
+      <div class="stat-number" id="stat-budget-largest" style="font-size:1.2rem;">-</div>
+    </div>
+  </div>
+  <div class="charts-2col" style="display:grid;grid-template-columns:3fr 2fr;gap:20px;margin-bottom:20px;">
+    <div class="panel">
+      <h2>Budget by Category</h2>
+      <div style="height:300px;"><canvas id="budget-bar-chart"></canvas></div>
+    </div>
+    <div class="panel">
+      <h2>Budget Distribution</h2>
+      <div style="height:300px;display:flex;justify-content:center;"><canvas id="budget-pie-chart"></canvas></div>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="roster-header">
+      <h2>Budget Breakdown</h2>
+      <span class="roster-count" id="budget-item-count"></span>
+    </div>
+    <div style="overflow-x:auto;">
+      <table class="data-table">
+        <thead><tr><th>Category</th><th style="text-align:right;">Budget Allowed</th><th style="text-align:right;">% of Total</th></tr></thead>
+        <tbody id="budget-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+<script src="/assets/js/admin-auth.js"></script>
+<script src="/assets/js/admin-charts.js"></script>
+<script src="/assets/js/admin-budget.js"></script>
+</body>
+</html>
