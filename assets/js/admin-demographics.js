@@ -42,24 +42,23 @@
     }
   });
 
-  // Location chart
-  var locCounts = {};
-  members.forEach(function(m) { var v = val(m, 'Location') || 'Unknown'; locCounts[v] = (locCounts[v] || 0) + 1; });
-  var locSorted = Object.entries(locCounts).sort(function(a, b) { return b[1] - a[1]; });
-  JH.makeBar('location-chart', locSorted.map(function(d) { return d[0]; }), locSorted.map(function(d) { return d[1]; }));
+  // Nationality chart
+  var natCounts = {};
+  members.forEach(function(m) { var v = val(m, 'Nationality') || 'Unknown'; natCounts[v] = (natCounts[v] || 0) + 1; });
+  var natSorted = Object.entries(natCounts).sort(function(a, b) { return b[1] - a[1]; });
+  JH.makeBar('nationality-chart', natSorted.map(function(d) { return d[0]; }), natSorted.map(function(d) { return d[1]; }));
 
-  // Burns chart
-  var burnBuckets = { 'First Timer': 0, '1 Burn': 0, '2-3 Burns': 0, '4-5 Burns': 0, '6+ Burns': 0 };
+  // First Burn / First Elsewhere chart
+  var burnData = { 'First Burn - Yes': 0, 'First Burn - No': 0, 'First Elsewhere - Yes': 0, 'First Elsewhere - No': 0 };
   members.forEach(function(m) {
-    var b = parseInt(val(m, 'Burns'));
-    if (isNaN(b)) return;
-    if (b === 0) burnBuckets['First Timer']++;
-    else if (b === 1) burnBuckets['1 Burn']++;
-    else if (b <= 3) burnBuckets['2-3 Burns']++;
-    else if (b <= 5) burnBuckets['4-5 Burns']++;
-    else burnBuckets['6+ Burns']++;
+    var fb = val(m, 'First Burn');
+    var fe = val(m, 'First Elsewhere/Nowhere');
+    if (fb.toLowerCase() === 'yes') burnData['First Burn - Yes']++;
+    else if (fb) burnData['First Burn - No']++;
+    if (fe && fe.toLowerCase() !== 'no') burnData['First Elsewhere - Yes']++;
+    else if (fe) burnData['First Elsewhere - No']++;
   });
-  JH.makeBar('burns-chart', Object.keys(burnBuckets), Object.values(burnBuckets));
+  JH.makeBar('burns-chart', Object.keys(burnData), Object.values(burnData));
 
   // Roster table
   document.getElementById('roster-count').textContent = members.length + ' members';
@@ -69,10 +68,10 @@
     var statusText = status === 'approved' ? 'Approved' : 'Pending';
     return '<tr>' +
       '<td class="name">' + val(m, 'Name') + '</td>' +
-      '<td><span class="location-badge">' + val(m, 'Location') + '</span></td>' +
+      '<td><span class="location-badge">' + val(m, 'Nationality') + '</span></td>' +
       '<td>' + val(m, 'Age') + '</td>' +
       '<td>' + val(m, 'Gender') + '</td>' +
-      '<td>' + val(m, 'Burns') + '</td>' +
+      '<td>' + val(m, 'First Burn') + '</td>' +
       '<td><span class="' + statusClass + '">' + statusText + '</span></td>' +
       '</tr>';
   }).join('');
