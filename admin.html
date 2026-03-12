@@ -1,0 +1,180 @@
+---
+layout: default
+title: Admin - JamHouse 2026
+body_class: page-form
+---
+
+<div id="login-view">
+  <h1>Admin</h1>
+  <p>Enter password to view member insights.</p>
+  <form id="login-form">
+    <input type="password" id="password" placeholder="Password" required>
+    <button type="submit">Enter</button>
+  </form>
+  <p id="login-error" style="color:#e85c4c;display:none;margin-top:8px;"></p>
+</div>
+
+<div id="dashboard" style="display:none;">
+  <h1>Member Insights</h1>
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin:20px 0;">
+    <div class="stat-card">
+      <div class="stat-number" id="total-count">-</div>
+      <div class="stat-label">Total Members</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number" id="location-count">-</div>
+      <div class="stat-label">Locations</div>
+    </div>
+  </div>
+
+  <h2 style="font-family:var(--heading);color:var(--accent);font-size:1.1rem;margin:24px 0 12px;">By Location</h2>
+  <div id="location-breakdown"></div>
+
+  <h2 style="font-family:var(--heading);color:var(--accent);font-size:1.1rem;margin:24px 0 12px;">All Members</h2>
+  <div style="overflow-x:auto;">
+    <table id="members-table">
+      <thead><tr><th>Name</th><th>Location</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</div>
+
+<style>
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    text-align: center;
+  }
+  .stat-number {
+    font-family: var(--heading);
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--accent);
+  }
+  .stat-label {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-top: 4px;
+  }
+  .loc-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.9rem;
+  }
+  .loc-bar {
+    height: 4px;
+    background: var(--accent);
+    border-radius: 2px;
+    margin-top: 4px;
+    transition: width 0.3s;
+  }
+  #members-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+  }
+  #members-table th {
+    font-family: var(--heading);
+    text-align: left;
+    padding: 8px 12px;
+    border-bottom: 2px solid var(--border);
+    color: var(--accent);
+    font-weight: 600;
+  }
+  #members-table td {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+  }
+  #members-table tr:hover td {
+    background: var(--surface);
+  }
+</style>
+
+<script>
+  const form = document.getElementById('login-form');
+  const loginView = document.getElementById('login-view');
+  const dashboard = document.getElementById('dashboard');
+  const loginError = document.getElementById('login-error');
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    loginError.style.display = 'none';
+    const password = document.getElementById('password').value;
+    try {
+      const res = await fetch('/api/members', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password })
+      });
+      if (!res.ok) {
+        loginError.textContent = 'Wrong password';
+        loginError.style.display = 'block';
+        return;
+      }
+      const members = await res.json();
+      sessionStorage.setItem('jh_pass', password);
+      renderDashboard(members);
+    } catch (err) {
+      loginError.textContent = 'Something went wrong';
+      loginError.style.display = 'block';
+    }
+  });
+
+  // Auto-login if password is cached in session
+  (async () => {
+    const cached = sessionStorage.getItem('jh_pass');
+    if (!cached) return;
+    try {
+      const res = await fetch('/api/members', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: cached })
+      });
+      if (res.ok) renderDashboard(await res.json());
+      else sessionStorage.removeItem('jh_pass');
+    } catch (e) {}
+  })();
+
+  function renderDashboard(members) {
+    loginView.style.display = 'none';
+    dashboard.style.display = 'block';
+
+    // Stats
+    document.getElementById('total-count').textContent = members.length;
+
+    // Location breakdown
+    const locations = {};
+    members.forEach(m => {
+      const loc = (m.Location || m.location || 'Unknown').trim() || 'Unknown';
+      locations[loc] = (locations[loc] || 0) + 1;
+    });
+    const sortedLocs = Object.entries(locations).sort((a, b) => b[1] - a[1]);
+    document.getElementById('location-count').textContent = sortedLocs.length;
+
+    const maxCount = sortedLocs[0]?.[1] || 1;
+    const breakdown = document.getElementById('location-breakdown');
+    breakdown.innerHTML = sortedLocs.map(([loc, count]) => `
+      <div class="loc-row">
+        <span>${loc}</span>
+        <span style="color:var(--accent);font-weight:600;">${count}</span>
+      </div>
+      <div class="loc-bar" style="width:${(count / maxCount) * 100}%"></div>
+    `).join('');
+
+    // Table
+    const tbody = document.querySelector('#members-table tbody');
+    tbody.innerHTML = members.map(m => `
+      <tr>
+        <td>${m.Name || m.name || ''}</td>
+        <td>${m.Location || m.location || ''}</td>
+      </tr>
+    `).join('');
+  }
+</script>
