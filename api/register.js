@@ -27,6 +27,7 @@ export default async function handler(req, res) {
       b.phone || "",
       b.contactMethods || "",
       b.contactOther || "",
+      b.location || "",
       b.nationality || "",
       b.gender || "",
       b.age || "",
@@ -58,7 +59,7 @@ export default async function handler(req, res) {
 
     await sheets.spreadsheets.values.append({
       spreadsheetId: process.env.SHEET_ID,
-      range: "Sheet1!A:AH",
+      range: "Sheet1!A:AI",
       valueInputOption: "USER_ENTERED",
       requestBody: { values: [row] },
     });

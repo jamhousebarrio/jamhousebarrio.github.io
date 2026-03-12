@@ -42,6 +42,12 @@
     }
   });
 
+  // Location chart
+  var locCounts = {};
+  members.forEach(function(m) { var v = val(m, 'Location') || 'Unknown'; locCounts[v] = (locCounts[v] || 0) + 1; });
+  var locSorted = Object.entries(locCounts).sort(function(a, b) { return b[1] - a[1]; });
+  JH.makeBar('location-chart', locSorted.map(function(d) { return d[0]; }), locSorted.map(function(d) { return d[1]; }));
+
   // Nationality chart
   var natCounts = {};
   members.forEach(function(m) { var v = val(m, 'Nationality') || 'Unknown'; natCounts[v] = (natCounts[v] || 0) + 1; });
@@ -68,7 +74,8 @@
     var statusText = status === 'approved' ? 'Approved' : 'Pending';
     return '<tr>' +
       '<td class="name">' + val(m, 'Name') + '</td>' +
-      '<td><span class="location-badge">' + val(m, 'Nationality') + '</span></td>' +
+      '<td><span class="location-badge">' + val(m, 'Location') + '</span></td>' +
+      '<td>' + val(m, 'Nationality') + '</td>' +
       '<td>' + val(m, 'Age') + '</td>' +
       '<td>' + val(m, 'Gender') + '</td>' +
       '<td>' + val(m, 'First Burn') + '</td>' +

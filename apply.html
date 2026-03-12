@@ -242,6 +242,10 @@ title: Apply - JamHouse 2026
           <input type="text" name="contactOther">
         </div>
         <div class="form-group">
+          <label>Where do you live?</label>
+          <input type="text" name="location">
+        </div>
+        <div class="form-group">
           <label>Nationality</label>
           <input type="text" name="nationality">
         </div>
@@ -463,6 +467,7 @@ title: Apply - JamHouse 2026
         phone: form.phone.value,
         contactMethods: contactMethods.join(','),
         contactOther: form.contactOther.value,
+        location: form.location.value,
         nationality: form.nationality.value,
         gender: form.gender.value,
         age: form.age.value,
