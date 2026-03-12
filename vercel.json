@@ -1,3 +1,6 @@
 {
-  "framework": "jekyll"
+  "framework": "jekyll",
+  "rewrites": [
+    { "source": "/admin", "destination": "/admin.html" }
+  ]
 }
