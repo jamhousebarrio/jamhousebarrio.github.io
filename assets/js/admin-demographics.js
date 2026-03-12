@@ -9,8 +9,6 @@
 
   // Stats
   document.getElementById('stat-total').textContent = members.length;
-  document.getElementById('stat-approved').textContent = members.length;
-  document.getElementById('stat-pending').textContent = 0;
   var ages = members.map(function(m) { return parseInt(val(m, 'Age')); }).filter(function(a) { return !isNaN(a); });
   document.getElementById('stat-avg-age').textContent = ages.length ? Math.round(ages.reduce(function(a, b) { return a + b; }, 0) / ages.length) : '-';
 
