@@ -1,6 +1,8 @@
 {
   "framework": "jekyll",
   "rewrites": [
-    { "source": "/admin", "destination": "/admin.html" }
+    { "source": "/admin", "destination": "/admin.html" },
+    { "source": "/admin/demographics", "destination": "/admin/demographics.html" },
+    { "source": "/admin/budget", "destination": "/admin/budget.html" }
   ]
 }
