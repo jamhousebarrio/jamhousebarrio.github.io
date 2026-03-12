@@ -128,6 +128,17 @@ permalink: /admin
       display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 500;
       background: var(--accent-glow); color: var(--accent); border: 1px solid var(--accent);
     }
+    .status-approved { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 500; background: rgba(76,175,80,0.15); color: #4caf50; border: 1px solid #4caf50; }
+    .status-pending { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 500; background: rgba(255,152,0,0.15); color: #ff9800; border: 1px solid #ff9800; }
+    /* Gender donut */
+    .gender-grid { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 12px; }
+    .gender-item { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; }
+    .gender-dot { width: 12px; height: 12px; border-radius: 50%; }
+    .gender-item .count { color: var(--text-muted); }
+    /* 2-col responsive */
+    @media (max-width: 900px) {
+      .main [style*="grid-template-columns: 1fr 1fr"] { grid-template-columns: 1fr !important; }
+    }
 
     /* PAGES */
     .page { display: none; }
@@ -151,7 +162,7 @@ permalink: /admin
 <div id="login-view">
   <div class="login-box">
     <h1>JamHouse</h1>
-    <div class="sub">Admin Dashboard</div>
+    <div class="sub">Member Login</div>
     <p class="desc">Enter password to access member insights.</p>
     <form id="login-form">
       <input type="password" id="password" placeholder="Password" required>
@@ -181,23 +192,45 @@ permalink: /admin
     <div class="page active" id="page-demographics">
       <div class="page-header">
         <h1><span class="icon">&#9776;</span> Demographics</h1>
-        <div class="subtitle">Location distribution and member overview</div>
+        <div class="subtitle">Member distribution and overview</div>
       </div>
       <div class="stats-row">
         <div class="stat-card">
           <div class="stat-label">Total Members</div>
           <div class="stat-number" id="stat-total">-</div>
-          <span class="stat-icon">&#9775;</span>
         </div>
         <div class="stat-card">
-          <div class="stat-label">Locations</div>
-          <div class="stat-number" id="stat-locations">-</div>
-          <span class="stat-icon">&#9992;</span>
+          <div class="stat-label">Approved</div>
+          <div class="stat-number" id="stat-approved" style="color:#4caf50;">-</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Pending</div>
+          <div class="stat-number" id="stat-pending" style="color:#ff9800;">-</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Average Age</div>
+          <div class="stat-number" id="stat-avg-age">-</div>
         </div>
       </div>
-      <div class="panel">
-        <h2>Location Distribution</h2>
-        <div id="location-chart"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;">
+        <div class="panel">
+          <h2>Location Distribution</h2>
+          <div id="location-chart"></div>
+        </div>
+        <div class="panel">
+          <h2>Gender Breakdown</h2>
+          <div id="gender-chart"></div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;">
+        <div class="panel">
+          <h2>Age Distribution</h2>
+          <div id="age-chart"></div>
+        </div>
+        <div class="panel">
+          <h2>Previous Burns Experience</h2>
+          <div id="burns-chart"></div>
+        </div>
       </div>
       <div class="panel">
         <div class="roster-header">
@@ -206,7 +239,7 @@ permalink: /admin
         </div>
         <div style="overflow-x:auto;">
           <table class="members-table">
-            <thead><tr><th>Member</th><th>Location</th></tr></thead>
+            <thead><tr><th>Member</th><th>Location</th><th>Age</th><th>Gender</th><th>Burns</th><th>Status</th></tr></thead>
             <tbody id="members-tbody"></tbody>
           </table>
         </div>
@@ -250,37 +283,119 @@ permalink: /admin
   function showAdmin(members) {
     loginView.style.display = 'none';
     adminShell.style.display = 'block';
-    renderDemographics(members);
-    renderMembers(members);
+    renderStats(members);
+    renderLocationChart(members);
+    renderGenderChart(members);
+    renderAgeChart(members);
+    renderBurnsChart(members);
+    renderRoster(members);
   }
 
-  function renderDemographics(members) {
+  function val(m, key) { return (m[key] || '').toString().trim(); }
+
+  function renderStats(members) {
     document.getElementById('stat-total').textContent = members.length;
-    const locations = {};
-    members.forEach(m => {
-      const loc = (m.Location || m.location || 'Unknown').trim() || 'Unknown';
-      locations[loc] = (locations[loc] || 0) + 1;
-    });
-    const sorted = Object.entries(locations).sort((a, b) => b[1] - a[1]);
-    document.getElementById('stat-locations').textContent = sorted.length;
-    const max = sorted[0]?.[1] || 1;
-    document.getElementById('location-chart').innerHTML = sorted.map(([loc, count]) => `
+    const approved = members.filter(m => val(m, 'Status').toLowerCase() === 'approved').length;
+    const pending = members.length - approved;
+    document.getElementById('stat-approved').textContent = approved;
+    document.getElementById('stat-pending').textContent = pending;
+    const ages = members.map(m => parseInt(val(m, 'Age'))).filter(a => !isNaN(a));
+    document.getElementById('stat-avg-age').textContent = ages.length ? Math.round(ages.reduce((a, b) => a + b, 0) / ages.length) : '-';
+  }
+
+  function barChart(el, data) {
+    const max = Math.max(...data.map(d => d[1]), 1);
+    el.innerHTML = data.map(([label, count]) => `
       <div class="chart-bar-row">
-        <div class="chart-bar-label">${loc}</div>
+        <div class="chart-bar-label">${label}</div>
         <div class="chart-bar-track"><div class="chart-bar-fill" style="width:${(count / max) * 100}%">${count}</div></div>
         <div class="chart-bar-count">${count}</div>
       </div>
     `).join('');
   }
 
-  function renderMembers(members) {
+  function renderLocationChart(members) {
+    const counts = {};
+    members.forEach(m => { const v = val(m, 'Location') || 'Unknown'; counts[v] = (counts[v] || 0) + 1; });
+    barChart(document.getElementById('location-chart'), Object.entries(counts).sort((a, b) => b[1] - a[1]));
+  }
+
+  function renderGenderChart(members) {
+    const counts = {};
+    members.forEach(m => { const v = val(m, 'Gender') || 'Not specified'; counts[v] = (counts[v] || 0) + 1; });
+    const colors = { 'Male': '#4fc3f7', 'Female': '#f06292', 'Non-binary': '#ab47bc', 'Prefer not to say': '#78909c', 'Not specified': '#78909c' };
+    const total = members.length || 1;
+    const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+    // CSS conic gradient donut
+    let gradParts = [], deg = 0;
+    sorted.forEach(([label, count]) => {
+      const slice = (count / total) * 360;
+      const c = colors[label] || '#e8a84c';
+      gradParts.push(`${c} ${deg}deg ${deg + slice}deg`);
+      deg += slice;
+    });
+    const el = document.getElementById('gender-chart');
+    el.innerHTML = `
+      <div style="display:flex;align-items:center;gap:24px;flex-wrap:wrap;">
+        <div style="width:120px;height:120px;border-radius:50%;background:conic-gradient(${gradParts.join(',')});position:relative;flex-shrink:0;">
+          <div style="position:absolute;inset:25%;border-radius:50%;background:var(--surface);"></div>
+        </div>
+        <div class="gender-grid">
+          ${sorted.map(([label, count]) => `
+            <div class="gender-item">
+              <span class="gender-dot" style="background:${colors[label] || '#e8a84c'}"></span>
+              <span>${label}</span>
+              <span class="count">${count} (${Math.round(count/total*100)}%)</span>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  function renderAgeChart(members) {
+    const buckets = { '18-25': 0, '26-35': 0, '36-45': 0, '46-55': 0, '56+': 0 };
+    members.forEach(m => {
+      const age = parseInt(val(m, 'Age'));
+      if (isNaN(age)) return;
+      if (age <= 25) buckets['18-25']++;
+      else if (age <= 35) buckets['26-35']++;
+      else if (age <= 45) buckets['36-45']++;
+      else if (age <= 55) buckets['46-55']++;
+      else buckets['56+']++;
+    });
+    barChart(document.getElementById('age-chart'), Object.entries(buckets));
+  }
+
+  function renderBurnsChart(members) {
+    const buckets = { 'First Timer': 0, '1 Burn': 0, '2-3 Burns': 0, '4-5 Burns': 0, '6+ Burns': 0 };
+    members.forEach(m => {
+      const b = parseInt(val(m, 'Burns'));
+      if (isNaN(b)) return;
+      if (b === 0) buckets['First Timer']++;
+      else if (b === 1) buckets['1 Burn']++;
+      else if (b <= 3) buckets['2-3 Burns']++;
+      else if (b <= 5) buckets['4-5 Burns']++;
+      else buckets['6+ Burns']++;
+    });
+    barChart(document.getElementById('burns-chart'), Object.entries(buckets));
+  }
+
+  function renderRoster(members) {
     document.getElementById('roster-count').textContent = members.length + ' members';
-    document.getElementById('members-tbody').innerHTML = members.map(m => `
-      <tr>
-        <td class="name">${m.Name || m.name || ''}</td>
-        <td><span class="location-badge">${m.Location || m.location || ''}</span></td>
-      </tr>
-    `).join('');
+    document.getElementById('members-tbody').innerHTML = members.map(m => {
+      const status = val(m, 'Status').toLowerCase();
+      const statusClass = status === 'approved' ? 'status-approved' : 'status-pending';
+      const statusText = status === 'approved' ? 'Approved' : 'Pending';
+      return `<tr>
+        <td class="name">${val(m, 'Name')}</td>
+        <td><span class="location-badge">${val(m, 'Location')}</span></td>
+        <td>${val(m, 'Age')}</td>
+        <td>${val(m, 'Gender')}</td>
+        <td>${val(m, 'Burns')}</td>
+        <td><span class="${statusClass}">${statusText}</span></td>
+      </tr>`;
+    }).join('');
   }
 
   // Sidebar navigation
