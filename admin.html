@@ -1,110 +1,239 @@
 ---
-layout: default
+layout: none
 title: Admin - JamHouse 2026
-body_class: page-form
 permalink: /admin
 ---
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>JamHouse Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0a0a0a;
+      --surface: #141414;
+      --surface2: #1a1a1a;
+      --border: #2a2a2a;
+      --text: #e8e4df;
+      --text-muted: #8a8580;
+      --accent: #e8a84c;
+      --accent-glow: #e8a84c33;
+      --sidebar-w: 220px;
+      --heading: 'Space Grotesk', sans-serif;
+      --body: 'Inter', sans-serif;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: var(--body); background: var(--bg); color: var(--text); font-weight: 400; min-height: 100vh; }
 
-<div id="login-view" style="max-width:360px;margin:40px auto;text-align:center;">
-  <h1>Admin</h1>
-  <p>Enter password to view member insights.</p>
-  <form id="login-form" style="display:flex;flex-direction:column;gap:12px;margin-top:20px;">
-    <input type="password" id="password" placeholder="Password" required style="text-align:center;font-size:1rem;padding:12px 16px;background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--body);">
-    <button type="submit" style="padding:12px 44px;background:var(--accent);color:var(--bg);border:none;border-radius:6px;font-family:var(--heading);font-weight:600;font-size:1rem;cursor:pointer;box-shadow:0 0 30px var(--accent-glow);">Enter</button>
-  </form>
-  <p id="login-error" style="color:#e85c4c;display:none;margin-top:12px;"></p>
+    /* LOGIN */
+    #login-view {
+      display: flex; align-items: center; justify-content: center; min-height: 100vh;
+      background: linear-gradient(180deg, #1a1208 0%, var(--bg) 100%);
+    }
+    .login-box { text-align: center; max-width: 360px; width: 100%; padding: 0 24px; }
+    .login-box h1 { font-family: var(--heading); font-size: 2.5rem; color: var(--accent); margin-bottom: 4px; }
+    .login-box .sub { font-size: 0.85rem; color: var(--text-muted); letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 32px; }
+    .login-box p.desc { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 20px; }
+    .login-box form { display: flex; flex-direction: column; gap: 12px; }
+    .login-box input[type="password"] {
+      text-align: center; font-size: 1rem; padding: 14px 16px;
+      background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+      color: var(--text); font-family: var(--body); outline: none; transition: border-color 0.2s;
+    }
+    .login-box input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+    .login-box button {
+      padding: 14px; background: var(--accent); color: var(--bg); border: none; border-radius: 8px;
+      font-family: var(--heading); font-weight: 600; font-size: 1rem; cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s; box-shadow: 0 0 30px var(--accent-glow);
+    }
+    .login-box button:hover { transform: translateY(-2px); box-shadow: 0 0 50px var(--accent-glow); }
+    .login-error { color: #e85c4c; display: none; margin-top: 8px; font-size: 0.9rem; }
+
+    /* ADMIN SHELL */
+    #admin-shell { display: none; min-height: 100vh; }
+    .sidebar {
+      position: fixed; top: 0; left: 0; width: var(--sidebar-w); height: 100vh;
+      background: var(--surface); border-right: 1px solid var(--border);
+      display: flex; flex-direction: column; z-index: 10;
+    }
+    .sidebar-brand {
+      padding: 20px 16px; border-bottom: 1px solid var(--border);
+      font-family: var(--heading); font-size: 1.2rem; font-weight: 700; color: var(--accent);
+    }
+    .sidebar-brand span { font-size: 0.7rem; color: var(--text-muted); display: block; font-weight: 400; letter-spacing: 0.1em; text-transform: uppercase; margin-top: 2px; }
+    .sidebar-nav { flex: 1; padding: 12px 0; overflow-y: auto; }
+    .nav-item {
+      display: flex; align-items: center; gap: 10px; padding: 10px 16px; margin: 2px 8px;
+      border-radius: 6px; color: var(--text-muted); font-size: 0.85rem; cursor: pointer;
+      transition: all 0.15s; text-decoration: none;
+    }
+    .nav-item:hover { background: var(--surface2); color: var(--text); }
+    .nav-item.active { background: var(--accent-glow); color: var(--accent); font-weight: 600; }
+    .nav-item .icon { font-size: 1.1rem; width: 22px; text-align: center; }
+    .sidebar-footer { padding: 12px 16px; border-top: 1px solid var(--border); }
+    .sidebar-footer a {
+      display: flex; align-items: center; gap: 8px; color: var(--text-muted);
+      font-size: 0.8rem; text-decoration: none; padding: 6px 0;
+    }
+    .sidebar-footer a:hover { color: var(--accent); }
+
+    /* MAIN */
+    .main { margin-left: var(--sidebar-w); padding: 28px 32px; }
+    .page-header { margin-bottom: 24px; }
+    .page-header h1 { font-family: var(--heading); font-size: 1.5rem; font-weight: 700; color: var(--text); display: flex; align-items: center; gap: 10px; }
+    .page-header h1 .icon { color: var(--accent); }
+    .page-header .subtitle { color: var(--text-muted); font-size: 0.85rem; margin-top: 2px; }
+
+    /* STAT CARDS */
+    .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; margin-bottom: 28px; }
+    .stat-card {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+      padding: 18px 20px; position: relative; overflow: hidden;
+    }
+    .stat-card .stat-label { font-size: 0.75rem; color: var(--accent); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
+    .stat-card .stat-number { font-family: var(--heading); font-size: 2rem; font-weight: 700; color: var(--text); }
+    .stat-card .stat-icon { position: absolute; right: 16px; top: 50%; transform: translateY(-50%); font-size: 2rem; opacity: 0.15; }
+
+    /* PANELS */
+    .panel {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+      padding: 20px 24px; margin-bottom: 20px;
+    }
+    .panel h2 { font-family: var(--heading); font-size: 1rem; font-weight: 600; color: var(--text); margin-bottom: 16px; }
+
+    /* CHART BARS */
+    .chart-bar-row { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+    .chart-bar-label { min-width: 80px; font-size: 0.85rem; color: var(--text-muted); text-align: right; }
+    .chart-bar-track { flex: 1; height: 28px; background: var(--surface2); border-radius: 6px; overflow: hidden; }
+    .chart-bar-fill { height: 100%; background: var(--accent); border-radius: 6px; transition: width 0.5s ease; display: flex; align-items: center; padding-left: 10px; font-size: 0.75rem; font-weight: 600; color: var(--bg); min-width: 30px; }
+    .chart-bar-count { min-width: 30px; text-align: right; font-size: 0.85rem; font-weight: 600; color: var(--accent); }
+
+    /* TABLE */
+    .roster-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .roster-header h2 { margin-bottom: 0; }
+    .roster-count { font-size: 0.85rem; color: var(--text-muted); }
+    .members-table { width: 100%; border-collapse: collapse; }
+    .members-table th {
+      font-family: var(--heading); text-align: left; padding: 10px 14px; font-size: 0.7rem;
+      text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted);
+      border-bottom: 1px solid var(--border); font-weight: 600;
+    }
+    .members-table td { padding: 12px 14px; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
+    .members-table tr:hover td { background: var(--surface2); }
+    .members-table .name { font-weight: 500; color: var(--text); }
+    .members-table .location-badge {
+      display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 500;
+      background: var(--accent-glow); color: var(--accent); border: 1px solid var(--accent);
+    }
+
+    /* PAGES */
+    .page { display: none; }
+    .page.active { display: block; }
+
+    /* RESPONSIVE */
+    @media (max-width: 768px) {
+      .sidebar { width: 60px; }
+      .sidebar-brand span, .nav-item-text { display: none; }
+      .sidebar-brand { font-size: 0.9rem; padding: 16px 12px; text-align: center; }
+      .nav-item { justify-content: center; padding: 12px; margin: 2px 4px; }
+      .nav-item .icon { font-size: 1.3rem; }
+      .main { margin-left: 60px; padding: 20px 16px; }
+      .sidebar-footer { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-view">
+  <div class="login-box">
+    <h1>JamHouse</h1>
+    <div class="sub">Admin Dashboard</div>
+    <p class="desc">Enter password to access member insights.</p>
+    <form id="login-form">
+      <input type="password" id="password" placeholder="Password" required>
+      <button type="submit">Enter</button>
+    </form>
+    <p class="login-error" id="login-error"></p>
+  </div>
 </div>
 
-<div id="dashboard" style="display:none;">
-  <h1>Member Insights</h1>
-
-  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin:20px 0;">
-    <div class="stat-card">
-      <div class="stat-number" id="total-count">-</div>
-      <div class="stat-label">Total Members</div>
+<!-- ADMIN SHELL -->
+<div id="admin-shell">
+  <nav class="sidebar">
+    <div class="sidebar-brand">JamHouse <span>Admin 2026</span></div>
+    <div class="sidebar-nav">
+      <a class="nav-item active" data-page="demographics">
+        <span class="icon">&#9776;</span>
+        <span class="nav-item-text">Demographics</span>
+      </a>
+      <a class="nav-item" data-page="members">
+        <span class="icon">&#9775;</span>
+        <span class="nav-item-text">All Members</span>
+      </a>
     </div>
-    <div class="stat-card">
-      <div class="stat-number" id="location-count">-</div>
-      <div class="stat-label">Locations</div>
+    <div class="sidebar-footer">
+      <a href="/">&#8592; Back to Site</a>
     </div>
-  </div>
+  </nav>
 
-  <h2 style="font-family:var(--heading);color:var(--accent);font-size:1.1rem;margin:24px 0 12px;">By Location</h2>
-  <div id="location-breakdown"></div>
+  <div class="main">
+    <!-- DEMOGRAPHICS PAGE -->
+    <div class="page active" id="page-demographics">
+      <div class="page-header">
+        <h1><span class="icon">&#9776;</span> Demographics</h1>
+        <div class="subtitle">Location distribution and member overview</div>
+      </div>
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-label">Total Members</div>
+          <div class="stat-number" id="stat-total">-</div>
+          <span class="stat-icon">&#9775;</span>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Locations</div>
+          <div class="stat-number" id="stat-locations">-</div>
+          <span class="stat-icon">&#9992;</span>
+        </div>
+      </div>
+      <div class="panel">
+        <h2>Location Distribution</h2>
+        <div id="location-chart"></div>
+      </div>
+    </div>
 
-  <h2 style="font-family:var(--heading);color:var(--accent);font-size:1.1rem;margin:24px 0 12px;">All Members</h2>
-  <div style="overflow-x:auto;">
-    <table id="members-table">
-      <thead><tr><th>Name</th><th>Location</th></tr></thead>
-      <tbody></tbody>
-    </table>
+    <!-- MEMBERS PAGE -->
+    <div class="page" id="page-members">
+      <div class="page-header">
+        <h1><span class="icon">&#9775;</span> All Members</h1>
+        <div class="subtitle">Full member roster</div>
+      </div>
+      <div class="panel">
+        <div class="roster-header">
+          <h2>Member Roster</h2>
+          <span class="roster-count" id="roster-count"></span>
+        </div>
+        <div style="overflow-x:auto;">
+          <table class="members-table">
+            <thead><tr><th>Member</th><th>Location</th></tr></thead>
+            <tbody id="members-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
-
-<style>
-  .stat-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 16px;
-    text-align: center;
-  }
-  .stat-number {
-    font-family: var(--heading);
-    font-size: 2rem;
-    font-weight: 700;
-    color: var(--accent);
-  }
-  .stat-label {
-    font-size: 0.8rem;
-    color: var(--text-muted);
-    margin-top: 4px;
-  }
-  .loc-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 8px 12px;
-    border-bottom: 1px solid var(--border);
-    font-size: 0.9rem;
-  }
-  .loc-bar {
-    height: 4px;
-    background: var(--accent);
-    border-radius: 2px;
-    margin-top: 4px;
-    transition: width 0.3s;
-  }
-  #members-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.9rem;
-  }
-  #members-table th {
-    font-family: var(--heading);
-    text-align: left;
-    padding: 8px 12px;
-    border-bottom: 2px solid var(--border);
-    color: var(--accent);
-    font-weight: 600;
-  }
-  #members-table td {
-    padding: 8px 12px;
-    border-bottom: 1px solid var(--border);
-    color: var(--text);
-  }
-  #members-table tr:hover td {
-    background: var(--surface);
-  }
-</style>
 
 <script>
-  const form = document.getElementById('login-form');
   const loginView = document.getElementById('login-view');
-  const dashboard = document.getElementById('dashboard');
+  const adminShell = document.getElementById('admin-shell');
+  const loginForm = document.getElementById('login-form');
   const loginError = document.getElementById('login-error');
 
-  form.addEventListener('submit', async (e) => {
+  loginForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     loginError.style.display = 'none';
     const password = document.getElementById('password').value;
@@ -114,68 +243,67 @@ permalink: /admin
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ password })
       });
-      if (!res.ok) {
-        loginError.textContent = 'Wrong password';
-        loginError.style.display = 'block';
-        return;
-      }
-      const members = await res.json();
+      if (!res.ok) { loginError.textContent = 'Wrong password'; loginError.style.display = 'block'; return; }
       sessionStorage.setItem('jh_pass', password);
-      renderDashboard(members);
-    } catch (err) {
-      loginError.textContent = 'Something went wrong';
-      loginError.style.display = 'block';
-    }
+      showAdmin(await res.json());
+    } catch (err) { loginError.textContent = 'Something went wrong'; loginError.style.display = 'block'; }
   });
 
-  // Auto-login if password is cached in session
   (async () => {
     const cached = sessionStorage.getItem('jh_pass');
     if (!cached) return;
     try {
-      const res = await fetch('/api/members', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password: cached })
-      });
-      if (res.ok) renderDashboard(await res.json());
+      const res = await fetch('/api/members', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: cached }) });
+      if (res.ok) showAdmin(await res.json());
       else sessionStorage.removeItem('jh_pass');
     } catch (e) {}
   })();
 
-  function renderDashboard(members) {
+  function showAdmin(members) {
     loginView.style.display = 'none';
-    dashboard.style.display = 'block';
+    adminShell.style.display = 'block';
+    renderDemographics(members);
+    renderMembers(members);
+  }
 
-    // Stats
-    document.getElementById('total-count').textContent = members.length;
-
-    // Location breakdown
+  function renderDemographics(members) {
+    document.getElementById('stat-total').textContent = members.length;
     const locations = {};
     members.forEach(m => {
       const loc = (m.Location || m.location || 'Unknown').trim() || 'Unknown';
       locations[loc] = (locations[loc] || 0) + 1;
     });
-    const sortedLocs = Object.entries(locations).sort((a, b) => b[1] - a[1]);
-    document.getElementById('location-count').textContent = sortedLocs.length;
-
-    const maxCount = sortedLocs[0]?.[1] || 1;
-    const breakdown = document.getElementById('location-breakdown');
-    breakdown.innerHTML = sortedLocs.map(([loc, count]) => `
-      <div class="loc-row">
-        <span>${loc}</span>
-        <span style="color:var(--accent);font-weight:600;">${count}</span>
+    const sorted = Object.entries(locations).sort((a, b) => b[1] - a[1]);
+    document.getElementById('stat-locations').textContent = sorted.length;
+    const max = sorted[0]?.[1] || 1;
+    document.getElementById('location-chart').innerHTML = sorted.map(([loc, count]) => `
+      <div class="chart-bar-row">
+        <div class="chart-bar-label">${loc}</div>
+        <div class="chart-bar-track"><div class="chart-bar-fill" style="width:${(count / max) * 100}%">${count}</div></div>
+        <div class="chart-bar-count">${count}</div>
       </div>
-      <div class="loc-bar" style="width:${(count / maxCount) * 100}%"></div>
     `).join('');
+  }
 
-    // Table
-    const tbody = document.querySelector('#members-table tbody');
-    tbody.innerHTML = members.map(m => `
+  function renderMembers(members) {
+    document.getElementById('roster-count').textContent = members.length + ' members';
+    document.getElementById('members-tbody').innerHTML = members.map(m => `
       <tr>
-        <td>${m.Name || m.name || ''}</td>
-        <td>${m.Location || m.location || ''}</td>
+        <td class="name">${m.Name || m.name || ''}</td>
+        <td><span class="location-badge">${m.Location || m.location || ''}</span></td>
       </tr>
     `).join('');
   }
+
+  // Sidebar navigation
+  document.querySelectorAll('.nav-item[data-page]').forEach(item => {
+    item.addEventListener('click', () => {
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+      item.classList.add('active');
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.getElementById('page-' + item.dataset.page).classList.add('active');
+    });
+  });
 </script>
+</body>
+</html>
