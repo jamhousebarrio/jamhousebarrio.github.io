@@ -79,7 +79,6 @@ title: Apply - JamHouse 2026
     .form-group input[type="email"],
     .form-group input[type="tel"],
     .form-group input[type="number"],
-    .form-group input[type="date"],
     .form-group select,
     .form-group textarea {
       width: 100%;
@@ -159,11 +158,6 @@ title: Apply - JamHouse 2026
       font-size: 0.95rem;
       display: none;
     }
-    .message.success {
-      background: rgba(76, 175, 80, 0.15);
-      border: 1px solid rgba(76, 175, 80, 0.3);
-      color: #81c784;
-    }
     .message.error {
       background: rgba(244, 67, 54, 0.15);
       border: 1px solid rgba(244, 67, 54, 0.3);
@@ -214,10 +208,10 @@ title: Apply - JamHouse 2026
     </div>
 
     <form id="applyForm">
-      <!-- Section 1: Personal Information -->
+      <!-- Section 1: About You -->
       <div class="form-section">
-        <h3>Personal Information</h3>
-        <p class="section-desc">Tell us about yourself.</p>
+        <h3>About You</h3>
+        <p class="section-desc">Tell us who you are.</p>
 
         <div class="form-group">
           <label>Name <span class="optional">*</span></label>
@@ -260,6 +254,10 @@ title: Apply - JamHouse 2026
             <option value="Non-binary">Non-binary</option>
             <option value="Prefer not to say">Prefer not to say</option>
           </select>
+        </div>
+        <div class="form-group">
+          <label>Age <span class="optional">(optional)</span></label>
+          <input type="number" name="age" min="18" max="120">
         </div>
         <div class="form-group">
           <label>Primary Language</label>
@@ -322,9 +320,9 @@ title: Apply - JamHouse 2026
         </div>
       </div>
 
-      <!-- Section 4: Art & Skills -->
+      <!-- Section 4: Art, Skills & Fun -->
       <div class="form-section">
-        <h3>Art & Skills</h3>
+        <h3>Art, Skills & Fun</h3>
         <p class="section-desc">Show us what you've got.</p>
 
         <div class="form-group">
@@ -339,12 +337,20 @@ title: Apply - JamHouse 2026
           <label>How many kg can you lift barehanded and hungover under the desert sun?</label>
           <input type="text" name="liftKg">
         </div>
+        <div class="form-group">
+          <label>Do we need to know your deepest secrets?</label>
+          <textarea name="deepestSecrets"></textarea>
+        </div>
+        <div class="form-group">
+          <label>Special talent or addiction to share?</label>
+          <textarea name="talents"></textarea>
+        </div>
       </div>
 
-      <!-- Section 5: Logistics -->
+      <!-- Section 5: Logistics & Final -->
       <div class="form-section">
         <h3>Logistics</h3>
-        <p class="section-desc">Help us plan the build and teardown.</p>
+        <p class="section-desc">A few practical things.</p>
 
         <div class="form-group">
           <label>Do you have your ticket for Elsewhere 2026?</label>
@@ -353,10 +359,6 @@ title: Apply - JamHouse 2026
             <option value="Yes">Yes</option>
             <option value="No, not yet">No, not yet</option>
           </select>
-        </div>
-        <div class="form-group">
-          <label>When will you arrive on site?</label>
-          <input type="date" name="arrival">
         </div>
         <div class="form-group">
           <label>Are you able to join the build?</label>
@@ -380,12 +382,7 @@ title: Apply - JamHouse 2026
             <option value="">Select...</option>
             <option value="Yes">Yes</option>
             <option value="No">No</option>
-            <option value="N/A">N/A</option>
           </select>
-        </div>
-        <div class="form-group">
-          <label>When are you planning to leave?</label>
-          <input type="date" name="departure">
         </div>
         <div class="form-group">
           <label>Did you apply to another camp?</label>
@@ -406,71 +403,6 @@ title: Apply - JamHouse 2026
             <option value="Not really">Not really</option>
           </select>
         </div>
-      </div>
-
-      <!-- Section 6: Health & Food -->
-      <div class="form-section">
-        <h3>Health & Food</h3>
-        <p class="section-desc">Important for your safety and comfort.</p>
-
-        <div class="form-group">
-          <label>Food allergies</label>
-          <input type="text" name="foodAllergies">
-        </div>
-        <div class="form-group">
-          <label>Food intolerances</label>
-          <input type="text" name="foodIntolerance">
-        </div>
-        <div class="form-group">
-          <label>Any other intolerances?</label>
-          <input type="text" name="otherIntolerance">
-        </div>
-        <div class="form-group" id="intoleranceDetailsGroup" style="display:none">
-          <label>If other, details</label>
-          <input type="text" name="intoleranceDetails">
-        </div>
-        <div class="form-group">
-          <label>Other dietary restrictions</label>
-          <input type="text" name="dietaryRestrictions">
-        </div>
-        <div class="form-group">
-          <label>Any additional health / inappropriately personal information you would like to share?</label>
-          <textarea name="healthInfo"></textarea>
-        </div>
-        <div class="form-group">
-          <label>Do we need to know your deepest secrets?</label>
-          <textarea name="deepestSecrets"></textarea>
-        </div>
-      </div>
-
-      <!-- Section 7: The Fun Stuff -->
-      <div class="form-section">
-        <h3>The Fun Stuff</h3>
-        <p class="section-desc">Almost there!</p>
-
-        <div class="form-group">
-          <label>Special talent or addiction to share?</label>
-          <textarea name="talents"></textarea>
-        </div>
-        <div class="form-group">
-          <label>Emergency contact name <span class="optional">*</span></label>
-          <input type="text" name="emergencyName" required>
-        </div>
-        <div class="form-group">
-          <label>Emergency contact phone <span class="optional">*</span></label>
-          <input type="tel" name="emergencyPhone" required>
-        </div>
-        <div class="form-group">
-          <label>Relationship with emergency contact</label>
-          <input type="text" name="emergencyRelationship">
-        </div>
-      </div>
-
-      <!-- Section 8: Final -->
-      <div class="form-section">
-        <h3>Final</h3>
-        <p class="section-desc">Wrap it up.</p>
-
         <div class="form-group">
           <label>How did you hear about JamHouse?</label>
           <select name="howHeard">
@@ -500,14 +432,11 @@ title: Apply - JamHouse 2026
   </div>
 
   <script>
-    // Conditional fields
     const form = document.getElementById('applyForm');
+    // Conditional fields
     form.hasCar.addEventListener('change', function() {
       document.getElementById('movingCarGroup').style.display = this.value === 'Yes' ? '' : 'none';
       if (this.value !== 'Yes') form.movingCar.value = '';
-    });
-    form.otherIntolerance.addEventListener('input', function() {
-      document.getElementById('intoleranceDetailsGroup').style.display = this.value.trim() ? '' : 'none';
     });
     form.specialNeeds.addEventListener('change', function() {
       document.getElementById('needsDescriptionGroup').style.display = this.value === 'Yes' ? '' : 'none';
@@ -536,6 +465,7 @@ title: Apply - JamHouse 2026
         contactOther: form.contactOther.value,
         nationality: form.nationality.value,
         gender: form.gender.value,
+        age: form.age.value,
         language: form.language.value,
         otherLanguages: form.otherLanguages.value,
         firstBurn: form.firstBurn.value,
@@ -548,25 +478,14 @@ title: Apply - JamHouse 2026
         artProject: form.artProject.value,
         skills: form.skills.value,
         liftKg: form.liftKg.value,
+        deepestSecrets: form.deepestSecrets.value,
+        talents: form.talents.value,
         hasTicket: form.hasTicket.value,
-        arrival: form.arrival.value,
         canBuild: form.canBuild.value,
         hasCar: form.hasCar.value,
         movingCar: form.movingCar.value,
-        departure: form.departure.value,
         otherCamp: form.otherCamp.value,
         volunteer: form.volunteer.value,
-        foodAllergies: form.foodAllergies.value,
-        foodIntolerance: form.foodIntolerance.value,
-        otherIntolerance: form.otherIntolerance.value,
-        intoleranceDetails: form.intoleranceDetails.value,
-        dietaryRestrictions: form.dietaryRestrictions.value,
-        healthInfo: form.healthInfo.value,
-        deepestSecrets: form.deepestSecrets.value,
-        talents: form.talents.value,
-        emergencyName: form.emergencyName.value,
-        emergencyPhone: form.emergencyPhone.value,
-        emergencyRelationship: form.emergencyRelationship.value,
         howHeard: form.howHeard.value,
         specialNeeds: form.specialNeeds.value,
         needsDescription: form.needsDescription.value
