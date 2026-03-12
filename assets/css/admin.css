@@ -107,6 +107,7 @@ body { font-family: var(--body); background: var(--bg); color: var(--text); font
 }
 .status-approved { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 500; background: rgba(76,175,80,0.15); color: #4caf50; border: 1px solid #4caf50; }
 .status-pending { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 500; background: rgba(255,152,0,0.15); color: #ff9800; border: 1px solid #ff9800; }
+.status-rejected { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 500; background: rgba(244,67,54,0.15); color: #f44336; border: 1px solid #f44336; }
 
 /* RESPONSIVE */
 @media (max-width: 900px) {
