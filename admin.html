@@ -11,6 +11,7 @@ permalink: /admin
   <title>JamHouse Admin</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
   <style>
     :root {
       --bg: #0a0a0a;
@@ -212,24 +213,24 @@ permalink: /admin
           <div class="stat-number" id="stat-avg-age">-</div>
         </div>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;">
+      <div style="display:grid;grid-template-columns:3fr 2fr;gap:20px;margin-bottom:20px;">
         <div class="panel">
-          <h2>Location Distribution</h2>
-          <div id="location-chart"></div>
+          <h2>Age Distribution</h2>
+          <canvas id="age-chart" height="220"></canvas>
         </div>
         <div class="panel">
           <h2>Gender Breakdown</h2>
-          <div id="gender-chart"></div>
+          <div style="display:flex;justify-content:center;"><canvas id="gender-chart" height="220" width="280"></canvas></div>
         </div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;">
         <div class="panel">
-          <h2>Age Distribution</h2>
-          <div id="age-chart"></div>
+          <h2>Location Distribution</h2>
+          <canvas id="location-chart" height="200"></canvas>
         </div>
         <div class="panel">
           <h2>Previous Burns Experience</h2>
-          <div id="burns-chart"></div>
+          <canvas id="burns-chart" height="200"></canvas>
         </div>
       </div>
       <div class="panel">
@@ -303,54 +304,47 @@ permalink: /admin
     document.getElementById('stat-avg-age').textContent = ages.length ? Math.round(ages.reduce((a, b) => a + b, 0) / ages.length) : '-';
   }
 
-  function barChart(el, data) {
-    const max = Math.max(...data.map(d => d[1]), 1);
-    el.innerHTML = data.map(([label, count]) => `
-      <div class="chart-bar-row">
-        <div class="chart-bar-label">${label}</div>
-        <div class="chart-bar-track"><div class="chart-bar-fill" style="width:${(count / max) * 100}%">${count}</div></div>
-        <div class="chart-bar-count">${count}</div>
-      </div>
-    `).join('');
+  Chart.defaults.color = '#8a8580';
+  Chart.defaults.font.family = 'Inter';
+  const barOpts = {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { ticks: { color: '#8a8580' }, grid: { color: '#2a2a2a' } },
+      y: { ticks: { color: '#8a8580', stepSize: 1 }, grid: { color: '#2a2a2a' }, beginAtZero: true }
+    }
+  };
+
+  function makeBar(id, labels, data) {
+    new Chart(document.getElementById(id), {
+      type: 'bar',
+      data: { labels, datasets: [{ data, backgroundColor: '#e8a84c', borderRadius: 4, maxBarThickness: 48 }] },
+      options: barOpts
+    });
   }
 
   function renderLocationChart(members) {
     const counts = {};
     members.forEach(m => { const v = val(m, 'Location') || 'Unknown'; counts[v] = (counts[v] || 0) + 1; });
-    barChart(document.getElementById('location-chart'), Object.entries(counts).sort((a, b) => b[1] - a[1]));
+    const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+    makeBar('location-chart', sorted.map(d => d[0]), sorted.map(d => d[1]));
   }
 
   function renderGenderChart(members) {
     const counts = {};
     members.forEach(m => { const v = val(m, 'Gender') || 'Not specified'; counts[v] = (counts[v] || 0) + 1; });
-    const colors = { 'Male': '#4fc3f7', 'Female': '#f06292', 'Non-binary': '#ab47bc', 'Prefer not to say': '#78909c', 'Not specified': '#78909c' };
-    const total = members.length || 1;
-    const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
-    // CSS conic gradient donut
-    let gradParts = [], deg = 0;
-    sorted.forEach(([label, count]) => {
-      const slice = (count / total) * 360;
-      const c = colors[label] || '#e8a84c';
-      gradParts.push(`${c} ${deg}deg ${deg + slice}deg`);
-      deg += slice;
+    const genderColors = { 'Male': '#4fc3f7', 'Female': '#f06292', 'Non-binary': '#ab47bc', 'Prefer not to say': '#78909c', 'Not specified': '#78909c' };
+    const labels = Object.keys(counts);
+    const data = Object.values(counts);
+    const colors = labels.map(l => genderColors[l] || '#e8a84c');
+    new Chart(document.getElementById('gender-chart'), {
+      type: 'pie',
+      data: { labels, datasets: [{ data, backgroundColor: colors, borderWidth: 0 }] },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { position: 'bottom', labels: { color: '#e8e4df', padding: 16, usePointStyle: true, pointStyle: 'circle' } } }
+      }
     });
-    const el = document.getElementById('gender-chart');
-    el.innerHTML = `
-      <div style="display:flex;align-items:center;gap:24px;flex-wrap:wrap;">
-        <div style="width:120px;height:120px;border-radius:50%;background:conic-gradient(${gradParts.join(',')});position:relative;flex-shrink:0;">
-          <div style="position:absolute;inset:25%;border-radius:50%;background:var(--surface);"></div>
-        </div>
-        <div class="gender-grid">
-          ${sorted.map(([label, count]) => `
-            <div class="gender-item">
-              <span class="gender-dot" style="background:${colors[label] || '#e8a84c'}"></span>
-              <span>${label}</span>
-              <span class="count">${count} (${Math.round(count/total*100)}%)</span>
-            </div>
-          `).join('')}
-        </div>
-      </div>
-    `;
   }
 
   function renderAgeChart(members) {
@@ -364,7 +358,7 @@ permalink: /admin
       else if (age <= 55) buckets['46-55']++;
       else buckets['56+']++;
     });
-    barChart(document.getElementById('age-chart'), Object.entries(buckets));
+    makeBar('age-chart', Object.keys(buckets), Object.values(buckets));
   }
 
   function renderBurnsChart(members) {
@@ -378,7 +372,7 @@ permalink: /admin
       else if (b <= 5) buckets['4-5 Burns']++;
       else buckets['6+ Burns']++;
     });
-    barChart(document.getElementById('burns-chart'), Object.entries(buckets));
+    makeBar('burns-chart', Object.keys(buckets), Object.values(buckets));
   }
 
   function renderRoster(members) {
