@@ -1,0 +1,583 @@
+---
+layout: none
+title: Apply - JamHouse 2026
+---
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ page.title }}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/admin.css">
+  <style>
+    .form-container {
+      max-width: 700px;
+      margin: 0 auto;
+      padding: 2rem 1rem 4rem;
+    }
+    .form-header {
+      text-align: center;
+      margin-bottom: 2.5rem;
+    }
+    .form-header h1 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 2.4rem;
+      color: var(--accent, #e8a84c);
+      margin: 0 0 0.25rem;
+    }
+    .form-header h2 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1.2rem;
+      color: var(--text, #e0e0e0);
+      font-weight: 400;
+      margin: 0 0 1rem;
+    }
+    .form-header p {
+      color: var(--text-secondary, #888);
+      font-size: 0.95rem;
+      line-height: 1.6;
+    }
+    .form-section {
+      background: var(--surface, #141414);
+      border: 1px solid var(--border, #2a2a2a);
+      border-radius: 12px;
+      padding: 1.75rem;
+      margin-bottom: 1.5rem;
+    }
+    .form-section h3 {
+      font-family: 'Space Grotesk', sans-serif;
+      color: var(--accent, #e8a84c);
+      font-size: 1.15rem;
+      margin: 0 0 0.25rem;
+    }
+    .form-section .section-desc {
+      color: var(--text-secondary, #888);
+      font-size: 0.85rem;
+      margin: 0 0 1.25rem;
+    }
+    .form-group {
+      margin-bottom: 1.1rem;
+    }
+    .form-group:last-child {
+      margin-bottom: 0;
+    }
+    .form-group label {
+      display: block;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: var(--text, #e0e0e0);
+      margin-bottom: 0.35rem;
+    }
+    .form-group label .optional {
+      color: var(--text-secondary, #888);
+      font-weight: 400;
+      font-size: 0.8rem;
+    }
+    .form-group input[type="text"],
+    .form-group input[type="email"],
+    .form-group input[type="tel"],
+    .form-group input[type="number"],
+    .form-group input[type="date"],
+    .form-group select,
+    .form-group textarea {
+      width: 100%;
+      padding: 0.65rem 0.85rem;
+      background: var(--bg, #0a0a0a);
+      border: 1px solid var(--border, #2a2a2a);
+      border-radius: 8px;
+      color: var(--text, #e0e0e0);
+      font-family: 'Inter', sans-serif;
+      font-size: 0.9rem;
+      transition: border-color 0.2s;
+      box-sizing: border-box;
+    }
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      outline: none;
+      border-color: var(--accent, #e8a84c);
+    }
+    .form-group textarea {
+      min-height: 100px;
+      resize: vertical;
+    }
+    .form-group select {
+      appearance: none;
+      -webkit-appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23888' fill='none' stroke-width='1.5'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 0.85rem center;
+      padding-right: 2.5rem;
+    }
+    .checkbox-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      margin-top: 0.25rem;
+    }
+    .checkbox-group label {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-weight: 400;
+      font-size: 0.85rem;
+      cursor: pointer;
+    }
+    .checkbox-group input[type="checkbox"] {
+      accent-color: var(--accent, #e8a84c);
+      width: 16px;
+      height: 16px;
+    }
+    .submit-btn {
+      display: block;
+      width: 100%;
+      padding: 0.9rem;
+      background: var(--accent, #e8a84c);
+      color: #0a0a0a;
+      border: none;
+      border-radius: 8px;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1.05rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    .submit-btn:hover {
+      opacity: 0.9;
+    }
+    .submit-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .message {
+      text-align: center;
+      padding: 1.5rem;
+      border-radius: 12px;
+      margin-bottom: 1.5rem;
+      font-size: 0.95rem;
+      display: none;
+    }
+    .message.success {
+      background: rgba(76, 175, 80, 0.15);
+      border: 1px solid rgba(76, 175, 80, 0.3);
+      color: #81c784;
+    }
+    .message.error {
+      background: rgba(244, 67, 54, 0.15);
+      border: 1px solid rgba(244, 67, 54, 0.3);
+      color: #e57373;
+    }
+    .thank-you {
+      display: none;
+      text-align: center;
+      padding: 3rem 1rem;
+    }
+    .thank-you h2 {
+      font-family: 'Space Grotesk', sans-serif;
+      color: var(--accent, #e8a84c);
+      font-size: 1.8rem;
+      margin: 0 0 1rem;
+    }
+    .thank-you p {
+      color: var(--text-secondary, #888);
+      font-size: 1rem;
+      line-height: 1.6;
+    }
+    @media (max-width: 600px) {
+      .form-container {
+        padding: 1rem 0.75rem 3rem;
+      }
+      .form-section {
+        padding: 1.25rem;
+      }
+      .form-header h1 {
+        font-size: 1.8rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="form-container">
+    <div class="form-header">
+      <h1>JamHouse</h1>
+      <h2>Apply for Membership</h2>
+      <p>Fill out this form to apply for JamHouse barrio at <a href="https://nobodies.team" style="color: var(--accent, #e8a84c);">Elsewhere 2026</a>. We'll review your application and get back to you soon.</p>
+    </div>
+
+    <div id="errorMsg" class="message error"></div>
+
+    <div id="thankYou" class="thank-you">
+      <h2>Thank you!</h2>
+      <p>Your application has been submitted. We'll review it and get back to you soon.</p>
+    </div>
+
+    <form id="applyForm">
+      <!-- Section 1: Personal Information -->
+      <div class="form-section">
+        <h3>Personal Information</h3>
+        <p class="section-desc">Tell us about yourself.</p>
+
+        <div class="form-group">
+          <label>Name <span class="optional">*</span></label>
+          <input type="text" name="name" required>
+        </div>
+        <div class="form-group">
+          <label>Playa Name <span class="optional">(optional)</span></label>
+          <input type="text" name="playaName">
+        </div>
+        <div class="form-group">
+          <label>Email <span class="optional">*</span></label>
+          <input type="email" name="email" required>
+        </div>
+        <div class="form-group">
+          <label>Phone <span class="optional">*</span></label>
+          <input type="tel" name="phone" required>
+        </div>
+        <div class="form-group">
+          <label>Contact Methods</label>
+          <div class="checkbox-group">
+            <label><input type="checkbox" name="contactWhatsApp" value="WhatsApp"> WhatsApp</label>
+            <label><input type="checkbox" name="contactTelegram" value="Telegram"> Telegram</label>
+            <label><input type="checkbox" name="contactDiscord" value="Discord"> Discord</label>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Nationality</label>
+          <input type="text" name="nationality">
+        </div>
+        <div class="form-group">
+          <label>Gender</label>
+          <select name="gender">
+            <option value="">Select...</option>
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+            <option value="Non-binary">Non-binary</option>
+            <option value="Prefer not to say">Prefer not to say</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Age</label>
+          <input type="number" name="age" min="18" max="120">
+        </div>
+        <div class="form-group">
+          <label>Primary Language</label>
+          <input type="text" name="language">
+        </div>
+        <div class="form-group">
+          <label>Other Languages</label>
+          <input type="text" name="otherLanguages">
+        </div>
+      </div>
+
+      <!-- Section 2: Burn Experience -->
+      <div class="form-section">
+        <h3>Burn Experience</h3>
+        <p class="section-desc">Tell us about your burn history.</p>
+
+        <div class="form-group">
+          <label>Is this your first Burn?</label>
+          <select name="firstBurn">
+            <option value="">Select...</option>
+            <option value="Yes">Yes</option>
+            <option value="No">No</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Is this your first Elsewhere?</label>
+          <select name="firstElsewhere">
+            <option value="">Select...</option>
+            <option value="Yes, this will be my first!">Yes, this will be my first!</option>
+            <option value="Yes, and I'm super excited!">Yes, and I'm super excited!</option>
+            <option value="No">No</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Do you know somebody from the Core Team?</label>
+          <input type="text" name="knowCoreTeam">
+        </div>
+      </div>
+
+      <!-- Section 3: Values & Motivation -->
+      <div class="form-section">
+        <h3>Values & Motivation</h3>
+        <p class="section-desc">We'd love to know what drives you.</p>
+
+        <div class="form-group">
+          <label>What does "Leave No Trace" evoke to you?</label>
+          <textarea name="leaveNoTrace"></textarea>
+        </div>
+        <div class="form-group">
+          <label>What does "Consent" evoke to you?</label>
+          <textarea name="consent"></textarea>
+        </div>
+        <div class="form-group">
+          <label>What are the main reasons you want to come to Elsewhere this year?</label>
+          <textarea name="whyElsewhere"></textarea>
+        </div>
+        <div class="form-group">
+          <label>What is your background?</label>
+          <textarea name="background"></textarea>
+        </div>
+      </div>
+
+      <!-- Section 4: Art & Skills -->
+      <div class="form-section">
+        <h3>Art & Skills</h3>
+        <p class="section-desc">Show us what you've got.</p>
+
+        <div class="form-group">
+          <label>Will you present an artistic project? If so, describe it.</label>
+          <textarea name="artProject"></textarea>
+        </div>
+        <div class="form-group">
+          <label>Do you have skills useful for JamHouse? Musician, sound engineer, building, cooking, etc.</label>
+          <textarea name="skills"></textarea>
+        </div>
+        <div class="form-group">
+          <label>How many kg can you lift barehanded and hungover under the desert sun?</label>
+          <input type="text" name="liftKg">
+        </div>
+      </div>
+
+      <!-- Section 5: Logistics -->
+      <div class="form-section">
+        <h3>Logistics</h3>
+        <p class="section-desc">Help us plan the build and teardown.</p>
+
+        <div class="form-group">
+          <label>Do you have your ticket for Elsewhere 2026?</label>
+          <select name="hasTicket">
+            <option value="">Select...</option>
+            <option value="Yes">Yes</option>
+            <option value="No, not yet">No, not yet</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>When will you arrive on site?</label>
+          <input type="date" name="arrival">
+        </div>
+        <div class="form-group">
+          <label>Are you able to join the build?</label>
+          <select name="canBuild">
+            <option value="">Select...</option>
+            <option value="Yes">Yes</option>
+            <option value="No">No</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Are you coming by car?</label>
+          <select name="hasCar">
+            <option value="">Select...</option>
+            <option value="Yes">Yes</option>
+            <option value="No">No</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>If yes, are you planning to move your car during the festival?</label>
+          <select name="movingCar">
+            <option value="">Select...</option>
+            <option value="Yes">Yes</option>
+            <option value="No">No</option>
+            <option value="N/A">N/A</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>When are you planning to leave?</label>
+          <input type="date" name="departure">
+        </div>
+        <div class="form-group">
+          <label>Did you apply to another camp?</label>
+          <select name="otherCamp">
+            <option value="">Select...</option>
+            <option value="No, it's JamHouse or bust">No, it's JamHouse or bust</option>
+            <option value="No, waiting for your feedback first">No, waiting for your feedback first</option>
+            <option value="Yes, waiting for their feedback">Yes, waiting for their feedback</option>
+            <option value="Yes, but they didn't accept me">Yes, but they didn't accept me</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Are you ready to volunteer?</label>
+          <select name="volunteer">
+            <option value="">Select...</option>
+            <option value="Of course, count on me">Of course, count on me</option>
+            <option value="I just want to work on what is needed">I just want to work on what is needed</option>
+            <option value="Not really">Not really</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Section 6: Health & Food -->
+      <div class="form-section">
+        <h3>Health & Food</h3>
+        <p class="section-desc">Important for your safety and comfort.</p>
+
+        <div class="form-group">
+          <label>Food allergies</label>
+          <input type="text" name="foodAllergies">
+        </div>
+        <div class="form-group">
+          <label>Food intolerances</label>
+          <input type="text" name="foodIntolerance">
+        </div>
+        <div class="form-group">
+          <label>Any other intolerances?</label>
+          <input type="text" name="otherIntolerance">
+        </div>
+        <div class="form-group">
+          <label>If other, details</label>
+          <input type="text" name="intoleranceDetails">
+        </div>
+        <div class="form-group">
+          <label>Other dietary restrictions</label>
+          <input type="text" name="dietaryRestrictions">
+        </div>
+        <div class="form-group">
+          <label>Health information to share</label>
+          <textarea name="healthInfo"></textarea>
+        </div>
+      </div>
+
+      <!-- Section 7: The Fun Stuff -->
+      <div class="form-section">
+        <h3>The Fun Stuff</h3>
+        <p class="section-desc">Almost there!</p>
+
+        <div class="form-group">
+          <label>Special talent or addiction to share?</label>
+          <textarea name="talents"></textarea>
+        </div>
+        <div class="form-group">
+          <label>Emergency contact name <span class="optional">*</span></label>
+          <input type="text" name="emergencyName" required>
+        </div>
+        <div class="form-group">
+          <label>Emergency contact phone <span class="optional">*</span></label>
+          <input type="tel" name="emergencyPhone" required>
+        </div>
+        <div class="form-group">
+          <label>Relationship with emergency contact</label>
+          <input type="text" name="emergencyRelationship">
+        </div>
+      </div>
+
+      <!-- Section 8: Final -->
+      <div class="form-section">
+        <h3>Final</h3>
+        <p class="section-desc">Wrap it up.</p>
+
+        <div class="form-group">
+          <label>How did you hear about JamHouse?</label>
+          <select name="howHeard">
+            <option value="">Select...</option>
+            <option value="Nowhere/Elsewhere website">Nowhere/Elsewhere website</option>
+            <option value="Facebook">Facebook</option>
+            <option value="Someone told me">Someone told me</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Special needs or accommodations?</label>
+          <select name="specialNeeds">
+            <option value="">Select...</option>
+            <option value="Yes">Yes</option>
+            <option value="No">No</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>If yes, describe</label>
+          <textarea name="needsDescription"></textarea>
+        </div>
+        <div class="form-group">
+          <label>Additional comments</label>
+          <textarea name="comments"></textarea>
+        </div>
+      </div>
+
+      <button type="submit" class="submit-btn" id="submitBtn">Submit Application</button>
+    </form>
+  </div>
+
+  <script>
+    document.getElementById('applyForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const btn = document.getElementById('submitBtn');
+      const errorMsg = document.getElementById('errorMsg');
+      errorMsg.style.display = 'none';
+      btn.disabled = true;
+      btn.textContent = 'Submitting...';
+
+      const form = e.target;
+      const contactMethods = [];
+      if (form.contactWhatsApp.checked) contactMethods.push('WhatsApp');
+      if (form.contactTelegram.checked) contactMethods.push('Telegram');
+      if (form.contactDiscord.checked) contactMethods.push('Discord');
+
+      const data = {
+        name: form.name.value,
+        playaName: form.playaName.value,
+        email: form.email.value,
+        phone: form.phone.value,
+        contactMethods: contactMethods.join(','),
+        nationality: form.nationality.value,
+        gender: form.gender.value,
+        age: form.age.value,
+        language: form.language.value,
+        otherLanguages: form.otherLanguages.value,
+        firstBurn: form.firstBurn.value,
+        firstElsewhere: form.firstElsewhere.value,
+        knowCoreTeam: form.knowCoreTeam.value,
+        leaveNoTrace: form.leaveNoTrace.value,
+        consent: form.consent.value,
+        whyElsewhere: form.whyElsewhere.value,
+        background: form.background.value,
+        artProject: form.artProject.value,
+        skills: form.skills.value,
+        liftKg: form.liftKg.value,
+        hasTicket: form.hasTicket.value,
+        arrival: form.arrival.value,
+        canBuild: form.canBuild.value,
+        hasCar: form.hasCar.value,
+        movingCar: form.movingCar.value,
+        departure: form.departure.value,
+        otherCamp: form.otherCamp.value,
+        volunteer: form.volunteer.value,
+        foodAllergies: form.foodAllergies.value,
+        foodIntolerance: form.foodIntolerance.value,
+        otherIntolerance: form.otherIntolerance.value,
+        intoleranceDetails: form.intoleranceDetails.value,
+        dietaryRestrictions: form.dietaryRestrictions.value,
+        healthInfo: form.healthInfo.value,
+        talents: form.talents.value,
+        emergencyName: form.emergencyName.value,
+        emergencyPhone: form.emergencyPhone.value,
+        emergencyRelationship: form.emergencyRelationship.value,
+        howHeard: form.howHeard.value,
+        specialNeeds: form.specialNeeds.value,
+        needsDescription: form.needsDescription.value,
+        comments: form.comments.value
+      };
+
+      try {
+        const res = await fetch('/api/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.error || 'Something went wrong. Please try again.');
+        }
+        form.style.display = 'none';
+        document.getElementById('thankYou').style.display = 'block';
+      } catch (err) {
+        errorMsg.textContent = err.message;
+        errorMsg.style.display = 'block';
+        btn.disabled = false;
+        btn.textContent = 'Submit Application';
+      }
+    });
+  </script>
+</body>
+</html>
