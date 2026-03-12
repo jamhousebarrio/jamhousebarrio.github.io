@@ -182,6 +182,10 @@ permalink: /admin
         <span class="icon">&#9776;</span>
         <span class="nav-item-text">Demographics</span>
       </a>
+      <a class="nav-item" data-page="budget">
+        <span class="icon">&#9733;</span>
+        <span class="nav-item-text">Budget</span>
+      </a>
     </div>
     <div class="sidebar-footer">
       <a href="/">&#8592; Back to Site</a>
@@ -246,6 +250,50 @@ permalink: /admin
         </div>
       </div>
     </div>
+
+    <!-- BUDGET PAGE -->
+    <div class="page" id="page-budget">
+      <div class="page-header">
+        <h1><span class="icon">&#9733;</span> Budget</h1>
+        <div class="subtitle">Budget allocation by category</div>
+      </div>
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-label">Total Budget</div>
+          <div class="stat-number" id="stat-budget-total">-</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Categories</div>
+          <div class="stat-number" id="stat-budget-categories">-</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Largest Category</div>
+          <div class="stat-number" id="stat-budget-largest" style="font-size:1.2rem;">-</div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:3fr 2fr;gap:20px;margin-bottom:20px;">
+        <div class="panel">
+          <h2>Budget by Category</h2>
+          <div style="height:300px;"><canvas id="budget-bar-chart"></canvas></div>
+        </div>
+        <div class="panel">
+          <h2>Budget Distribution</h2>
+          <div style="height:300px;display:flex;justify-content:center;"><canvas id="budget-pie-chart"></canvas></div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="roster-header">
+          <h2>Budget Breakdown</h2>
+          <span class="roster-count" id="budget-item-count"></span>
+        </div>
+        <div style="overflow-x:auto;">
+          <table class="members-table">
+            <thead><tr><th>Category</th><th style="text-align:right;">Budget Allowed</th><th style="text-align:right;">% of Total</th></tr></thead>
+            <tbody id="budget-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -290,6 +338,15 @@ permalink: /admin
     renderAgeChart(members);
     renderBurnsChart(members);
     renderRoster(members);
+    fetchBudget();
+  }
+
+  async function fetchBudget() {
+    try {
+      const pass = sessionStorage.getItem('jh_pass');
+      const res = await fetch('/api/budget', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: pass }) });
+      if (res.ok) renderBudget(await res.json());
+    } catch (e) {}
   }
 
   function val(m, key) { return (m[key] || '').toString().trim(); }
@@ -388,6 +445,53 @@ permalink: /admin
         <td>${val(m, 'Gender')}</td>
         <td>${val(m, 'Burns')}</td>
         <td><span class="${statusClass}">${statusText}</span></td>
+      </tr>`;
+    }).join('');
+  }
+
+  const budgetColors = ['#e8a84c','#4fc3f7','#f06292','#ab47bc','#66bb6a','#ff7043','#42a5f5','#ffca28','#26c6da','#ec407a','#8d6e63','#78909c'];
+
+  function renderBudget(data) {
+    const items = data.filter(d => d['Category'] && d['Budget Allowed']);
+    const parsed = items.map(d => ({
+      category: d['Category'].trim(),
+      amount: parseFloat(d['Budget Allowed'].toString().replace(/[^0-9.-]/g, '')) || 0
+    })).filter(d => d.amount > 0).sort((a, b) => b.amount - a.amount);
+    const total = parsed.reduce((s, d) => s + d.amount, 0);
+    document.getElementById('stat-budget-total').textContent = '\u20AC' + total.toLocaleString();
+    document.getElementById('stat-budget-categories').textContent = parsed.length;
+    document.getElementById('stat-budget-largest').textContent = parsed.length ? parsed[0].category : '-';
+    document.getElementById('budget-item-count').textContent = parsed.length + ' categories';
+    // Bar chart
+    const barColors = parsed.map((_, i) => budgetColors[i % budgetColors.length]);
+    new Chart(document.getElementById('budget-bar-chart'), {
+      type: 'bar',
+      data: { labels: parsed.map(d => d.category), datasets: [{ data: parsed.map(d => d.amount), backgroundColor: barColors, borderRadius: 4, maxBarThickness: 48 }] },
+      options: {
+        responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: { color: '#8a8580', callback: v => '\u20AC' + v }, grid: { color: '#2a2a2a22' }, beginAtZero: true },
+          y: { ticks: { color: '#8a8580' }, grid: { display: false } }
+        }
+      }
+    });
+    // Doughnut
+    new Chart(document.getElementById('budget-pie-chart'), {
+      type: 'doughnut',
+      data: { labels: parsed.map(d => d.category), datasets: [{ data: parsed.map(d => d.amount), backgroundColor: barColors, borderWidth: 0 }] },
+      options: {
+        responsive: true, maintainAspectRatio: false, cutout: '55%',
+        plugins: { legend: { position: 'bottom', labels: { color: '#e8e4df', padding: 12, usePointStyle: true, pointStyle: 'circle', font: { size: 11 } } } }
+      }
+    });
+    // Table
+    document.getElementById('budget-tbody').innerHTML = parsed.map(d => {
+      const pct = total > 0 ? ((d.amount / total) * 100).toFixed(1) : 0;
+      return `<tr>
+        <td class="name">${d.category}</td>
+        <td style="text-align:right;">\u20AC${d.amount.toLocaleString()}</td>
+        <td style="text-align:right;">${pct}%</td>
       </tr>`;
     }).join('');
   }
