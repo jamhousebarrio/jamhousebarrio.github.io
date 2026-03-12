@@ -6,7 +6,7 @@ body_class: page-home
 
 # The JamHouse
 
-We're cooking up a delicious blend of musical adventures at Nowhere this year. Impromptu concerts, instrument sharing sessions, group singalongs, and harmonious chaos under the Spanish desert sky.
+We're cooking up a delicious blend of musical adventures at Elsewhere this year. Impromptu concerts, instrument sharing sessions, group singalongs, and harmonious chaos under the Spanish desert sky.
 
 Now in our **3rd year** on the playa, JamHouse is where musicians and music lovers come together to make something beautiful, loud, and unrehearsed.
 
@@ -24,9 +24,9 @@ Seasoned burners and burn virgins all welcome — the only requirement is your w
 
 ---
 
-## Nowhere 2026
+## Elsewhere 2026
 
-[Nowhere](https://goingnowhere.org) takes place in **July 2026** in the desert of Aragon, Spain. It's a participatory event — no spectators, no commerce, everyone contributes. JamHouse is how we contribute: through music.
+[Elsewhere](https://nobodies.team) takes place in **July 2026** in the desert of Aragon, Spain. It's a participatory event — no spectators, no commerce, everyone contributes. JamHouse is how we contribute: through music.
 
 ---
 
