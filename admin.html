@@ -216,21 +216,21 @@ permalink: /admin
       <div style="display:grid;grid-template-columns:3fr 2fr;gap:20px;margin-bottom:20px;">
         <div class="panel">
           <h2>Age Distribution</h2>
-          <canvas id="age-chart" height="220"></canvas>
+          <div style="height:220px;"><canvas id="age-chart"></canvas></div>
         </div>
         <div class="panel">
           <h2>Gender Breakdown</h2>
-          <div style="display:flex;justify-content:center;"><canvas id="gender-chart" height="220" width="280"></canvas></div>
+          <div style="height:220px;display:flex;justify-content:center;"><canvas id="gender-chart"></canvas></div>
         </div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;">
         <div class="panel">
           <h2>Location Distribution</h2>
-          <canvas id="location-chart" height="200"></canvas>
+          <div style="height:220px;"><canvas id="location-chart"></canvas></div>
         </div>
         <div class="panel">
           <h2>Previous Burns Experience</h2>
-          <canvas id="burns-chart" height="200"></canvas>
+          <div style="height:220px;"><canvas id="burns-chart"></canvas></div>
         </div>
       </div>
       <div class="panel">
@@ -310,8 +310,8 @@ permalink: /admin
     responsive: true, maintainAspectRatio: false,
     plugins: { legend: { display: false } },
     scales: {
-      x: { ticks: { color: '#8a8580' }, grid: { color: '#2a2a2a' } },
-      y: { ticks: { color: '#8a8580', stepSize: 1 }, grid: { color: '#2a2a2a' }, beginAtZero: true }
+      x: { ticks: { color: '#8a8580' }, grid: { display: false } },
+      y: { ticks: { color: '#8a8580', stepSize: 1, precision: 0 }, grid: { color: '#2a2a2a22' }, beginAtZero: true }
     }
   };
 
@@ -338,10 +338,10 @@ permalink: /admin
     const data = Object.values(counts);
     const colors = labels.map(l => genderColors[l] || '#e8a84c');
     new Chart(document.getElementById('gender-chart'), {
-      type: 'pie',
+      type: 'doughnut',
       data: { labels, datasets: [{ data, backgroundColor: colors, borderWidth: 0 }] },
       options: {
-        responsive: true, maintainAspectRatio: false,
+        responsive: true, maintainAspectRatio: false, cutout: '55%',
         plugins: { legend: { position: 'bottom', labels: { color: '#e8e4df', padding: 16, usePointStyle: true, pointStyle: 'circle' } } }
       }
     });
