@@ -56,41 +56,75 @@
     });
   }
 
+  function contactLinks(v) {
+    var phone = v.replace(/[^+\d]/g, '');
+    var links = [];
+    if (phone) {
+      links.push('<a href="https://wa.me/' + phone.replace('+', '') + '" target="_blank" style="color:#25D366;">WhatsApp</a>');
+      links.push('<a href="https://t.me/' + phone + '" target="_blank" style="color:#0088cc;">Telegram</a>');
+    }
+    return links.length ? ' &nbsp; ' + links.join(' &nbsp; ') : '';
+  }
+
+  var contactKeys = ['Phone', 'Email', 'Contact Methods', 'Contact Other'];
+  var readonlyKeys = ['_row', 'Timestamp'];
+
   function openModal(m) {
     document.getElementById('modal-title').textContent = val(m, 'Name') || 'Application';
-    var skipKeys = ['_row', 'Status'];
+    var skipKeys = ['_row'];
     var html = Object.keys(m).filter(function(k) {
       return skipKeys.indexOf(k) === -1;
     }).map(function(k) {
       var v = val(m, k);
-      var display = v ? v.replace(/</g, '&lt;') : '<span style="color:#555;">—</span>';
-      return '<div class="detail-row"><div class="detail-label">' + k + '</div><div class="detail-value">' + display + '</div></div>';
+      var escaped = v ? v.replace(/</g, '&lt;') : '';
+      var isLong = v.length > 60;
+      var links = (k === 'Phone') ? contactLinks(v) : '';
+      if (!isAdmin || readonlyKeys.indexOf(k) !== -1) {
+        var display = escaped || '<span style="color:#555;">—</span>';
+        return '<div class="detail-row"><div class="detail-label">' + k + '</div><div class="detail-value">' + display + links + '</div></div>';
+      }
+      if (isLong) {
+        return '<div class="detail-row"><div class="detail-label">' + k + '</div><div class="detail-value">' +
+          '<textarea class="field-input" data-key="' + k + '">' + escaped + '</textarea>' + links + '</div></div>';
+      }
+      return '<div class="detail-row"><div class="detail-label">' + k + '</div><div class="detail-value">' +
+        '<input class="field-input" data-key="' + k + '" value="' + escaped.replace(/"/g, '&quot;') + '">' + links + '</div></div>';
     }).join('');
     document.getElementById('modal-details').innerHTML = html;
 
     var statusActions = document.getElementById('status-actions');
     if (isAdmin) {
       statusActions.style.display = 'flex';
-      document.getElementById('modal-status').value = val(m, 'Status') || 'Pending';
+      document.getElementById('modal-save').textContent = 'Save All';
       document.getElementById('modal-msg').textContent = '';
 
       document.getElementById('modal-save').onclick = async function() {
-        var newStatus = document.getElementById('modal-status').value;
         var pass = sessionStorage.getItem('jh_pass');
+        var updates = {};
+        document.querySelectorAll('.field-input').forEach(function(el) {
+          var key = el.dataset.key;
+          var newVal = el.value.trim();
+          if (newVal !== val(m, key)) updates[key] = newVal;
+        });
+        if (Object.keys(updates).length === 0) {
+          document.getElementById('modal-msg').textContent = 'No changes';
+          document.getElementById('modal-msg').style.color = '#888';
+          return;
+        }
         document.getElementById('modal-msg').textContent = 'Saving...';
         document.getElementById('modal-msg').style.color = '#888';
         try {
-          var res = await fetch('/api/update-status', {
+          var res = await fetch('/api/update-member', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ password: pass, row: m._row, status: newStatus })
+            body: JSON.stringify({ password: pass, row: m._row, updates: updates })
           });
           if (!res.ok) {
             var err = await res.json().catch(function() { return {}; });
             throw new Error(err.error || 'Failed');
           }
-          m['Status'] = newStatus;
-          document.getElementById('modal-msg').textContent = 'Updated!';
+          for (var key in updates) m[key] = updates[key];
+          document.getElementById('modal-msg').textContent = 'Saved!';
           document.getElementById('modal-msg').style.color = '#4caf50';
           refreshStats();
           renderTable(document.getElementById('statusFilter').value);
