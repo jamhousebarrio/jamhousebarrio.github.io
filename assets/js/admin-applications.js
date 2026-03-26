@@ -24,6 +24,18 @@
     return '<span class="' + cls + '">' + s.charAt(0).toUpperCase() + s.slice(1) + '</span>';
   }
 
+  function getGridData(filter) {
+    var filtered = filter === 'all' ? allMembers : allMembers.filter(function(m) {
+      return val(m, 'Status').toLowerCase() === filter;
+    });
+    document.getElementById('filter-count').textContent = filtered.length + ' applications';
+    return filtered.map(function(m) {
+      var ts = val(m, 'Timestamp');
+      var date = ts ? new Date(ts).toLocaleDateString() : '';
+      return [val(m, 'Name'), val(m, 'Playa Name'), val(m, 'Location'), val(m, 'First Burn'), val(m, 'Has Ticket'), date, val(m, 'Status') || 'Pending', m._row];
+    });
+  }
+
   var grid = new gridjs.Grid({
     columns: [
       { name: 'Name', sort: true },
@@ -35,11 +47,7 @@
       { name: 'Status', sort: true, formatter: function(cell) { return gridjs.html(statusHtml(cell)); } },
       { name: 'row', hidden: true }
     ],
-    data: allMembers.map(function(m) {
-      var ts = val(m, 'Timestamp');
-      var date = ts ? new Date(ts).toLocaleDateString() : '';
-      return [val(m, 'Name'), val(m, 'Playa Name'), val(m, 'Location'), val(m, 'First Burn'), val(m, 'Has Ticket'), date, val(m, 'Status') || 'Pending', m._row];
-    }),
+    data: getGridData('all'),
     search: true,
     sort: true,
     pagination: { limit: 25 },
@@ -50,6 +58,10 @@
     var rowNum = row.cells[7].data;
     var member = allMembers.find(function(m) { return m._row === rowNum; });
     if (member) openModal(member);
+  });
+
+  document.getElementById('statusFilter').addEventListener('change', function() {
+    grid.updateConfig({ data: getGridData(this.value) }).forceRender();
   });
 
   function contactLinks(v) {
@@ -122,13 +134,8 @@
           document.getElementById('modal-msg').textContent = 'Saved!';
           document.getElementById('modal-msg').style.color = '#4caf50';
           refreshStats();
-          grid.updateConfig({
-            data: allMembers.map(function(m) {
-              var ts = val(m, 'Timestamp');
-              var date = ts ? new Date(ts).toLocaleDateString() : '';
-              return [val(m, 'Name'), val(m, 'Playa Name'), val(m, 'Location'), val(m, 'First Burn'), val(m, 'Has Ticket'), date, val(m, 'Status') || 'Pending', m._row];
-            })
-          }).forceRender();
+          var currentFilter = document.getElementById('statusFilter').value;
+          grid.updateConfig({ data: getGridData(currentFilter) }).forceRender();
         } catch (e) {
           document.getElementById('modal-msg').textContent = e.message;
           document.getElementById('modal-msg').style.color = '#f44336';
