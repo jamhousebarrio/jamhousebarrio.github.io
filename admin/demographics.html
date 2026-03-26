@@ -1,6 +1,7 @@
 ---
 layout: none
 title: Demographics - JamHouse Admin
+access: general
 ---
 <!DOCTYPE html>
 <html lang="en">
@@ -8,6 +9,7 @@ title: Demographics - JamHouse Admin
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Demographics - JamHouse Admin</title>
+  <meta name="access" content="general">
   <link rel="icon" type="image/svg+xml" href="/images/favicon.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -31,15 +33,15 @@ title: Demographics - JamHouse Admin
 <nav class="sidebar">
   <div class="sidebar-brand">JamHouse <span>Admin 2026</span></div>
   <div class="sidebar-nav">
-    <a class="nav-item" href="/admin/applications">
+    <a class="nav-item" href="/admin/applications" data-access="admin">
       <span class="icon">&#9993;</span>
       <span class="nav-item-text">Applications</span>
     </a>
-    <a class="nav-item active" href="/admin/demographics">
+    <a class="nav-item active" href="/admin/demographics" data-access="general">
       <span class="icon">&#9776;</span>
       <span class="nav-item-text">Approved Members</span>
     </a>
-    <a class="nav-item" href="/admin/budget">
+    <a class="nav-item" href="/admin/budget" data-access="general">
       <span class="icon">&#9733;</span>
       <span class="nav-item-text">Budget</span>
     </a>
