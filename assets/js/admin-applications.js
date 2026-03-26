@@ -17,117 +17,116 @@
   }
   refreshStats();
 
-  // Column definitions
-  var columnDefs = [
-    { title: 'Name', field: 'Name', visible: true },
-    { title: 'Playa Name', field: 'Playa Name', visible: true },
-    { title: 'Location', field: 'Location', visible: true },
-    { title: 'Email', field: 'Email', visible: false },
-    { title: 'Phone', field: 'Phone', visible: false },
-    { title: 'Nationality', field: 'Nationality', visible: false },
-    { title: 'Gender', field: 'Gender', visible: false },
-    { title: 'Age', field: 'Age', visible: false },
-    { title: 'First Burn', field: 'First Burn', visible: true },
-    { title: 'Has Ticket', field: 'Has Ticket', visible: true },
-    { title: 'Volunteer', field: 'Volunteer', visible: false },
-    { title: 'Date', field: '_date', visible: true },
-    {
-      title: 'Status', field: 'Status', visible: true,
-      formatter: function(cell) {
-        var v = (cell.getValue() || 'Pending').toLowerCase();
-        var cls = v === 'approved' ? 'status-approved' : v === 'rejected' ? 'status-rejected' : 'status-pending';
-        if (!isAdmin) {
-          return '<span class="' + cls + '">' + v.charAt(0).toUpperCase() + v.slice(1) + '</span>';
-        }
-        var sel = document.createElement('select');
-        ['Pending', 'Approved', 'Rejected'].forEach(function(opt) {
-          var o = document.createElement('option');
-          o.value = opt;
-          o.textContent = opt;
-          if (opt.toLowerCase() === v) o.selected = true;
-          sel.appendChild(o);
-        });
-        sel.addEventListener('change', function(e) {
-          e.stopPropagation();
-          updateStatus(cell.getRow().getData(), sel.value, sel);
-        });
-        sel.addEventListener('click', function(e) { e.stopPropagation(); });
-        return sel;
-      }
-    }
-  ];
-
-  // Prepare table data
-  function getTableData() {
+  function getRowData() {
     return allMembers.map(function(m) {
-      var obj = Object.assign({}, m);
       var ts = val(m, 'Timestamp');
-      obj._date = ts ? new Date(ts).toLocaleDateString() : '';
-      obj.Status = val(m, 'Status') || 'Pending';
-      return obj;
+      return {
+        _row: m._row,
+        Name: val(m, 'Name'),
+        'Playa Name': val(m, 'Playa Name'),
+        Location: val(m, 'Location'),
+        Email: val(m, 'Email'),
+        Phone: val(m, 'Phone'),
+        Nationality: val(m, 'Nationality'),
+        Gender: val(m, 'Gender'),
+        Age: val(m, 'Age'),
+        'First Burn': val(m, 'First Burn'),
+        'Has Ticket': val(m, 'Has Ticket'),
+        Volunteer: val(m, 'Volunteer'),
+        Date: ts ? new Date(ts).toLocaleDateString() : '',
+        Status: val(m, 'Status') || 'Pending'
+      };
     });
   }
 
-  var table = new Tabulator('#app-grid', {
-    data: getTableData(),
-    columns: columnDefs,
-    layout: 'fitColumns',
-    pagination: true,
-    paginationSize: 25,
-    movableColumns: true,
-    headerSort: true,
-    selectable: false,
-    rowClick: function(e, row) {
-      if (e.target.tagName === 'SELECT' || e.target.tagName === 'OPTION') return;
-      var data = row.getData();
-      var member = allMembers.find(function(m) { return m._row === data._row; });
-      if (member) openModal(member);
+  function StatusCellRenderer() {}
+  StatusCellRenderer.prototype.init = function(params) {
+    var v = (params.value || 'Pending').toLowerCase();
+    if (isAdmin) {
+      this.eGui = document.createElement('select');
+      this.eGui.style.cssText = 'background:#0a0a0a;color:#e0e0e0;border:1px solid #2a2a2a;border-radius:4px;padding:2px 4px;font-size:0.8rem;cursor:pointer;width:100%;';
+      var self = this;
+      ['Pending', 'Approved', 'Rejected'].forEach(function(opt) {
+        var o = document.createElement('option');
+        o.value = opt; o.textContent = opt;
+        if (opt.toLowerCase() === v) o.selected = true;
+        self.eGui.appendChild(o);
+      });
+      this.eGui.addEventListener('change', function() {
+        updateStatus(params.data, self.eGui.value);
+      });
+    } else {
+      this.eGui = document.createElement('span');
+      var cls = v === 'approved' ? 'status-approved' : v === 'rejected' ? 'status-rejected' : 'status-pending';
+      this.eGui.className = cls;
+      this.eGui.textContent = v.charAt(0).toUpperCase() + v.slice(1);
     }
-  });
+  };
+  StatusCellRenderer.prototype.getGui = function() { return this.eGui; };
 
-  // Column toggles
-  var togglesEl = document.getElementById('colToggles');
-  columnDefs.forEach(function(col) {
-    var label = document.createElement('label');
-    label.className = 'col-toggle' + (col.visible ? ' active' : '');
-    var cb = document.createElement('input');
-    cb.type = 'checkbox';
-    cb.checked = col.visible;
-    cb.addEventListener('change', function() {
-      label.className = 'col-toggle' + (this.checked ? ' active' : '');
-      if (this.checked) {
-        table.showColumn(col.field);
-      } else {
-        table.hideColumn(col.field);
-      }
-    });
-    label.appendChild(cb);
-    label.appendChild(document.createTextNode(col.title));
-    togglesEl.appendChild(label);
-  });
+  var columnDefs = [
+    { field: 'Name', sortable: true, filter: true },
+    { field: 'Playa Name', sortable: true, filter: true },
+    { field: 'Location', sortable: true, filter: true },
+    { field: 'Email', sortable: true, filter: true, hide: true },
+    { field: 'Phone', sortable: true, filter: true, hide: true },
+    { field: 'Nationality', sortable: true, filter: true, hide: true },
+    { field: 'Gender', sortable: true, filter: true, hide: true },
+    { field: 'Age', sortable: true, filter: true, hide: true },
+    { field: 'First Burn', sortable: true, filter: true },
+    { field: 'Has Ticket', sortable: true, filter: true },
+    { field: 'Volunteer', sortable: true, filter: true, hide: true },
+    { field: 'Date', sortable: true, filter: true },
+    { field: 'Status', sortable: true, filter: true, cellRenderer: StatusCellRenderer }
+  ];
+
+  var gridOptions = {
+    columnDefs: columnDefs,
+    rowData: getRowData(),
+    defaultColDef: { resizable: true, flex: 1, minWidth: 100 },
+    pagination: true,
+    paginationPageSize: 25,
+    rowSelection: 'single',
+    suppressCellFocus: true,
+    onRowClicked: function(event) {
+      if (event.event && event.event.target && (event.event.target.tagName === 'SELECT' || event.event.target.tagName === 'OPTION')) return;
+      var member = allMembers.find(function(m) { return m._row === event.data._row; });
+      if (member) openModal(member);
+    },
+    onModelUpdated: function() {
+      var count = gridOptions.api ? gridOptions.api.getDisplayedRowCount() : 0;
+      document.getElementById('filter-count').textContent = count + ' applications';
+    },
+    sideBar: {
+      toolPanels: [{
+        id: 'columns',
+        labelDefault: 'Columns',
+        toolPanel: 'agColumnsToolPanel',
+        toolPanelParams: { suppressPivotMode: true, suppressValues: true, suppressRowGroups: true }
+      }]
+    }
+  };
+
+  var gridDiv = document.getElementById('app-grid');
+  var gridApi = agGrid.createGrid(gridDiv, gridOptions);
 
   // Status filter
   document.getElementById('statusFilter').addEventListener('change', function() {
-    var filter = this.value;
-    if (filter === 'all') {
-      table.clearFilter();
+    var filterVal = this.value;
+    if (filterVal) {
+      gridApi.setGridOption('quickFilterText', null);
+      gridApi.setColumnFilterModel('Status', { type: 'equals', filter: filterVal }).then(function() {
+        gridApi.onFilterChanged();
+      });
     } else {
-      table.setFilter(function(data) {
-        return (data.Status || 'Pending').toLowerCase() === filter;
+      gridApi.setColumnFilterModel('Status', null).then(function() {
+        gridApi.onFilterChanged();
       });
     }
-    updateCount();
   });
 
-  function updateCount() {
-    var count = table.getDataCount('active');
-    document.getElementById('filter-count').textContent = count + ' applications';
-  }
-  table.on('dataLoaded', updateCount);
-  table.on('dataFiltered', updateCount);
-
   // Inline status update
-  async function updateStatus(data, newStatus, selectEl) {
+  async function updateStatus(data, newStatus) {
     var member = allMembers.find(function(m) { return m._row === data._row; });
     if (!member) return;
     var pass = sessionStorage.getItem('jh_pass');
@@ -141,7 +140,8 @@
       member['Status'] = newStatus;
       refreshStats();
     } catch (err) {
-      selectEl.value = val(member, 'Status') || 'Pending';
+      // revert on failure
+      gridApi.setGridOption('rowData', getRowData());
     }
   }
 
@@ -216,7 +216,7 @@
           document.getElementById('modal-msg').textContent = 'Saved!';
           document.getElementById('modal-msg').style.color = '#4caf50';
           refreshStats();
-          table.replaceData(getTableData());
+          gridApi.setGridOption('rowData', getRowData());
         } catch (e) {
           document.getElementById('modal-msg').textContent = e.message;
           document.getElementById('modal-msg').style.color = '#f44336';

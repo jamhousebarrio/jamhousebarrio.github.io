@@ -66,22 +66,21 @@
   JH.makeBar('burns-chart', Object.keys(burnData), Object.values(burnData));
 
   // Roster table
-  new Tabulator('#roster-grid', {
-    data: members.map(function(m) {
+  agGrid.createGrid(document.getElementById('roster-grid'), {
+    rowData: members.map(function(m) {
       return { Name: val(m, 'Name'), Location: val(m, 'Location'), Nationality: val(m, 'Nationality'), Age: val(m, 'Age'), Gender: val(m, 'Gender'), 'First Burn': val(m, 'First Burn') };
     }),
-    columns: [
-      { title: 'Member', field: 'Name' },
-      { title: 'Location', field: 'Location' },
-      { title: 'Nationality', field: 'Nationality' },
-      { title: 'Age', field: 'Age' },
-      { title: 'Gender', field: 'Gender' },
-      { title: 'First Burn', field: 'First Burn' }
+    columnDefs: [
+      { field: 'Name', sortable: true, filter: true },
+      { field: 'Location', sortable: true, filter: true },
+      { field: 'Nationality', sortable: true, filter: true },
+      { field: 'Age', sortable: true, filter: true },
+      { field: 'Gender', sortable: true, filter: true },
+      { field: 'First Burn', sortable: true, filter: true }
     ],
-    layout: 'fitColumns',
+    defaultColDef: { resizable: true, flex: 1, minWidth: 100 },
     pagination: true,
-    paginationSize: 25,
-    headerSort: true,
-    selectable: false
+    paginationPageSize: 25,
+    suppressCellFocus: true
   });
 })();
