@@ -5,7 +5,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
   const { password } = req.body;
-  if (password !== process.env.ADMIN_PASSWORD) {
+  if (password !== process.env.ADMIN_PASSWORD && password !== process.env.ADMIN_WRITE_PASSWORD) {
     return res.status(401).json({ error: 'Wrong password' });
   }
   try {
