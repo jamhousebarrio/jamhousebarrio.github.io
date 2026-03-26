@@ -94,21 +94,30 @@
       if (member) openModal(member);
     },
     onModelUpdated: function() {
-      var count = gridOptions.api ? gridOptions.api.getDisplayedRowCount() : 0;
+      var count = gridApi ? gridApi.getDisplayedRowCount() : 0;
       document.getElementById('filter-count').textContent = count + ' applications';
-    },
-    sideBar: {
-      toolPanels: [{
-        id: 'columns',
-        labelDefault: 'Columns',
-        toolPanel: 'agColumnsToolPanel',
-        toolPanelParams: { suppressPivotMode: true, suppressValues: true, suppressRowGroups: true }
-      }]
     }
   };
 
   var gridDiv = document.getElementById('app-grid');
   var gridApi = agGrid.createGrid(gridDiv, gridOptions);
+
+  // Column toggles
+  var togglesEl = document.getElementById('colToggles');
+  columnDefs.forEach(function(col) {
+    var label = document.createElement('label');
+    label.className = 'col-toggle' + (col.hide ? '' : ' active');
+    var cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = !col.hide;
+    cb.addEventListener('change', function() {
+      label.className = 'col-toggle' + (this.checked ? ' active' : '');
+      gridApi.setColumnsVisible([col.field], this.checked);
+    });
+    label.appendChild(cb);
+    label.appendChild(document.createTextNode(col.field));
+    togglesEl.appendChild(label);
+  });
 
   // Status filter
   document.getElementById('statusFilter').addEventListener('change', function() {
