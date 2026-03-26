@@ -66,7 +66,21 @@
 
   var editableFields = ['Name', 'Playa Name', 'Location', 'Email', 'Phone', 'Nationality', 'Gender', 'Age', 'First Burn', 'Has Ticket', 'Volunteer'];
 
+  function ViewBtnRenderer() {}
+  ViewBtnRenderer.prototype.init = function(params) {
+    this.eGui = document.createElement('button');
+    this.eGui.textContent = 'View';
+    this.eGui.style.cssText = 'background:#e8a84c;color:#0a0a0a;border:none;border-radius:4px;padding:2px 10px;font-size:0.75rem;font-weight:600;cursor:pointer;font-family:Inter,sans-serif;';
+    this.eGui.addEventListener('click', function(e) {
+      e.stopPropagation();
+      var member = allMembers.find(function(m) { return m._row === params.data._row; });
+      if (member) openModal(member);
+    });
+  };
+  ViewBtnRenderer.prototype.getGui = function() { return this.eGui; };
+
   var columnDefs = [
+    { headerName: '', field: '_view', cellRenderer: ViewBtnRenderer, width: 70, maxWidth: 70, sortable: false, filter: false, resizable: false, suppressSizeToFit: true },
     { field: 'Name', sortable: true, filter: true, editable: isAdmin },
     { field: 'Playa Name', sortable: true, filter: true, editable: isAdmin },
     { field: 'Location', sortable: true, filter: true, editable: isAdmin },
@@ -91,13 +105,6 @@
     rowSelection: 'single',
     suppressCellFocus: !isAdmin,
     singleClickEdit: true,
-    onRowClicked: function(event) {
-      if (event.event && event.event.target && (event.event.target.tagName === 'SELECT' || event.event.target.tagName === 'OPTION')) return;
-      var col = event.colDef && event.colDef.field;
-      if (col && editableFields.indexOf(col) !== -1 && isAdmin) return;
-      var member = allMembers.find(function(m) { return m._row === event.data._row; });
-      if (member) openModal(member);
-    },
     onCellValueChanged: function(event) {
       if (!isAdmin) return;
       var field = event.colDef.field;
@@ -125,7 +132,7 @@
 
   // Column toggles
   var togglesEl = document.getElementById('colToggles');
-  columnDefs.forEach(function(col) {
+  columnDefs.filter(function(col) { return col.field && col.field !== '_view'; }).forEach(function(col) {
     var label = document.createElement('label');
     label.className = 'col-toggle' + (col.hide ? '' : ' active');
     var cb = document.createElement('input');
