@@ -204,7 +204,6 @@ title: Apply - JamHouse 2026
     <div id="errorMsg" class="message error"></div>
 
     <div id="thankYou" class="thank-you">
-      <h2>Thank you!</h2>
       <p>Your application has been submitted. We'll review it and get back to you soon.</p>
     </div>
 
@@ -508,6 +507,7 @@ title: Apply - JamHouse 2026
           throw new Error(err.error || 'Something went wrong. Please try again.');
         }
         form.style.display = 'none';
+        document.querySelector('.form-header').style.display = 'none';
         document.getElementById('thankYou').style.display = 'block';
       } catch (err) {
         errorMsg.textContent = err.message;

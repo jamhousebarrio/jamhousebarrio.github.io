@@ -2,3 +2,9 @@ node_modules/
 _site/
 .jekyll-cache/
 README.md
+.vercel
+.env*.local
+
+vendor/
+node_modules/
+.env.local

@@ -22,7 +22,7 @@ export default async function handler(req, res) {
     });
     const rows = response.data.values;
     if (!rows || rows.length === 0) {
-      return res.status(200).json([]);
+      return res.status(200).json({ members: [], admin: isAdmin });
     }
     const headers = rows[0];
     const members = rows.slice(1).map(row => {

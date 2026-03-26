@@ -32,7 +32,7 @@
         'First Burn': val(m, 'First Burn'),
         'Has Ticket': val(m, 'Has Ticket'),
         Volunteer: val(m, 'Volunteer'),
-        Status: val(m, 'Status') || 'Pending'
+        Status: (function(s) { s = s.toLowerCase(); return s === 'approved' ? 'Approved' : s === 'rejected' ? 'Rejected' : 'Pending'; })(val(m, 'Status'))
       };
     });
   }
@@ -62,8 +62,6 @@
   };
   StatusCellRenderer.prototype.getGui = function() { return this.eGui; };
 
-  var editableFields = ['Name', 'Playa Name', 'Location', 'Email', 'Phone', 'Nationality', 'Gender', 'Age', 'First Burn', 'Has Ticket', 'Volunteer'];
-
   function ViewBtnRenderer() {}
   ViewBtnRenderer.prototype.init = function(params) {
     this.eGui = document.createElement('button');
@@ -77,34 +75,19 @@
   };
   ViewBtnRenderer.prototype.getGui = function() { return this.eGui; };
 
-  var waIcon = '<svg viewBox="0 0 24 24" width="16" height="16" style="vertical-align:middle;"><path fill="#25D366" d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path fill="#25D366" d="M12 0C5.373 0 0 5.373 0 12c0 2.625.846 5.059 2.284 7.034L.789 23.492a.5.5 0 00.613.613l4.458-1.495A11.952 11.952 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-2.352 0-4.55-.678-6.414-1.846l-.447-.283-3.167 1.062 1.062-3.167-.283-.447A9.96 9.96 0 012 12C2 6.486 6.486 2 12 2s10 4.486 10 10-4.486 10-10 10z"/></svg>';
-  var tgIcon = '<svg viewBox="0 0 24 24" width="16" height="16" style="vertical-align:middle;"><path fill="#0088cc" d="M11.944 0A12 12 0 000 12a12 12 0 0012 12 12 12 0 0012-12A12 12 0 0012 0h-.056zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 01.171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.479.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>';
-
-  function PhoneCellRenderer() {}
-  PhoneCellRenderer.prototype.init = function(params) {
-    var v = (params.value || '').trim();
-    this.eGui = document.createElement('span');
-    if (!v) return;
-    var digits = v.replace(/[^+\d]/g, '').replace('+', '');
-    this.eGui.innerHTML = v.replace(/</g, '&lt;') +
-      (digits ? ' &nbsp;<a href="https://wa.me/' + digits + '" target="_blank" title="WhatsApp" style="text-decoration:none;">' + waIcon + '</a>' +
-      ' <a href="https://t.me/+' + digits + '" target="_blank" title="Telegram" style="text-decoration:none;">' + tgIcon + '</a>' : '');
-  };
-  PhoneCellRenderer.prototype.getGui = function() { return this.eGui; };
-
   var columnDefs = [
     { headerName: '', field: '_view', cellRenderer: ViewBtnRenderer, valueGetter: function() { return ''; }, width: 70, maxWidth: 70, sortable: false, filter: false, resizable: false, suppressSizeToFit: true },
-    { field: 'Name', sortable: true, filter: true, editable: isAdmin },
-    { field: 'Playa Name', sortable: true, filter: true, editable: isAdmin },
-    { field: 'Location', sortable: true, filter: true, editable: isAdmin },
-    { field: 'Email', sortable: true, filter: true, hide: true, editable: isAdmin },
-    { field: 'Phone', sortable: true, filter: true, editable: isAdmin, cellRenderer: PhoneCellRenderer },
-    { field: 'Nationality', sortable: true, filter: true, hide: true, editable: isAdmin },
-    { field: 'Gender', sortable: true, filter: true, hide: true, editable: isAdmin },
-    { field: 'Age', sortable: true, filter: true, hide: true, editable: isAdmin },
-    { field: 'First Burn', sortable: true, filter: true, editable: isAdmin },
-    { field: 'Has Ticket', sortable: true, filter: true, editable: isAdmin },
-    { field: 'Volunteer', sortable: true, filter: true, hide: true, editable: isAdmin },
+    { field: 'Name', sortable: true, filter: true },
+    { field: 'Playa Name', sortable: true, filter: true },
+    { field: 'Location', sortable: true, filter: true },
+    { field: 'Email', sortable: true, filter: true, hide: true },
+    { field: 'Phone', sortable: true, filter: true, cellRenderer: JH.PhoneCellRenderer },
+    { field: 'Nationality', sortable: true, filter: true, hide: true },
+    { field: 'Gender', sortable: true, filter: true, hide: true },
+    { field: 'Age', sortable: true, filter: true, hide: true },
+    { field: 'First Burn', sortable: true, filter: true, hide: true },
+    { field: 'Has Ticket', sortable: true, filter: true, hide: true },
+    { field: 'Volunteer', sortable: true, filter: true, hide: true },
     { field: 'Status', sortable: true, filter: true, cellRenderer: StatusCellRenderer }
   ];
 
@@ -114,25 +97,7 @@
     defaultColDef: { resizable: true, flex: 1, minWidth: 100 },
     pagination: true,
     paginationPageSize: 25,
-    rowSelection: 'single',
-    suppressCellFocus: !isAdmin,
-    singleClickEdit: true,
-    onCellValueChanged: function(event) {
-      if (!isAdmin) return;
-      var field = event.colDef.field;
-      var newVal = event.newValue || '';
-      var member = allMembers.find(function(m) { return m._row === event.data._row; });
-      if (!member) return;
-      member[field] = newVal;
-      var pass = sessionStorage.getItem('jh_pass');
-      var updates = {};
-      updates[field] = newVal;
-      fetch('/api/update-member', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password: pass, row: event.data._row, updates: updates })
-      });
-    },
+    suppressCellFocus: true,
     onModelUpdated: function() {
       var count = gridApi ? gridApi.getDisplayedRowCount() : 0;
       document.getElementById('filter-count').textContent = count + ' applications';
@@ -194,19 +159,8 @@
     }
   }
 
-  // Modal
-  function contactLinks(v) {
-    var phone = v.replace(/[^+\d]/g, '');
-    var digits = phone.replace('+', '');
-    var links = [];
-    if (digits) {
-      links.push('<a href="https://wa.me/' + digits + '" target="_blank" title="WhatsApp" style="text-decoration:none;">' + waIcon + '</a>');
-      links.push('<a href="https://t.me/+' + digits + '" target="_blank" title="Telegram" style="text-decoration:none;">' + tgIcon + '</a>');
-    }
-    return links.length ? ' &nbsp; ' + links.join(' &nbsp; ') : '';
-  }
-
-  var readonlyKeys = ['_row', 'Timestamp'];
+  // Modal — keys that should not be editable
+  var readonlyKeys = ['_row', 'Timestamp', ''];
 
   function openModal(m) {
     document.getElementById('modal-title').textContent = val(m, 'Name') || 'Application';
@@ -216,13 +170,33 @@
     }).map(function(k) {
       var v = val(m, k);
       var escaped = v ? v.replace(/</g, '&lt;') : '';
-      var isLong = v.length > 60;
-      var links = (k === 'Phone') ? contactLinks(v) : '';
+      var links = (k === 'Phone') ? JH.contactLinks(v) : '';
+      // Timestamp: human-friendly
+      if (k === 'Timestamp' || k === '') {
+        var display = '<span style="color:#555;">—</span>';
+        if (v) {
+          var d = new Date(v);
+          display = isNaN(d.getTime()) ? escaped : d.toLocaleString();
+        }
+        return '<div class="detail-row"><div class="detail-label">Submitted</div><div class="detail-value">' + display + '</div></div>';
+      }
+      // Status: dropdown
+      if (k === 'Status' && isAdmin) {
+        var s = (v || 'Pending').toLowerCase();
+        var sel = '<select class="field-input" data-key="Status">';
+        ['Pending', 'Approved', 'Rejected'].forEach(function(opt) {
+          sel += '<option value="' + opt + '"' + (opt.toLowerCase() === s ? ' selected' : '') + '>' + opt + '</option>';
+        });
+        sel += '</select>';
+        return '<div class="detail-row"><div class="detail-label">Status</div><div class="detail-value">' + sel + '</div></div>';
+      }
+      // Read-only fields
       if (!isAdmin || readonlyKeys.indexOf(k) !== -1) {
         var display = escaped || '<span style="color:#555;">—</span>';
         return '<div class="detail-row"><div class="detail-label">' + k + '</div><div class="detail-value">' + display + links + '</div></div>';
       }
-      if (isLong) {
+      // Long text: textarea
+      if (v.length > 60) {
         return '<div class="detail-row"><div class="detail-label">' + k + '</div><div class="detail-value">' +
           '<textarea class="field-input" data-key="' + k + '">' + escaped + '</textarea>' + links + '</div></div>';
       }
