@@ -132,10 +132,13 @@ title: Applications - JamHouse Admin
     .detail-value a:hover { text-decoration: underline; }
     .gridjs-container { font-family: 'Inter', sans-serif; }
     .gridjs-wrapper { border-radius: 8px; border: 1px solid #2a2a2a; }
-    .gridjs-table { background: #141414; }
-    .gridjs-thead th { background: #1a1a1a !important; color: #888 !important; border-color: #2a2a2a !important; font-size: 0.8rem; }
-    .gridjs-tbody td { background: #141414 !important; color: #e0e0e0 !important; border-color: #1e1e1e !important; font-size: 0.85rem; }
-    .gridjs-tbody tr:hover td { background: rgba(232,168,76,0.08) !important; cursor: pointer; }
+    table.gridjs-table { background: #141414; }
+    .gridjs-thead th.gridjs-th { background: #1a1a1a !important; color: #888 !important; border-color: #2a2a2a !important; font-size: 0.8rem; }
+    .gridjs-tbody td.gridjs-td { background: #141414 !important; color: #e0e0e0 !important; border-color: #1e1e1e !important; font-size: 0.85rem; box-shadow: none !important; }
+    .gridjs-tbody tr.gridjs-tr:hover td.gridjs-td { background: rgba(232,168,76,0.12) !important; cursor: pointer; color: #e0e0e0 !important; }
+    .gridjs-tbody tr.gridjs-tr:focus td.gridjs-td, .gridjs-tr-selected td.gridjs-td { background: rgba(232,168,76,0.08) !important; color: #e0e0e0 !important; }
+    td.gridjs-td:focus { box-shadow: none !important; outline: none !important; background: #141414 !important; }
+    th.gridjs-th:focus { box-shadow: none !important; outline: none !important; }
     .gridjs-footer { background: #141414 !important; border-color: #2a2a2a !important; }
     .gridjs-pagination .gridjs-pages button { background: #1a1a1a !important; color: #e0e0e0 !important; border-color: #2a2a2a !important; }
     .gridjs-pagination .gridjs-pages button.gridjs-currentPage { background: #e8a84c !important; color: #0a0a0a !important; }
@@ -143,12 +146,17 @@ title: Applications - JamHouse Admin
     .gridjs-search { float: none !important; }
     .gridjs-search-input { background: #0a0a0a !important; color: #e0e0e0 !important; border-color: #2a2a2a !important; border-radius: 6px !important; }
     .gridjs-head { padding: 8px 0 !important; }
-    .gridjs-tr-selected td, .gridjs-tr:focus td, .gridjs-tbody tr:focus td { background: rgba(232,168,76,0.08) !important; }
-    .gridjs-td:focus, .gridjs-th:focus { box-shadow: none !important; outline: none !important; }
-    td.gridjs-td { box-shadow: none !important; }
-    .filter-row { display: flex; gap: 0.75rem; align-items: center; margin-bottom: 1rem; }
+    .filter-row { display: flex; gap: 0.75rem; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; }
     .filter-row select { padding: 0.45rem 0.75rem; background: #0a0a0a; border: 1px solid #2a2a2a; border-radius: 6px; color: #e0e0e0; font-size: 0.85rem; }
     .filter-row .count { color: #888; font-size: 0.85rem; margin-left: auto; }
+    .col-toggles { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+    .col-toggle { display: flex; align-items: center; gap: 4px; font-size: 0.8rem; color: #888; cursor: pointer; user-select: none; }
+    .col-toggle input { accent-color: #e8a84c; }
+    .col-toggle.active { color: #e0e0e0; }
+    .status-select { padding: 0.25rem 0.4rem; background: #0a0a0a; border: 1px solid #2a2a2a; border-radius: 4px; color: #e0e0e0; font-size: 0.8rem; cursor: pointer; }
+    .status-select.status-approved { border-color: #4caf50; }
+    .status-select.status-pending { border-color: #ff9800; }
+    .status-select.status-rejected { border-color: #f44336; }
   </style>
 </head>
 <body>
@@ -204,6 +212,7 @@ title: Applications - JamHouse Admin
         <option value="approved">Approved</option>
         <option value="rejected">Rejected</option>
       </select>
+      <div class="col-toggles" id="colToggles"></div>
       <span class="count" id="filter-count"></span>
     </div>
     <div id="app-grid"></div>
