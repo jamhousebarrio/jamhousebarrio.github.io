@@ -93,10 +93,11 @@
 
   function contactLinks(v) {
     var phone = v.replace(/[^+\d]/g, '');
+    var digits = phone.replace('+', '');
     var links = [];
-    if (phone) {
-      links.push('<a href="https://wa.me/' + phone.replace('+', '') + '" target="_blank" style="color:#25D366;">WhatsApp</a>');
-      links.push('<a href="https://t.me/' + phone + '" target="_blank" style="color:#0088cc;">Telegram</a>');
+    if (digits) {
+      links.push('<a href="https://wa.me/' + digits + '" target="_blank" style="color:#25D366;">WhatsApp</a>');
+      links.push('<a href="https://t.me/+' + digits + '" target="_blank" style="color:#0088cc;">Telegram</a>');
     }
     return links.length ? ' &nbsp; ' + links.join(' &nbsp; ') : '';
   }
