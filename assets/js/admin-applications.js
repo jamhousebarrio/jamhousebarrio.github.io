@@ -15,43 +15,6 @@
   document.getElementById('stat-approved').textContent = approved;
   document.getElementById('stat-rejected').textContent = rejected;
 
-  var detailFields = [
-    ['Timestamp', 'Submitted'],
-    ['Name', 'Name'],
-    ['Playa Name', 'Playa Name'],
-    ['Email', 'Email'],
-    ['Phone', 'Phone'],
-    ['Contact Methods', 'Contact Methods'],
-    ['Contact Other', 'Other Contact'],
-    ['Location', 'Location'],
-    ['Nationality', 'Nationality'],
-    ['Gender', 'Gender'],
-    ['Age', 'Age'],
-    ['Language', 'Language'],
-    ['Other Languages', 'Other Languages'],
-    ['First Burn', 'First Burn'],
-    ['First Elsewhere/Nowhere', 'First Elsewhere'],
-    ['Know Core Team', 'Know Core Team'],
-    ['Leave No Trace', 'Leave No Trace'],
-    ['Consent', 'Consent'],
-    ['Why Elsewhere', 'Why Elsewhere'],
-    ['Background', 'Background'],
-    ['Art Project', 'Art Project'],
-    ['Skills', 'Skills'],
-    ['Lift Kg', 'Lift Kg'],
-    ['Deepest Secrets', 'Deepest Secrets'],
-    ['Talents', 'Talents'],
-    ['Has Ticket', 'Has Ticket'],
-    ['Can Build', 'Can Build'],
-    ['Has Car', 'Has Car'],
-    ['Moving Car', 'Moving Car'],
-    ['Other Camp', 'Other Camp'],
-    ['Volunteer', 'Volunteer'],
-    ['How Heard', 'How Heard'],
-    ['Special Needs', 'Special Needs'],
-    ['Needs Description', 'Needs Description'],
-  ];
-
   function refreshStats() {
     var p = allMembers.filter(function(x) { return val(x, 'Status').toLowerCase() === 'pending'; }).length;
     var a = allMembers.filter(function(x) { return val(x, 'Status').toLowerCase() === 'approved'; }).length;
@@ -95,10 +58,13 @@
 
   function openModal(m) {
     document.getElementById('modal-title').textContent = val(m, 'Name') || 'Application';
-    var html = detailFields.map(function(f) {
-      var v = val(m, f[0]);
-      if (!v) return '';
-      return '<div class="detail-row"><div class="detail-label">' + f[1] + '</div><div class="detail-value">' + v.replace(/</g, '&lt;') + '</div></div>';
+    var skipKeys = ['_row', 'Status'];
+    var html = Object.keys(m).filter(function(k) {
+      return skipKeys.indexOf(k) === -1;
+    }).map(function(k) {
+      var v = val(m, k);
+      var display = v ? v.replace(/</g, '&lt;') : '<span style="color:#555;">—</span>';
+      return '<div class="detail-row"><div class="detail-label">' + k + '</div><div class="detail-value">' + display + '</div></div>';
     }).join('');
     document.getElementById('modal-details').innerHTML = html;
 
