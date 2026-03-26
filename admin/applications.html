@@ -143,6 +143,12 @@ title: Applications - JamHouse Admin
     .gridjs-search { float: none !important; }
     .gridjs-search-input { background: #0a0a0a !important; color: #e0e0e0 !important; border-color: #2a2a2a !important; border-radius: 6px !important; }
     .gridjs-head { padding: 8px 0 !important; }
+    .gridjs-tr-selected td, .gridjs-tr:focus td, .gridjs-tbody tr:focus td { background: rgba(232,168,76,0.08) !important; }
+    .gridjs-td:focus, .gridjs-th:focus { box-shadow: none !important; outline: none !important; }
+    td.gridjs-td { box-shadow: none !important; }
+    .filter-row { display: flex; gap: 0.75rem; align-items: center; margin-bottom: 1rem; }
+    .filter-row select { padding: 0.45rem 0.75rem; background: #0a0a0a; border: 1px solid #2a2a2a; border-radius: 6px; color: #e0e0e0; font-size: 0.85rem; }
+    .filter-row .count { color: #888; font-size: 0.85rem; margin-left: auto; }
   </style>
 </head>
 <body>
@@ -191,6 +197,15 @@ title: Applications - JamHouse Admin
     </div>
   </div>
   <div class="panel">
+    <div class="filter-row">
+      <select id="statusFilter">
+        <option value="all" selected>All Applications</option>
+        <option value="pending">Pending</option>
+        <option value="approved">Approved</option>
+        <option value="rejected">Rejected</option>
+      </select>
+      <span class="count" id="filter-count"></span>
+    </div>
     <div id="app-grid"></div>
   </div>
 </div>
