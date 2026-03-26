@@ -14,6 +14,7 @@ access: admin
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/assets/css/admin.css">
+  <link rel="stylesheet" href="/assets/css/ag-dark.css">
   <style>
     .modal-overlay {
       display: none;
@@ -99,24 +100,7 @@ access: admin
     .filter-row { display: flex; gap: 0.75rem; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; }
     .filter-row select { padding: 0.45rem 0.75rem; background: #0a0a0a; border: 1px solid #2a2a2a; border-radius: 6px; color: #e0e0e0; font-size: 0.85rem; }
     .filter-row .count { color: #888; font-size: 0.85rem; margin-left: auto; }
-    /* AG Grid dark overrides */
-    .ag-theme-alpine-dark {
-      --ag-background-color: #141414;
-      --ag-header-background-color: #1a1a1a;
-      --ag-odd-row-background-color: #141414;
-      --ag-row-hover-color: rgba(232,168,76,0.10);
-      --ag-selected-row-background-color: rgba(232,168,76,0.08);
-      --ag-border-color: #2a2a2a;
-      --ag-row-border-color: #1e1e1e;
-      --ag-header-foreground-color: #888;
-      --ag-foreground-color: #e0e0e0;
-      --ag-font-family: 'Inter', sans-serif;
-      --ag-font-size: 13px;
-      --ag-alpine-active-color: #e8a84c;
-      --ag-range-selection-border-color: transparent;
-      --ag-input-focus-border-color: #e8a84c;
-    }
-    #app-grid { height: 500px; border-radius: 8px; overflow: hidden; }
+    #app-grid { height: 500px; }
   </style>
 </head>
 <body>
@@ -172,6 +156,7 @@ access: admin
         <option value="Approved">Approved</option>
         <option value="Rejected">Rejected</option>
       </select>
+      <div class="col-toggles" id="colToggles"></div>
       <span class="count" id="filter-count"></span>
     </div>
     <div id="app-grid" class="ag-theme-alpine-dark"></div>
