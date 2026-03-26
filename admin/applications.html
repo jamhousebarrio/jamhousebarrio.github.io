@@ -12,10 +12,8 @@ title: Applications - JamHouse Admin
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/assets/css/admin.css">
-  <link rel="stylesheet" href="https://unpkg.com/gridjs/dist/theme/mermaid.min.css">
+  <link rel="stylesheet" href="https://unpkg.com/tabulator-tables@6/dist/css/tabulator_midnight.min.css">
   <style>
-    .app-table tr { cursor: pointer; }
-    .app-table tr:hover { background: rgba(232,168,76,0.08); }
     .modal-overlay {
       display: none;
       position: fixed;
@@ -60,14 +58,8 @@ title: Applications - JamHouse Admin
       border-bottom: 1px solid #222;
       font-size: 0.9rem;
     }
-    .detail-label {
-      color: #888;
-      font-weight: 500;
-    }
-    .detail-value {
-      color: #e0e0e0;
-      word-break: break-word;
-    }
+    .detail-label { color: #888; font-weight: 500; }
+    .detail-value { color: #e0e0e0; word-break: break-word; }
     .status-actions {
       margin-top: 1.5rem;
       padding-top: 1rem;
@@ -75,14 +67,6 @@ title: Applications - JamHouse Admin
       display: flex;
       gap: 0.75rem;
       align-items: center;
-    }
-    .status-actions select {
-      padding: 0.5rem 0.75rem;
-      background: #0a0a0a;
-      border: 1px solid #2a2a2a;
-      border-radius: 6px;
-      color: #e0e0e0;
-      font-size: 0.9rem;
     }
     .status-actions button {
       padding: 0.5rem 1.5rem;
@@ -95,16 +79,7 @@ title: Applications - JamHouse Admin
       cursor: pointer;
     }
     .status-actions button:hover { opacity: 0.9; }
-    .status-actions .msg {
-      font-size: 0.85rem;
-      margin-left: 0.5rem;
-    }
-    .filter-bar {
-      display: flex;
-      gap: 0.75rem;
-      margin-bottom: 1rem;
-      align-items: center;
-    }
+    .status-actions .msg { font-size: 0.85rem; margin-left: 0.5rem; }
     .field-input {
       width: 100%;
       background: #0a0a0a;
@@ -116,36 +91,10 @@ title: Applications - JamHouse Admin
       padding: 0.35rem 0.5rem;
       box-sizing: border-box;
     }
-    .field-input:focus {
-      border-color: #e8a84c;
-      outline: none;
-    }
-    textarea.field-input {
-      min-height: 60px;
-      resize: vertical;
-    }
-    .detail-value a {
-      text-decoration: none;
-      font-size: 0.8rem;
-      font-weight: 500;
-    }
+    .field-input:focus { border-color: #e8a84c; outline: none; }
+    textarea.field-input { min-height: 60px; resize: vertical; }
+    .detail-value a { text-decoration: none; font-size: 0.8rem; font-weight: 500; }
     .detail-value a:hover { text-decoration: underline; }
-    .gridjs-container { font-family: 'Inter', sans-serif; }
-    .gridjs-wrapper { border-radius: 8px; border: 1px solid #2a2a2a; }
-    table.gridjs-table { background: #141414; }
-    .gridjs-thead th.gridjs-th { background: #1a1a1a !important; color: #888 !important; border-color: #2a2a2a !important; font-size: 0.8rem; }
-    .gridjs-tbody td.gridjs-td { background: #141414 !important; color: #e0e0e0 !important; border-color: #1e1e1e !important; font-size: 0.85rem; box-shadow: none !important; }
-    .gridjs-tbody tr.gridjs-tr:hover td.gridjs-td { background: rgba(232,168,76,0.12) !important; cursor: pointer; color: #e0e0e0 !important; }
-    .gridjs-tbody tr.gridjs-tr:focus td.gridjs-td, .gridjs-tr-selected td.gridjs-td { background: rgba(232,168,76,0.08) !important; color: #e0e0e0 !important; }
-    td.gridjs-td:focus { box-shadow: none !important; outline: none !important; background: #141414 !important; }
-    th.gridjs-th:focus { box-shadow: none !important; outline: none !important; }
-    .gridjs-footer { background: #141414 !important; border-color: #2a2a2a !important; }
-    .gridjs-pagination .gridjs-pages button { background: #1a1a1a !important; color: #e0e0e0 !important; border-color: #2a2a2a !important; }
-    .gridjs-pagination .gridjs-pages button.gridjs-currentPage { background: #e8a84c !important; color: #0a0a0a !important; }
-    .gridjs-pagination .gridjs-summary { color: #888 !important; }
-    .gridjs-search { float: none !important; }
-    .gridjs-search-input { background: #0a0a0a !important; color: #e0e0e0 !important; border-color: #2a2a2a !important; border-radius: 6px !important; }
-    .gridjs-head { padding: 8px 0 !important; }
     .filter-row { display: flex; gap: 0.75rem; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; }
     .filter-row select { padding: 0.45rem 0.75rem; background: #0a0a0a; border: 1px solid #2a2a2a; border-radius: 6px; color: #e0e0e0; font-size: 0.85rem; }
     .filter-row .count { color: #888; font-size: 0.85rem; margin-left: auto; }
@@ -153,10 +102,20 @@ title: Applications - JamHouse Admin
     .col-toggle { display: flex; align-items: center; gap: 4px; font-size: 0.8rem; color: #888; cursor: pointer; user-select: none; }
     .col-toggle input { accent-color: #e8a84c; }
     .col-toggle.active { color: #e0e0e0; }
-    .status-select { padding: 0.25rem 0.4rem; background: #0a0a0a; border: 1px solid #2a2a2a; border-radius: 4px; color: #e0e0e0; font-size: 0.8rem; cursor: pointer; }
-    .status-select.status-approved { border-color: #4caf50; }
-    .status-select.status-pending { border-color: #ff9800; }
-    .status-select.status-rejected { border-color: #f44336; }
+    /* Tabulator dark overrides */
+    .tabulator { background: #141414; border: 1px solid #2a2a2a; border-radius: 8px; font-family: 'Inter', sans-serif; font-size: 0.85rem; }
+    .tabulator .tabulator-header { background: #1a1a1a; border-color: #2a2a2a; }
+    .tabulator .tabulator-header .tabulator-col { background: #1a1a1a; border-color: #2a2a2a; }
+    .tabulator .tabulator-header .tabulator-col .tabulator-col-content .tabulator-col-title { color: #888; }
+    .tabulator .tabulator-tableholder .tabulator-table .tabulator-row { background: #141414; color: #e0e0e0; border-color: #1e1e1e; cursor: pointer; }
+    .tabulator .tabulator-tableholder .tabulator-table .tabulator-row:hover { background: rgba(232,168,76,0.10); }
+    .tabulator .tabulator-tableholder .tabulator-table .tabulator-row .tabulator-cell { border-color: #1e1e1e; }
+    .tabulator .tabulator-tableholder .tabulator-table .tabulator-row.tabulator-selected { background: rgba(232,168,76,0.08); }
+    .tabulator .tabulator-footer { background: #1a1a1a; border-color: #2a2a2a; color: #888; }
+    .tabulator .tabulator-footer .tabulator-page { background: #1a1a1a; color: #e0e0e0; border-color: #2a2a2a; }
+    .tabulator .tabulator-footer .tabulator-page.active { background: #e8a84c; color: #0a0a0a; }
+    .tabulator .tabulator-header .tabulator-col.tabulator-sortable .tabulator-col-content .tabulator-arrow { border-bottom-color: #555; }
+    .tabulator-row .tabulator-cell select { background: #0a0a0a; color: #e0e0e0; border: 1px solid #2a2a2a; border-radius: 4px; padding: 2px 4px; font-size: 0.8rem; cursor: pointer; }
   </style>
 </head>
 <body>
@@ -233,7 +192,7 @@ title: Applications - JamHouse Admin
   </div>
 </div>
 
-<script src="https://unpkg.com/gridjs/dist/gridjs.umd.js"></script>
+<script src="https://unpkg.com/tabulator-tables@6/dist/js/tabulator.min.js"></script>
 <script src="/assets/js/admin-auth.js"></script>
 <script src="/assets/js/admin-applications.js"></script>
 </body>

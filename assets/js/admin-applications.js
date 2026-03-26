@@ -17,142 +17,135 @@
   }
   refreshStats();
 
-  // All available columns
-  var allColumns = [
-    { key: 'Name', name: 'Name', on: true },
-    { key: 'Playa Name', name: 'Playa Name', on: true },
-    { key: 'Location', name: 'Location', on: true },
-    { key: 'Email', name: 'Email', on: false },
-    { key: 'Phone', name: 'Phone', on: false },
-    { key: 'Nationality', name: 'Nationality', on: false },
-    { key: 'Gender', name: 'Gender', on: false },
-    { key: 'Age', name: 'Age', on: false },
-    { key: 'First Burn', name: 'First Burn', on: true },
-    { key: 'Has Ticket', name: 'Has Ticket', on: true },
-    { key: 'Volunteer', name: 'Volunteer', on: false },
-    { key: 'Timestamp', name: 'Date', on: true },
-    { key: 'Status', name: 'Status', on: true }
+  // Column definitions
+  var columnDefs = [
+    { title: 'Name', field: 'Name', visible: true },
+    { title: 'Playa Name', field: 'Playa Name', visible: true },
+    { title: 'Location', field: 'Location', visible: true },
+    { title: 'Email', field: 'Email', visible: false },
+    { title: 'Phone', field: 'Phone', visible: false },
+    { title: 'Nationality', field: 'Nationality', visible: false },
+    { title: 'Gender', field: 'Gender', visible: false },
+    { title: 'Age', field: 'Age', visible: false },
+    { title: 'First Burn', field: 'First Burn', visible: true },
+    { title: 'Has Ticket', field: 'Has Ticket', visible: true },
+    { title: 'Volunteer', field: 'Volunteer', visible: false },
+    { title: 'Date', field: '_date', visible: true },
+    {
+      title: 'Status', field: 'Status', visible: true,
+      formatter: function(cell) {
+        var v = (cell.getValue() || 'Pending').toLowerCase();
+        var cls = v === 'approved' ? 'status-approved' : v === 'rejected' ? 'status-rejected' : 'status-pending';
+        if (!isAdmin) {
+          return '<span class="' + cls + '">' + v.charAt(0).toUpperCase() + v.slice(1) + '</span>';
+        }
+        var sel = document.createElement('select');
+        ['Pending', 'Approved', 'Rejected'].forEach(function(opt) {
+          var o = document.createElement('option');
+          o.value = opt;
+          o.textContent = opt;
+          if (opt.toLowerCase() === v) o.selected = true;
+          sel.appendChild(o);
+        });
+        sel.addEventListener('change', function(e) {
+          e.stopPropagation();
+          updateStatus(cell.getRow().getData(), sel.value, sel);
+        });
+        sel.addEventListener('click', function(e) { e.stopPropagation(); });
+        return sel;
+      }
+    }
   ];
 
-  // Render column toggles
+  // Prepare table data
+  function getTableData() {
+    return allMembers.map(function(m) {
+      var obj = Object.assign({}, m);
+      var ts = val(m, 'Timestamp');
+      obj._date = ts ? new Date(ts).toLocaleDateString() : '';
+      obj.Status = val(m, 'Status') || 'Pending';
+      return obj;
+    });
+  }
+
+  var table = new Tabulator('#app-grid', {
+    data: getTableData(),
+    columns: columnDefs,
+    layout: 'fitColumns',
+    pagination: true,
+    paginationSize: 25,
+    movableColumns: true,
+    headerSort: true,
+    selectable: false,
+    rowClick: function(e, row) {
+      if (e.target.tagName === 'SELECT' || e.target.tagName === 'OPTION') return;
+      var data = row.getData();
+      var member = allMembers.find(function(m) { return m._row === data._row; });
+      if (member) openModal(member);
+    }
+  });
+
+  // Column toggles
   var togglesEl = document.getElementById('colToggles');
-  allColumns.forEach(function(col) {
+  columnDefs.forEach(function(col) {
     var label = document.createElement('label');
-    label.className = 'col-toggle' + (col.on ? ' active' : '');
+    label.className = 'col-toggle' + (col.visible ? ' active' : '');
     var cb = document.createElement('input');
     cb.type = 'checkbox';
-    cb.checked = col.on;
+    cb.checked = col.visible;
     cb.addEventListener('change', function() {
-      col.on = this.checked;
-      label.className = 'col-toggle' + (col.on ? ' active' : '');
-      rebuildGrid();
+      label.className = 'col-toggle' + (this.checked ? ' active' : '');
+      if (this.checked) {
+        table.showColumn(col.field);
+      } else {
+        table.hideColumn(col.field);
+      }
     });
     label.appendChild(cb);
-    label.appendChild(document.createTextNode(col.name));
+    label.appendChild(document.createTextNode(col.title));
     togglesEl.appendChild(label);
   });
 
-  function statusHtml(status, row) {
-    var s = (status || 'pending').toLowerCase();
-    var cls = s === 'approved' ? 'status-approved' : s === 'rejected' ? 'status-rejected' : 'status-pending';
-    if (!isAdmin) {
-      return '<span class="' + cls + '">' + s.charAt(0).toUpperCase() + s.slice(1) + '</span>';
-    }
-    return '<select class="status-select ' + cls + '" data-row="' + row + '">' +
-      '<option value="Pending"' + (s === 'pending' ? ' selected' : '') + '>Pending</option>' +
-      '<option value="Approved"' + (s === 'approved' ? ' selected' : '') + '>Approved</option>' +
-      '<option value="Rejected"' + (s === 'rejected' ? ' selected' : '') + '>Rejected</option>' +
-      '</select>';
-  }
-
-  function getVisibleColumns() {
-    var cols = allColumns.filter(function(c) { return c.on; }).map(function(c) {
-      if (c.key === 'Status') {
-        return { name: c.name, sort: true, formatter: function(cell, row) {
-          var rowNum = row.cells[row.cells.length - 1].data;
-          return gridjs.html(statusHtml(cell, rowNum));
-        }};
-      }
-      return { name: c.name, sort: true };
-    });
-    cols.push({ name: 'row', hidden: true });
-    return cols;
-  }
-
-  function getGridData(filter) {
-    var filtered = filter === 'all' ? allMembers : allMembers.filter(function(m) {
-      return val(m, 'Status').toLowerCase() === filter;
-    });
-    document.getElementById('filter-count').textContent = filtered.length + ' applications';
-    var visibleKeys = allColumns.filter(function(c) { return c.on; });
-    return filtered.map(function(m) {
-      var row = visibleKeys.map(function(c) {
-        if (c.key === 'Timestamp') {
-          var ts = val(m, 'Timestamp');
-          return ts ? new Date(ts).toLocaleDateString() : '';
-        }
-        if (c.key === 'Status') return val(m, 'Status') || 'Pending';
-        return val(m, c.key);
+  // Status filter
+  document.getElementById('statusFilter').addEventListener('change', function() {
+    var filter = this.value;
+    if (filter === 'all') {
+      table.clearFilter();
+    } else {
+      table.setFilter(function(data) {
+        return (data.Status || 'Pending').toLowerCase() === filter;
       });
-      row.push(m._row);
-      return row;
-    });
-  }
-
-  var grid;
-  function rebuildGrid() {
-    var filter = document.getElementById('statusFilter').value;
-    if (grid) {
-      document.getElementById('app-grid').innerHTML = '';
     }
-    grid = new gridjs.Grid({
-      columns: getVisibleColumns(),
-      data: getGridData(filter),
-      search: true,
-      sort: true,
-      pagination: { limit: 25 },
-      className: { table: 'app-table' }
-    }).render(document.getElementById('app-grid'));
+    updateCount();
+  });
 
-    grid.on('rowClick', function(e, row) {
-      if (e.target && (e.target.tagName === 'SELECT' || e.target.tagName === 'OPTION')) return;
-      var rowNum = row.cells[row.cells.length - 1].data;
-      var member = allMembers.find(function(m) { return m._row === rowNum; });
-      if (member) openModal(member);
-    });
+  function updateCount() {
+    var count = table.getDataCount('active');
+    document.getElementById('filter-count').textContent = count + ' applications';
   }
-  rebuildGrid();
+  table.on('dataLoaded', updateCount);
+  table.on('dataFiltered', updateCount);
 
-  // Handle inline status changes
-  document.getElementById('app-grid').addEventListener('change', async function(e) {
-    if (!e.target.classList.contains('status-select')) return;
-    var rowNum = parseInt(e.target.dataset.row);
-    var newStatus = e.target.value;
-    var member = allMembers.find(function(m) { return m._row === rowNum; });
+  // Inline status update
+  async function updateStatus(data, newStatus, selectEl) {
+    var member = allMembers.find(function(m) { return m._row === data._row; });
     if (!member) return;
     var pass = sessionStorage.getItem('jh_pass');
     try {
       var res = await fetch('/api/update-status', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password: pass, row: rowNum, status: newStatus })
+        body: JSON.stringify({ password: pass, row: data._row, status: newStatus })
       });
       if (!res.ok) throw new Error('Failed');
       member['Status'] = newStatus;
-      var s = newStatus.toLowerCase();
-      var cls = s === 'approved' ? 'status-approved' : s === 'rejected' ? 'status-rejected' : 'status-pending';
-      e.target.className = 'status-select ' + cls;
       refreshStats();
     } catch (err) {
-      e.target.value = val(member, 'Status') || 'Pending';
+      selectEl.value = val(member, 'Status') || 'Pending';
     }
-  });
+  }
 
-  document.getElementById('statusFilter').addEventListener('change', function() {
-    var filter = this.value;
-    grid.updateConfig({ data: getGridData(filter) }).forceRender();
-  });
-
+  // Modal
   function contactLinks(v) {
     var phone = v.replace(/[^+\d]/g, '');
     var links = [];
@@ -167,7 +160,7 @@
 
   function openModal(m) {
     document.getElementById('modal-title').textContent = val(m, 'Name') || 'Application';
-    var skipKeys = ['_row'];
+    var skipKeys = ['_row', '_date'];
     var html = Object.keys(m).filter(function(k) {
       return skipKeys.indexOf(k) === -1;
     }).map(function(k) {
@@ -223,8 +216,7 @@
           document.getElementById('modal-msg').textContent = 'Saved!';
           document.getElementById('modal-msg').style.color = '#4caf50';
           refreshStats();
-          var currentFilter = document.getElementById('statusFilter').value;
-          grid.updateConfig({ data: getGridData(currentFilter) }).forceRender();
+          table.replaceData(getTableData());
         } catch (e) {
           document.getElementById('modal-msg').textContent = e.message;
           document.getElementById('modal-msg').style.color = '#f44336';

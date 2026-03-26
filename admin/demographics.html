@@ -12,23 +12,18 @@ title: Demographics - JamHouse Admin
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/assets/css/admin.css">
-  <link rel="stylesheet" href="https://unpkg.com/gridjs/dist/theme/mermaid.min.css">
+  <link rel="stylesheet" href="https://unpkg.com/tabulator-tables@6/dist/css/tabulator_midnight.min.css">
   <style>
-    .gridjs-container { font-family: 'Inter', sans-serif; }
-    .gridjs-wrapper { border-radius: 8px; border: 1px solid #2a2a2a; }
-    .gridjs-table { background: #141414; }
-    .gridjs-thead th { background: #1a1a1a !important; color: #888 !important; border-color: #2a2a2a !important; font-size: 0.8rem; }
-    .gridjs-tbody td { background: #141414 !important; color: #e0e0e0 !important; border-color: #1e1e1e !important; font-size: 0.85rem; }
-    .gridjs-tbody tr:hover td { background: rgba(232,168,76,0.08) !important; }
-    .gridjs-footer { background: #141414 !important; border-color: #2a2a2a !important; }
-    .gridjs-pagination .gridjs-pages button { background: #1a1a1a !important; color: #e0e0e0 !important; border-color: #2a2a2a !important; }
-    .gridjs-pagination .gridjs-pages button.gridjs-currentPage { background: #e8a84c !important; color: #0a0a0a !important; }
-    .gridjs-pagination .gridjs-summary { color: #888 !important; }
-    .gridjs-search-input { background: #0a0a0a !important; color: #e0e0e0 !important; border-color: #2a2a2a !important; border-radius: 6px !important; }
-    .gridjs-head { padding: 8px 0 !important; }
-    .gridjs-tr-selected td, .gridjs-tr:focus td, .gridjs-tbody tr:focus td { background: rgba(232,168,76,0.08) !important; }
-    .gridjs-td:focus, .gridjs-th:focus { box-shadow: none !important; outline: none !important; }
-    td.gridjs-td { box-shadow: none !important; }
+    .tabulator { background: #141414; border: 1px solid #2a2a2a; border-radius: 8px; font-family: 'Inter', sans-serif; font-size: 0.85rem; }
+    .tabulator .tabulator-header { background: #1a1a1a; border-color: #2a2a2a; }
+    .tabulator .tabulator-header .tabulator-col { background: #1a1a1a; border-color: #2a2a2a; }
+    .tabulator .tabulator-header .tabulator-col .tabulator-col-content .tabulator-col-title { color: #888; }
+    .tabulator .tabulator-tableholder .tabulator-table .tabulator-row { background: #141414; color: #e0e0e0; border-color: #1e1e1e; }
+    .tabulator .tabulator-tableholder .tabulator-table .tabulator-row:hover { background: rgba(232,168,76,0.10); }
+    .tabulator .tabulator-tableholder .tabulator-table .tabulator-row .tabulator-cell { border-color: #1e1e1e; }
+    .tabulator .tabulator-footer { background: #1a1a1a; border-color: #2a2a2a; color: #888; }
+    .tabulator .tabulator-footer .tabulator-page { background: #1a1a1a; color: #e0e0e0; border-color: #2a2a2a; }
+    .tabulator .tabulator-footer .tabulator-page.active { background: #e8a84c; color: #0a0a0a; }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 </head>
@@ -100,7 +95,7 @@ title: Demographics - JamHouse Admin
     <div id="roster-grid"></div>
   </div>
 </div>
-<script src="https://unpkg.com/gridjs/dist/gridjs.umd.js"></script>
+<script src="https://unpkg.com/tabulator-tables@6/dist/js/tabulator.min.js"></script>
 <script src="/assets/js/admin-auth.js"></script>
 <script src="/assets/js/admin-charts.js"></script>
 <script src="/assets/js/admin-demographics.js"></script>

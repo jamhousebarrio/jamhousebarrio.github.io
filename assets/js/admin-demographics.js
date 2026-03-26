@@ -66,20 +66,22 @@
   JH.makeBar('burns-chart', Object.keys(burnData), Object.values(burnData));
 
   // Roster table
-  new gridjs.Grid({
-    columns: [
-      { name: 'Member', sort: true },
-      { name: 'Location', sort: true },
-      { name: 'Nationality', sort: true },
-      { name: 'Age', sort: true },
-      { name: 'Gender', sort: true },
-      { name: 'First Burn', sort: true }
-    ],
+  new Tabulator('#roster-grid', {
     data: members.map(function(m) {
-      return [val(m, 'Name'), val(m, 'Location'), val(m, 'Nationality'), val(m, 'Age'), val(m, 'Gender'), val(m, 'First Burn')];
+      return { Name: val(m, 'Name'), Location: val(m, 'Location'), Nationality: val(m, 'Nationality'), Age: val(m, 'Age'), Gender: val(m, 'Gender'), 'First Burn': val(m, 'First Burn') };
     }),
-    search: true,
-    sort: true,
-    pagination: { limit: 25 }
-  }).render(document.getElementById('roster-grid'));
+    columns: [
+      { title: 'Member', field: 'Name' },
+      { title: 'Location', field: 'Location' },
+      { title: 'Nationality', field: 'Nationality' },
+      { title: 'Age', field: 'Age' },
+      { title: 'Gender', field: 'Gender' },
+      { title: 'First Burn', field: 'First Burn' }
+    ],
+    layout: 'fitColumns',
+    pagination: true,
+    paginationSize: 25,
+    headerSort: true,
+    selectable: false
+  });
 })();
