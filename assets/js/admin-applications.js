@@ -19,7 +19,6 @@
 
   function getRowData() {
     return allMembers.map(function(m) {
-      var ts = val(m, 'Timestamp');
       return {
         _row: m._row,
         Name: val(m, 'Name'),
@@ -33,7 +32,6 @@
         'First Burn': val(m, 'First Burn'),
         'Has Ticket': val(m, 'Has Ticket'),
         Volunteer: val(m, 'Volunteer'),
-        Date: ts ? new Date(ts).toLocaleDateString() : '',
         Status: val(m, 'Status') || 'Pending'
       };
     });
@@ -104,7 +102,6 @@
     { field: 'First Burn', sortable: true, filter: true, editable: isAdmin },
     { field: 'Has Ticket', sortable: true, filter: true, editable: isAdmin },
     { field: 'Volunteer', sortable: true, filter: true, hide: true, editable: isAdmin },
-    { field: 'Date', sortable: true, filter: true },
     { field: 'Status', sortable: true, filter: true, cellRenderer: StatusCellRenderer }
   ];
 
