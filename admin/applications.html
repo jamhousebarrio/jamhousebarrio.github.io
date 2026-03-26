@@ -103,6 +103,31 @@ title: Applications - JamHouse Admin
       margin-bottom: 1rem;
       align-items: center;
     }
+    .field-input {
+      width: 100%;
+      background: #0a0a0a;
+      border: 1px solid #2a2a2a;
+      border-radius: 4px;
+      color: #e0e0e0;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.85rem;
+      padding: 0.35rem 0.5rem;
+      box-sizing: border-box;
+    }
+    .field-input:focus {
+      border-color: #e8a84c;
+      outline: none;
+    }
+    textarea.field-input {
+      min-height: 60px;
+      resize: vertical;
+    }
+    .detail-value a {
+      text-decoration: none;
+      font-size: 0.8rem;
+      font-weight: 500;
+    }
+    .detail-value a:hover { text-decoration: underline; }
     .filter-bar select {
       padding: 0.45rem 0.75rem;
       background: #0a0a0a;
@@ -190,12 +215,7 @@ title: Applications - JamHouse Admin
     </h2>
     <div id="modal-details"></div>
     <div class="status-actions" id="status-actions">
-      <select id="modal-status">
-        <option value="Pending">Pending</option>
-        <option value="Approved">Approved</option>
-        <option value="Rejected">Rejected</option>
-      </select>
-      <button id="modal-save">Update Status</button>
+      <button id="modal-save">Save All</button>
       <span class="msg" id="modal-msg"></span>
     </div>
   </div>
