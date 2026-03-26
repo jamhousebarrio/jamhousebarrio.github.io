@@ -68,10 +68,9 @@
   // Roster table
   agGrid.createGrid(document.getElementById('roster-grid'), {
     rowData: members.map(function(m) {
-      return { Name: val(m, 'Name'), 'Playa Name': val(m, 'Playa Name'), Role: val(m, 'Role'), Phone: val(m, 'Phone') };
+      return { 'Playa Name': val(m, 'Playa Name'), Role: val(m, 'Role'), Phone: val(m, 'Phone') };
     }),
     columnDefs: [
-      { field: 'Name', sortable: true, filter: true },
       { field: 'Playa Name', sortable: true, filter: true },
       { field: 'Role', sortable: true, filter: true },
       { field: 'Phone', sortable: true, filter: true, cellRenderer: JH.PhoneCellRenderer }
