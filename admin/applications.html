@@ -12,6 +12,7 @@ title: Applications - JamHouse Admin
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/assets/css/admin.css">
+  <link rel="stylesheet" href="https://unpkg.com/gridjs/dist/theme/mermaid.min.css">
   <style>
     .app-table tr { cursor: pointer; }
     .app-table tr:hover { background: rgba(232,168,76,0.08); }
@@ -129,19 +130,19 @@ title: Applications - JamHouse Admin
       font-weight: 500;
     }
     .detail-value a:hover { text-decoration: underline; }
-    .filter-bar select {
-      padding: 0.45rem 0.75rem;
-      background: #0a0a0a;
-      border: 1px solid #2a2a2a;
-      border-radius: 6px;
-      color: #e0e0e0;
-      font-size: 0.85rem;
-    }
-    .filter-bar .count {
-      color: #888;
-      font-size: 0.85rem;
-      margin-left: auto;
-    }
+    .gridjs-container { font-family: 'Inter', sans-serif; }
+    .gridjs-wrapper { border-radius: 8px; border: 1px solid #2a2a2a; }
+    .gridjs-table { background: #141414; }
+    .gridjs-thead th { background: #1a1a1a !important; color: #888 !important; border-color: #2a2a2a !important; font-size: 0.8rem; }
+    .gridjs-tbody td { background: #141414 !important; color: #e0e0e0 !important; border-color: #1e1e1e !important; font-size: 0.85rem; }
+    .gridjs-tbody tr:hover td { background: rgba(232,168,76,0.08) !important; cursor: pointer; }
+    .gridjs-footer { background: #141414 !important; border-color: #2a2a2a !important; }
+    .gridjs-pagination .gridjs-pages button { background: #1a1a1a !important; color: #e0e0e0 !important; border-color: #2a2a2a !important; }
+    .gridjs-pagination .gridjs-pages button.gridjs-currentPage { background: #e8a84c !important; color: #0a0a0a !important; }
+    .gridjs-pagination .gridjs-summary { color: #888 !important; }
+    .gridjs-search { float: none !important; }
+    .gridjs-search-input { background: #0a0a0a !important; color: #e0e0e0 !important; border-color: #2a2a2a !important; border-radius: 6px !important; }
+    .gridjs-head { padding: 8px 0 !important; }
   </style>
 </head>
 <body>
@@ -190,21 +191,7 @@ title: Applications - JamHouse Admin
     </div>
   </div>
   <div class="panel">
-    <div class="filter-bar">
-      <select id="statusFilter">
-        <option value="all" selected>All Applications</option>
-        <option value="pending">Pending</option>
-        <option value="approved">Approved</option>
-        <option value="rejected">Rejected</option>
-      </select>
-      <span class="count" id="filter-count"></span>
-    </div>
-    <div style="overflow-x:auto;">
-      <table class="data-table app-table">
-        <thead><tr><th>Name</th><th>Playa Name</th><th>Location</th><th>First Burn</th><th>Has Ticket</th><th>Date</th><th>Status</th></tr></thead>
-        <tbody id="app-tbody"></tbody>
-      </table>
-    </div>
+    <div id="app-grid"></div>
   </div>
 </div>
 
@@ -222,6 +209,7 @@ title: Applications - JamHouse Admin
   </div>
 </div>
 
+<script src="https://unpkg.com/gridjs/dist/gridjs.umd.js"></script>
 <script src="/assets/js/admin-auth.js"></script>
 <script src="/assets/js/admin-applications.js"></script>
 </body>

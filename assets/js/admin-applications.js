@@ -7,14 +7,6 @@
   var allMembers = members.map(function(m, i) { m._row = i + 2; return m; });
 
   // Stats
-  var pending = allMembers.filter(function(m) { return val(m, 'Status').toLowerCase() === 'pending'; }).length;
-  var approved = allMembers.filter(function(m) { return val(m, 'Status').toLowerCase() === 'approved'; }).length;
-  var rejected = allMembers.filter(function(m) { return val(m, 'Status').toLowerCase() === 'rejected'; }).length;
-  document.getElementById('stat-total').textContent = allMembers.length;
-  document.getElementById('stat-pending').textContent = pending;
-  document.getElementById('stat-approved').textContent = approved;
-  document.getElementById('stat-rejected').textContent = rejected;
-
   function refreshStats() {
     var p = allMembers.filter(function(x) { return val(x, 'Status').toLowerCase() === 'pending'; }).length;
     var a = allMembers.filter(function(x) { return val(x, 'Status').toLowerCase() === 'approved'; }).length;
@@ -24,37 +16,41 @@
     document.getElementById('stat-approved').textContent = a;
     document.getElementById('stat-rejected').textContent = r;
   }
+  refreshStats();
 
-  function renderTable(filter) {
-    var filtered = filter === 'all' ? allMembers : allMembers.filter(function(m) {
-      return val(m, 'Status').toLowerCase() === filter;
-    });
-    document.getElementById('filter-count').textContent = filtered.length + ' applications';
-    document.getElementById('app-tbody').innerHTML = filtered.map(function(m) {
-      var status = val(m, 'Status').toLowerCase() || 'pending';
-      var statusClass = status === 'approved' ? 'status-approved' : status === 'rejected' ? 'status-rejected' : 'status-pending';
-      var statusText = status.charAt(0).toUpperCase() + status.slice(1);
+  function statusHtml(status) {
+    var s = (status || 'pending').toLowerCase();
+    var cls = s === 'approved' ? 'status-approved' : s === 'rejected' ? 'status-rejected' : 'status-pending';
+    return '<span class="' + cls + '">' + s.charAt(0).toUpperCase() + s.slice(1) + '</span>';
+  }
+
+  var grid = new gridjs.Grid({
+    columns: [
+      { name: 'Name', sort: true },
+      { name: 'Playa Name', sort: true },
+      { name: 'Location', sort: true },
+      { name: 'First Burn', sort: true },
+      { name: 'Has Ticket', sort: true },
+      { name: 'Date', sort: true },
+      { name: 'Status', sort: true, formatter: function(cell) { return gridjs.html(statusHtml(cell)); } },
+      { name: 'row', hidden: true }
+    ],
+    data: allMembers.map(function(m) {
       var ts = val(m, 'Timestamp');
       var date = ts ? new Date(ts).toLocaleDateString() : '';
-      return '<tr data-row="' + m._row + '">' +
-        '<td class="name">' + val(m, 'Name') + '</td>' +
-        '<td>' + val(m, 'Playa Name') + '</td>' +
-        '<td>' + val(m, 'Location') + '</td>' +
-        '<td>' + val(m, 'First Burn') + '</td>' +
-        '<td>' + val(m, 'Has Ticket') + '</td>' +
-        '<td>' + date + '</td>' +
-        '<td><span class="' + statusClass + '">' + statusText + '</span></td>' +
-        '</tr>';
-    }).join('');
+      return [val(m, 'Name'), val(m, 'Playa Name'), val(m, 'Location'), val(m, 'First Burn'), val(m, 'Has Ticket'), date, val(m, 'Status') || 'Pending', m._row];
+    }),
+    search: true,
+    sort: true,
+    pagination: { limit: 25 },
+    className: { table: 'app-table' }
+  }).render(document.getElementById('app-grid'));
 
-    document.querySelectorAll('#app-tbody tr').forEach(function(tr) {
-      tr.addEventListener('click', function() {
-        var row = parseInt(this.dataset.row);
-        var member = allMembers.find(function(m) { return m._row === row; });
-        if (member) openModal(member);
-      });
-    });
-  }
+  grid.on('rowClick', function(_, row) {
+    var rowNum = row.cells[7].data;
+    var member = allMembers.find(function(m) { return m._row === rowNum; });
+    if (member) openModal(member);
+  });
 
   function contactLinks(v) {
     var phone = v.replace(/[^+\d]/g, '');
@@ -66,7 +62,6 @@
     return links.length ? ' &nbsp; ' + links.join(' &nbsp; ') : '';
   }
 
-  var contactKeys = ['Phone', 'Email', 'Contact Methods', 'Contact Other'];
   var readonlyKeys = ['_row', 'Timestamp'];
 
   function openModal(m) {
@@ -127,7 +122,13 @@
           document.getElementById('modal-msg').textContent = 'Saved!';
           document.getElementById('modal-msg').style.color = '#4caf50';
           refreshStats();
-          renderTable(document.getElementById('statusFilter').value);
+          grid.updateConfig({
+            data: allMembers.map(function(m) {
+              var ts = val(m, 'Timestamp');
+              var date = ts ? new Date(ts).toLocaleDateString() : '';
+              return [val(m, 'Name'), val(m, 'Playa Name'), val(m, 'Location'), val(m, 'First Burn'), val(m, 'Has Ticket'), date, val(m, 'Status') || 'Pending', m._row];
+            })
+          }).forceRender();
         } catch (e) {
           document.getElementById('modal-msg').textContent = e.message;
           document.getElementById('modal-msg').style.color = '#f44336';
@@ -146,10 +147,4 @@
   document.getElementById('modalOverlay').addEventListener('click', function(e) {
     if (e.target === this) this.classList.remove('active');
   });
-
-  document.getElementById('statusFilter').addEventListener('change', function() {
-    renderTable(this.value);
-  });
-
-  renderTable('all');
 })();

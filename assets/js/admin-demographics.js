@@ -66,15 +66,20 @@
   JH.makeBar('burns-chart', Object.keys(burnData), Object.values(burnData));
 
   // Roster table
-  document.getElementById('roster-count').textContent = members.length + ' approved members';
-  document.getElementById('members-tbody').innerHTML = members.map(function(m) {
-    return '<tr>' +
-      '<td class="name">' + val(m, 'Name') + '</td>' +
-      '<td><span class="location-badge">' + val(m, 'Location') + '</span></td>' +
-      '<td>' + val(m, 'Nationality') + '</td>' +
-      '<td>' + val(m, 'Age') + '</td>' +
-      '<td>' + val(m, 'Gender') + '</td>' +
-      '<td>' + val(m, 'First Burn') + '</td>' +
-      '</tr>';
-  }).join('');
+  new gridjs.Grid({
+    columns: [
+      { name: 'Member', sort: true },
+      { name: 'Location', sort: true },
+      { name: 'Nationality', sort: true },
+      { name: 'Age', sort: true },
+      { name: 'Gender', sort: true },
+      { name: 'First Burn', sort: true }
+    ],
+    data: members.map(function(m) {
+      return [val(m, 'Name'), val(m, 'Location'), val(m, 'Nationality'), val(m, 'Age'), val(m, 'Gender'), val(m, 'First Burn')];
+    }),
+    search: true,
+    sort: true,
+    pagination: { limit: 25 }
+  }).render(document.getElementById('roster-grid'));
 })();

@@ -12,6 +12,21 @@ title: Demographics - JamHouse Admin
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/assets/css/admin.css">
+  <link rel="stylesheet" href="https://unpkg.com/gridjs/dist/theme/mermaid.min.css">
+  <style>
+    .gridjs-container { font-family: 'Inter', sans-serif; }
+    .gridjs-wrapper { border-radius: 8px; border: 1px solid #2a2a2a; }
+    .gridjs-table { background: #141414; }
+    .gridjs-thead th { background: #1a1a1a !important; color: #888 !important; border-color: #2a2a2a !important; font-size: 0.8rem; }
+    .gridjs-tbody td { background: #141414 !important; color: #e0e0e0 !important; border-color: #1e1e1e !important; font-size: 0.85rem; }
+    .gridjs-tbody tr:hover td { background: rgba(232,168,76,0.08) !important; }
+    .gridjs-footer { background: #141414 !important; border-color: #2a2a2a !important; }
+    .gridjs-pagination .gridjs-pages button { background: #1a1a1a !important; color: #e0e0e0 !important; border-color: #2a2a2a !important; }
+    .gridjs-pagination .gridjs-pages button.gridjs-currentPage { background: #e8a84c !important; color: #0a0a0a !important; }
+    .gridjs-pagination .gridjs-summary { color: #888 !important; }
+    .gridjs-search-input { background: #0a0a0a !important; color: #e0e0e0 !important; border-color: #2a2a2a !important; border-radius: 6px !important; }
+    .gridjs-head { padding: 8px 0 !important; }
+  </style>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 </head>
 <body>
@@ -78,18 +93,11 @@ title: Demographics - JamHouse Admin
     </div>
   </div>
   <div class="panel">
-    <div class="roster-header">
-      <h2>Full Member Roster</h2>
-      <span class="roster-count" id="roster-count"></span>
-    </div>
-    <div style="overflow-x:auto;">
-      <table class="data-table">
-        <thead><tr><th>Member</th><th>Location</th><th>Nationality</th><th>Age</th><th>Gender</th><th>First Burn</th></tr></thead>
-        <tbody id="members-tbody"></tbody>
-      </table>
-    </div>
+    <h2>Full Member Roster</h2>
+    <div id="roster-grid"></div>
   </div>
 </div>
+<script src="https://unpkg.com/gridjs/dist/gridjs.umd.js"></script>
 <script src="/assets/js/admin-auth.js"></script>
 <script src="/assets/js/admin-charts.js"></script>
 <script src="/assets/js/admin-demographics.js"></script>
