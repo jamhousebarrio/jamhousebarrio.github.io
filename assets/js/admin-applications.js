@@ -64,18 +64,20 @@
   };
   StatusCellRenderer.prototype.getGui = function() { return this.eGui; };
 
+  var editableFields = ['Name', 'Playa Name', 'Location', 'Email', 'Phone', 'Nationality', 'Gender', 'Age', 'First Burn', 'Has Ticket', 'Volunteer'];
+
   var columnDefs = [
-    { field: 'Name', sortable: true, filter: true },
-    { field: 'Playa Name', sortable: true, filter: true },
-    { field: 'Location', sortable: true, filter: true },
-    { field: 'Email', sortable: true, filter: true, hide: true },
-    { field: 'Phone', sortable: true, filter: true, hide: true },
-    { field: 'Nationality', sortable: true, filter: true, hide: true },
-    { field: 'Gender', sortable: true, filter: true, hide: true },
-    { field: 'Age', sortable: true, filter: true, hide: true },
-    { field: 'First Burn', sortable: true, filter: true },
-    { field: 'Has Ticket', sortable: true, filter: true },
-    { field: 'Volunteer', sortable: true, filter: true, hide: true },
+    { field: 'Name', sortable: true, filter: true, editable: isAdmin },
+    { field: 'Playa Name', sortable: true, filter: true, editable: isAdmin },
+    { field: 'Location', sortable: true, filter: true, editable: isAdmin },
+    { field: 'Email', sortable: true, filter: true, hide: true, editable: isAdmin },
+    { field: 'Phone', sortable: true, filter: true, hide: true, editable: isAdmin },
+    { field: 'Nationality', sortable: true, filter: true, hide: true, editable: isAdmin },
+    { field: 'Gender', sortable: true, filter: true, hide: true, editable: isAdmin },
+    { field: 'Age', sortable: true, filter: true, hide: true, editable: isAdmin },
+    { field: 'First Burn', sortable: true, filter: true, editable: isAdmin },
+    { field: 'Has Ticket', sortable: true, filter: true, editable: isAdmin },
+    { field: 'Volunteer', sortable: true, filter: true, hide: true, editable: isAdmin },
     { field: 'Date', sortable: true, filter: true },
     { field: 'Status', sortable: true, filter: true, cellRenderer: StatusCellRenderer }
   ];
@@ -87,11 +89,30 @@
     pagination: true,
     paginationPageSize: 25,
     rowSelection: 'single',
-    suppressCellFocus: true,
+    suppressCellFocus: !isAdmin,
+    singleClickEdit: true,
     onRowClicked: function(event) {
       if (event.event && event.event.target && (event.event.target.tagName === 'SELECT' || event.event.target.tagName === 'OPTION')) return;
+      var col = event.colDef && event.colDef.field;
+      if (col && editableFields.indexOf(col) !== -1 && isAdmin) return;
       var member = allMembers.find(function(m) { return m._row === event.data._row; });
       if (member) openModal(member);
+    },
+    onCellValueChanged: function(event) {
+      if (!isAdmin) return;
+      var field = event.colDef.field;
+      var newVal = event.newValue || '';
+      var member = allMembers.find(function(m) { return m._row === event.data._row; });
+      if (!member) return;
+      member[field] = newVal;
+      var pass = sessionStorage.getItem('jh_pass');
+      var updates = {};
+      updates[field] = newVal;
+      fetch('/api/update-member', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: pass, row: event.data._row, updates: updates })
+      });
     },
     onModelUpdated: function() {
       var count = gridApi ? gridApi.getDisplayedRowCount() : 0;
@@ -157,10 +178,11 @@
   // Modal
   function contactLinks(v) {
     var phone = v.replace(/[^+\d]/g, '');
+    var digits = phone.replace('+', '');
     var links = [];
-    if (phone) {
-      links.push('<a href="https://wa.me/' + phone.replace('+', '') + '" target="_blank" style="color:#25D366;">WhatsApp</a>');
-      links.push('<a href="https://t.me/' + phone + '" target="_blank" style="color:#0088cc;">Telegram</a>');
+    if (digits) {
+      links.push('<a href="https://wa.me/' + digits + '" target="_blank" style="color:#25D366;">WhatsApp</a>');
+      links.push('<a href="https://t.me/+' + digits + '" target="_blank" style="color:#0088cc;">Telegram</a>');
     }
     return links.length ? ' &nbsp; ' + links.join(' &nbsp; ') : '';
   }
