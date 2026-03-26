@@ -40,7 +40,7 @@ export default async function handler(req, res) {
     }
     await sheets.spreadsheets.values.batchUpdate({
       spreadsheetId: process.env.SHEET_ID,
-      requestBody: { valueInputOption: "USER_ENTERED", data: data },
+      requestBody: { valueInputOption: "RAW", data: data },
     });
     return res.status(200).json({ success: true });
   } catch (err) {
