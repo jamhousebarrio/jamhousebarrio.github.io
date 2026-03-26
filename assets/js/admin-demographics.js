@@ -66,6 +66,9 @@
   JH.makeBar('burns-chart', Object.keys(burnData), Object.values(burnData));
 
   // Roster table
+  var membersByName = {};
+  members.forEach(function(m) { membersByName[val(m, 'Name')] = m; });
+
   agGrid.createGrid(document.getElementById('roster-grid'), {
     rowData: members.map(function(m) {
       return { Name: val(m, 'Name'), Location: val(m, 'Location'), Nationality: val(m, 'Nationality'), Age: val(m, 'Age'), Gender: val(m, 'Gender'), 'First Burn': val(m, 'First Burn') };
@@ -81,6 +84,43 @@
     defaultColDef: { resizable: true, flex: 1, minWidth: 100 },
     pagination: true,
     paginationPageSize: 25,
-    suppressCellFocus: true
+    suppressCellFocus: true,
+    onRowClicked: function(event) {
+      var member = membersByName[event.data.Name];
+      if (member) openModal(member);
+    }
+  });
+
+  function contactLinks(v) {
+    var phone = v.replace(/[^+\d]/g, '');
+    var links = [];
+    if (phone) {
+      links.push('<a href="https://wa.me/' + phone.replace('+', '') + '" target="_blank" style="color:#25D366;">WhatsApp</a>');
+      links.push('<a href="https://t.me/' + phone + '" target="_blank" style="color:#0088cc;">Telegram</a>');
+    }
+    return links.length ? ' &nbsp; ' + links.join(' &nbsp; ') : '';
+  }
+
+  function openModal(m) {
+    document.getElementById('modal-title').textContent = val(m, 'Name') || 'Member';
+    var skipKeys = ['_row'];
+    var html = Object.keys(m).filter(function(k) {
+      return skipKeys.indexOf(k) === -1;
+    }).map(function(k) {
+      var v = val(m, k);
+      var escaped = v ? v.replace(/</g, '&lt;') : '';
+      var links = (k === 'Phone') ? contactLinks(v) : '';
+      var display = escaped || '<span style="color:#555;">—</span>';
+      return '<div class="detail-row"><div class="detail-label">' + k + '</div><div class="detail-value">' + display + links + '</div></div>';
+    }).join('');
+    document.getElementById('modal-details').innerHTML = html;
+    document.getElementById('modalOverlay').classList.add('active');
+  }
+
+  document.getElementById('modalClose').addEventListener('click', function() {
+    document.getElementById('modalOverlay').classList.remove('active');
+  });
+  document.getElementById('modalOverlay').addEventListener('click', function(e) {
+    if (e.target === this) this.classList.remove('active');
   });
 })();
