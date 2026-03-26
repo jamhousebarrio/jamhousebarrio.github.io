@@ -79,13 +79,25 @@
   };
   ViewBtnRenderer.prototype.getGui = function() { return this.eGui; };
 
+  function PhoneCellRenderer() {}
+  PhoneCellRenderer.prototype.init = function(params) {
+    var v = (params.value || '').trim();
+    this.eGui = document.createElement('span');
+    if (!v) return;
+    var digits = v.replace(/[^+\d]/g, '').replace('+', '');
+    this.eGui.innerHTML = v.replace(/</g, '&lt;') +
+      (digits ? ' &nbsp;<a href="https://wa.me/' + digits + '" target="_blank" style="color:#25D366;font-size:0.75rem;text-decoration:none;">WA</a>' +
+      ' <a href="https://t.me/+' + digits + '" target="_blank" style="color:#0088cc;font-size:0.75rem;text-decoration:none;">TG</a>' : '');
+  };
+  PhoneCellRenderer.prototype.getGui = function() { return this.eGui; };
+
   var columnDefs = [
-    { headerName: '', field: '_view', cellRenderer: ViewBtnRenderer, width: 70, maxWidth: 70, sortable: false, filter: false, resizable: false, suppressSizeToFit: true },
+    { headerName: '', field: '_view', cellRenderer: ViewBtnRenderer, valueGetter: function() { return ''; }, width: 70, maxWidth: 70, sortable: false, filter: false, resizable: false, suppressSizeToFit: true },
     { field: 'Name', sortable: true, filter: true, editable: isAdmin },
     { field: 'Playa Name', sortable: true, filter: true, editable: isAdmin },
     { field: 'Location', sortable: true, filter: true, editable: isAdmin },
     { field: 'Email', sortable: true, filter: true, hide: true, editable: isAdmin },
-    { field: 'Phone', sortable: true, filter: true, hide: true, editable: isAdmin },
+    { field: 'Phone', sortable: true, filter: true, editable: isAdmin, cellRenderer: PhoneCellRenderer },
     { field: 'Nationality', sortable: true, filter: true, hide: true, editable: isAdmin },
     { field: 'Gender', sortable: true, filter: true, hide: true, editable: isAdmin },
     { field: 'Age', sortable: true, filter: true, hide: true, editable: isAdmin },
