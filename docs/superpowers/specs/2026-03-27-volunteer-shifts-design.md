@@ -236,7 +236,8 @@ Add nav item to sidebar in all existing admin pages.
 
 ## Error handling & edge cases
 
-- Member tries to request a slot already taken → API returns 409, UI shows "slot already taken"
+- Multiple members CAN share the same shift+slot (the grid shows chips per cell, plural)
+- Member tries to request a slot they are already signed up for (non-bailed) → API returns 409, UI shows "already signed up"
 - Member bails → `bailed` row persists, slot shown as open again for reassignment
 - Shift deleted while assignments exist → orphaned assignments are filtered out client-side (ShiftID no longer resolves); admin should clean up via sheet directly if needed
 - Slot deleted while assignments exist → same client-side orphan filtering
