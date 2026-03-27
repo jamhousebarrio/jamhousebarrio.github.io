@@ -362,4 +362,116 @@
       gridApi.sizeColumnsToFit();
     }
   });
+
+  // ── Shopping Requests ─────────────────────────────────────────────────────
+
+  var shoppingRequests = data.shoppingRequests || [];
+
+  // Populate submitter dropdown from approved members
+  var reqSubmitter = document.getElementById('req-submitter');
+  reqSubmitter.innerHTML = '<option value="">Select your name...</option>';
+  members.filter(function(m) {
+    return (JH.val(m, 'Status') || '').toLowerCase() === 'approved';
+  }).forEach(function(m) {
+    var name = JH.val(m, 'Playa Name') || JH.val(m, 'Name') || '';
+    if (!name) return;
+    var opt = document.createElement('option');
+    opt.value = name; opt.textContent = name;
+    reqSubmitter.appendChild(opt);
+  });
+
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+  function renderShoppingRequests() {
+    var wrap = document.getElementById('shopping-list-wrap');
+    if (!shoppingRequests.length) {
+      wrap.innerHTML = '<p style="color:var(--text-muted);font-size:0.9rem;padding:12px 0">No requests yet.</p>';
+      return;
+    }
+    wrap.innerHTML = shoppingRequests.map(function(r) {
+      var statusClass = 'status-' + (r.Status || 'pending').toLowerCase();
+      var linkHtml = r.Link ? '<a href="' + esc(r.Link) + '" target="_blank" rel="noopener" style="color:var(--accent);font-size:0.8rem;">View ↗</a>' : '';
+      var adminBtns = isAdmin && (r.Status || 'pending') === 'pending' ?
+        '<button class="approve-btn fullscreen-btn" data-id="' + esc(r.RequestID) + '" style="color:#4caf50;border-color:#4caf50;">Approve</button>' +
+        '<button class="reject-btn fullscreen-btn" data-id="' + esc(r.RequestID) + '" style="color:#f44336;border-color:#f44336;margin-left:4px;">Reject</button>' : '';
+      return '<div class="request-row">' +
+        '<div>' +
+          '<div style="font-weight:600">' + esc(r.Item) + '</div>' +
+          (r.Description ? '<div style="color:var(--text-muted);font-size:0.8rem;margin-top:2px">' + esc(r.Description) + '</div>' : '') +
+          '<div style="font-size:0.78rem;color:var(--text-muted);margin-top:4px">by ' + esc(r.SubmittedBy) + (r.Price ? ' · €' + esc(r.Price) : '') + ' ' + linkHtml + '</div>' +
+        '</div>' +
+        '<span class="request-status ' + statusClass + '">' + esc(r.Status || 'pending') + '</span>' +
+        '<div>' + adminBtns + '</div>' +
+      '</div>';
+    }).join('');
+
+    if (isAdmin) {
+      wrap.querySelectorAll('.approve-btn').forEach(function(btn) {
+        btn.addEventListener('click', async function() {
+          var id = btn.dataset.id;
+          var r = await fetch('/api/update-budget', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ password: pass, action: 'approve-request', requestId: id }) });
+          if (!r.ok) { alert('Failed to approve'); return; }
+          var req = shoppingRequests.find(function(x) { return x.RequestID === id; });
+          if (req) req.Status = 'approved';
+          renderShoppingRequests();
+        });
+      });
+      wrap.querySelectorAll('.reject-btn').forEach(function(btn) {
+        btn.addEventListener('click', async function() {
+          var id = btn.dataset.id;
+          var r = await fetch('/api/update-budget', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ password: pass, action: 'reject-request', requestId: id }) });
+          if (!r.ok) { alert('Failed to reject'); return; }
+          var req = shoppingRequests.find(function(x) { return x.RequestID === id; });
+          if (req) req.Status = 'rejected';
+          renderShoppingRequests();
+        });
+      });
+    }
+  }
+
+  renderShoppingRequests();
+
+  // Modal open/close
+  document.getElementById('new-request-btn').addEventListener('click', function() {
+    document.getElementById('request-modal').classList.add('active');
+  });
+  document.getElementById('request-modal-close').addEventListener('click', function() {
+    document.getElementById('request-modal').classList.remove('active');
+  });
+  document.getElementById('request-modal').addEventListener('click', function(e) {
+    if (e.target === this) this.classList.remove('active');
+  });
+
+  // Submit request
+  document.getElementById('req-submit-btn').addEventListener('click', async function() {
+    var submittedBy = document.getElementById('req-submitter').value;
+    var item = document.getElementById('req-item').value.trim();
+    var desc = document.getElementById('req-desc').value.trim();
+    var link = document.getElementById('req-link').value.trim();
+    var price = document.getElementById('req-price').value;
+    var msg = document.getElementById('req-msg');
+
+    if (!submittedBy || !item) {
+      msg.textContent = 'Name and item are required'; msg.style.color = '#f44336'; return;
+    }
+    msg.textContent = 'Submitting...'; msg.style.color = '#888';
+    var requestId = Date.now() + '-' + Math.random().toString(36).slice(2, 7);
+    try {
+      var r = await fetch('/api/shopping-request', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: pass, requestId: requestId, item: item, description: desc, link: link, price: price, submittedBy: submittedBy }) });
+      if (!r.ok) throw new Error('Failed');
+      shoppingRequests.push({ RequestID: requestId, Item: item, Description: desc, Link: link, Price: price, SubmittedBy: submittedBy, Status: 'pending' });
+      renderShoppingRequests();
+      document.getElementById('request-modal').classList.remove('active');
+      document.getElementById('req-item').value = '';
+      document.getElementById('req-desc').value = '';
+      document.getElementById('req-link').value = '';
+      document.getElementById('req-price').value = '';
+      msg.textContent = '';
+    } catch (e) {
+      msg.textContent = 'Error submitting'; msg.style.color = '#f44336';
+    }
+  });
 })();

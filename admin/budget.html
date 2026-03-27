@@ -43,6 +43,13 @@ access: general
     .filter-row { display: flex; gap: 0.75rem; align-items: center; margin-bottom: 1rem; }
     .filter-row select { padding: 0.45rem 0.75rem; background: #0a0a0a; border: 1px solid #2a2a2a; border-radius: 6px; color: #e0e0e0; font-size: 0.85rem; }
     .filter-row .count { color: #888; font-size: 0.85rem; margin-left: auto; }
+    .request-row { display: grid; grid-template-columns: 1fr auto auto; gap: 8px; align-items: start; padding: 12px 0; border-bottom: 1px solid var(--border); font-size: 0.85rem; }
+    .request-row:last-child { border-bottom: none; }
+    .request-status { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 0.75rem; font-weight: 600; }
+    .status-pending { background: rgba(232,168,76,0.15); color: var(--accent); }
+    .status-approved { background: rgba(76,175,80,0.15); color: #4caf50; }
+    .status-rejected { background: rgba(244,67,54,0.1); color: #f44336; }
+    .modal-overlay.active { display: flex !important; }
   </style>
 </head>
 <body>
@@ -139,6 +146,42 @@ access: general
       <span class="count" id="item-count"></span>
     </div>
     <div id="budget-grid" class="ag-theme-alpine-dark"></div>
+  </div>
+
+  <!-- Shopping Requests section -->
+  <div class="panel" id="shopping-panel" style="margin-top:20px">
+    <div class="panel-header">
+      <h2>&#128722; Shopping Requests</h2>
+      <button id="new-request-btn" class="fullscreen-btn">+ Request Item</button>
+    </div>
+    <div id="shopping-list-wrap">
+      <div style="color:var(--text-muted);font-size:0.9rem;padding:12px 0">Loading...</div>
+    </div>
+  </div>
+</div>
+
+<!-- Shopping request modal -->
+<div class="modal-overlay" id="request-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:100;justify-content:center;align-items:center;">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;max-width:480px;width:90%;padding:24px;display:flex;flex-direction:column;gap:12px;">
+    <h2 style="font-family:var(--heading);color:var(--accent);margin:0;font-size:1.1rem;display:flex;justify-content:space-between;align-items:center;">
+      Request an Item <button id="request-modal-close" style="background:none;border:none;color:var(--text-muted);font-size:1.4rem;cursor:pointer;">&times;</button>
+    </h2>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <label style="font-size:0.78rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:0.05em;">Your name</label>
+      <select id="req-submitter" style="background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:0.85rem;padding:7px 10px;"></select>
+      <label style="font-size:0.78rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:0.05em;">Item</label>
+      <input id="req-item" placeholder="What do we need?" style="background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:0.85rem;padding:7px 10px;">
+      <label style="font-size:0.78rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:0.05em;">Why / how it fits</label>
+      <textarea id="req-desc" rows="3" placeholder="Why does the camp need this?" style="background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:0.85rem;padding:7px 10px;resize:vertical;font-family:var(--body);"></textarea>
+      <label style="font-size:0.78rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:0.05em;">Link (optional)</label>
+      <input id="req-link" placeholder="https://..." style="background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:0.85rem;padding:7px 10px;">
+      <label style="font-size:0.78rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:0.05em;">Price estimate (€)</label>
+      <input id="req-price" type="number" step="0.01" placeholder="0.00" style="background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:0.85rem;padding:7px 10px;">
+    </div>
+    <div style="display:flex;gap:8px;margin-top:4px;">
+      <button id="req-submit-btn" style="padding:0.45rem 1rem;background:var(--accent);border:none;border-radius:6px;color:var(--bg);font-family:var(--heading);font-size:0.85rem;font-weight:600;cursor:pointer;">Submit Request</button>
+      <span id="req-msg" style="font-size:0.8rem;color:#888;align-self:center;"></span>
+    </div>
   </div>
 </div>
 

@@ -129,6 +129,27 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true });
     }
 
+    if (action === 'approve-request' || action === 'reject-request') {
+      const { requestId } = req.body;
+      if (!requestId) return res.status(400).json({ error: 'requestId required' });
+      const reqRes = await sheets.spreadsheets.values.get({ spreadsheetId, range: 'ShoppingRequests' });
+      const reqRows = reqRes.data.values || [];
+      if (!reqRows.length) return res.status(404).json({ error: 'Not found' });
+      const reqHeaders = reqRows[0];
+      const idCol = reqHeaders.indexOf('RequestID');
+      const statusCol = reqHeaders.indexOf('Status');
+      const rowIdx = reqRows.findIndex((r, i) => i > 0 && r[idCol] === requestId);
+      if (rowIdx === -1) return res.status(404).json({ error: 'Request not found' });
+      const colLetter = String.fromCharCode(65 + statusCol);
+      await sheets.spreadsheets.values.update({
+        spreadsheetId,
+        range: `ShoppingRequests!${colLetter}${rowIdx + 1}`,
+        valueInputOption: 'RAW',
+        requestBody: { values: [[action === 'approve-request' ? 'approved' : 'rejected']] },
+      });
+      return res.status(200).json({ success: true });
+    }
+
     return res.status(400).json({ error: 'Invalid action. Use "add", "update", or "delete".' });
   } catch (err) {
     console.error('Update budget error:', err);
