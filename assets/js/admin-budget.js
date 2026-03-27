@@ -3,6 +3,7 @@
   if (!members) return;
 
   var isAdmin = JH.isAdmin();
+  var esc = JH.esc;
   var pass = sessionStorage.getItem('jh_pass');
 
   // Fetch budget items
@@ -91,7 +92,7 @@
       responsive: true, maintainAspectRatio: false,
       plugins: { legend: { labels: { color: '#e8e4df' } } },
       scales: {
-        x: { ticks: { color: '#8a8580', maxRotation: 45, minRotation: 0, font: { size: window.innerWidth < 480 ? 9 : 12 } }, grid: { display: false } },
+        x: { ticks: { color: '#8a8580', maxRotation: 45, minRotation: 0, font: { size: JH.isMobile ? 9 : 12 } }, grid: { display: false } },
         y: { ticks: { color: '#8a8580', callback: function(v) { return '\u20AC' + v; } }, grid: { color: '#2a2a2a22' }, beginAtZero: true }
       }
     }
@@ -106,7 +107,7 @@
     },
     options: {
       responsive: true, maintainAspectRatio: false, cutout: '55%',
-      plugins: { legend: { position: 'bottom', labels: { color: '#e8e4df', padding: window.innerWidth < 480 ? 8 : 12, usePointStyle: true, pointStyle: 'circle', font: { size: window.innerWidth < 480 ? 9 : 11 } } } }
+      plugins: { legend: { position: 'bottom', labels: { color: '#e8e4df', padding: JH.isMobile ? 8 : 12, usePointStyle: true, pointStyle: 'circle', font: { size: JH.isMobile ? 9 : 11 } } } }
     }
   });
 
@@ -236,6 +237,13 @@
     }
   };
 
+  JH.mobileColumns(columnDefs, ['Item', 'Total']);
+  if (JH.isMobile) {
+    columnDefs.forEach(function(col) { col.editable = false; });
+    var itemCol = columnDefs.find(function(c) { return c.field === 'Item'; });
+    if (itemCol) itemCol.cellRenderer = JH.NameLinkRenderer;
+  }
+
   var gridApi = agGrid.createGrid(document.getElementById('budget-grid'), gridOptions);
 
   gridApi.addEventListener('firstDataRendered', function() {
@@ -346,6 +354,65 @@
       }
     });
   }
+  // Budget detail modal
+  var detailOverlay = document.getElementById('budget-detail-overlay');
+  var detailBody = document.getElementById('budget-detail-body');
+  var detailTitle = document.getElementById('budget-detail-title');
+  if (detailOverlay) {
+    document.getElementById('budget-detail-close').addEventListener('click', function() {
+      detailOverlay.classList.remove('active');
+    });
+    detailOverlay.addEventListener('click', function(e) {
+      if (e.target === detailOverlay) detailOverlay.classList.remove('active');
+    });
+  }
+
+  gridApi.addEventListener('rowClicked', function(event) {
+    if (!JH.isMobile) return;
+    var d = event.data;
+    var qty = parseFloat(d.Qty) || 0;
+    var price = parseFloat(d.Price) || 0;
+    var total = qty * price;
+    var paid = d.Paid === true || d.Paid === 'TRUE' || d.Paid === 'true';
+    detailTitle.textContent = d.Item || '';
+    var inputStyle = 'background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:0.85rem;padding:4px 6px;';
+    var catOpts = categories.map(function(c) {
+      return '<option' + (c === d.Category ? ' selected' : '') + '>' + esc(c) + '</option>';
+    }).join('');
+    var html =
+      '<div class="budget-detail-row"><span class="label">Category</span><span class="value">' + (isAdmin ? '<select data-field="Category" style="' + inputStyle + '">' + catOpts + '</select>' : esc(d.Category || '')) + '</span></div>' +
+      '<div class="budget-detail-row"><span class="label">Item</span><span class="value">' + (isAdmin ? '<input data-field="Item" value="' + esc(d.Item || '') + '" style="' + inputStyle + 'width:100%;box-sizing:border-box;">' : esc(d.Item || '')) + '</span></div>' +
+      '<div class="budget-detail-row"><span class="label">Qty</span><span class="value">' + (isAdmin ? '<input data-field="Qty" type="number" value="' + qty + '" style="' + inputStyle + 'width:70px;">' : esc(String(qty))) + '</span></div>' +
+      '<div class="budget-detail-row"><span class="label">Price</span><span class="value">' + (isAdmin ? '<input data-field="Price" type="number" step="0.01" value="' + (parseFloat(d.Price) || 0) + '" style="' + inputStyle + 'width:100px;">' : eur(parseFloat(d.Price) || 0)) + '</span></div>' +
+      '<div class="budget-detail-row"><span class="label">Total</span><span class="value" style="font-weight:600;color:var(--accent);">' + eur(total) + '</span></div>' +
+      '<div class="budget-detail-row"><span class="label">Paid</span><span class="value"><input data-field="Paid" type="checkbox"' + (paid ? ' checked' : '') + (isAdmin ? '' : ' disabled') + ' style="accent-color:var(--accent);width:18px;height:18px;"></span></div>' +
+      '<div class="budget-detail-row"><span class="label">Paid by</span><span class="value">' + (isAdmin ? '<input data-field="Paid by" value="' + esc(d['Paid by'] || '') + '" style="' + inputStyle + 'width:100%;box-sizing:border-box;">' : esc(d['Paid by'] || '')) + '</span></div>' +
+      '<div class="budget-detail-row"><span class="label">Link</span><span class="value">' + (isAdmin ? '<input data-field="Link" value="' + esc(d.Link || '') + '" style="' + inputStyle + 'width:100%;box-sizing:border-box;">' : (d.Link ? '<a href="' + esc(d.Link) + '" target="_blank" style="color:var(--accent);text-decoration:none;">Link ↗</a>' : '')) + '</span></div>' +
+      '<div class="budget-detail-row"><span class="label">Comment</span><span class="value">' + (isAdmin ? '<textarea data-field="Comment" style="' + inputStyle + 'width:100%;box-sizing:border-box;min-height:50px;resize:vertical;">' + esc(d.Comment || '') + '</textarea>' : esc(d.Comment || '')) + '</span></div>' +
+      (isAdmin ? '<div style="margin-top:12px;display:flex;gap:8px;"><button id="budget-detail-save" style="padding:0.45rem 1rem;background:var(--accent);border:none;border-radius:6px;color:var(--bg);font-family:var(--heading);font-size:0.85rem;font-weight:600;cursor:pointer;">Save</button><span id="budget-detail-msg" style="font-size:0.8rem;color:#888;align-self:center;"></span></div>' : '');
+    detailBody.innerHTML = html;
+    if (isAdmin) document.getElementById('budget-detail-save').addEventListener('click', function() {
+      var msg = document.getElementById('budget-detail-msg');
+      var item = items.find(function(it) { return it._row === d._row; });
+      if (!item) return;
+      detailBody.querySelectorAll('[data-field]').forEach(function(el) {
+        var field = el.dataset.field;
+        var val = el.type === 'checkbox' ? (el.checked ? 'TRUE' : 'FALSE') : el.value;
+        if (String(item[field] || '') !== String(val)) {
+          item[field] = val;
+          saveBudgetField(d._row, field, val);
+        }
+      });
+      gridApi.setGridOption('rowData', items);
+      updateStats();
+      updateCharts();
+      msg.textContent = 'Saved!';
+      msg.style.color = '#4caf50';
+      setTimeout(function() { detailOverlay.classList.remove('active'); }, 600);
+    });
+    detailOverlay.classList.add('active');
+  });
+
   // Fullscreen toggle
   var panel = document.getElementById('budget-panel');
   var fsBtn = document.getElementById('fullscreenBtn');
@@ -379,8 +446,6 @@
     opt.value = name; opt.textContent = name;
     reqSubmitter.appendChild(opt);
   });
-
-  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
   function renderShoppingRequests() {
     var wrap = document.getElementById('shopping-list-wrap');

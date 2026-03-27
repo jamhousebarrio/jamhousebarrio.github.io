@@ -104,8 +104,25 @@
     }
   };
 
+  // Mobile: fewer columns, Name as link, Phone as icons only
+  JH.mobileColumns(columnDefs, ['Name', 'Phone', 'Status']);
+  if (JH.isMobile) {
+    var nameCol = columnDefs.find(function(c) { return c.field === 'Name'; });
+    if (nameCol) nameCol.cellRenderer = JH.NameLinkRenderer;
+    var phoneCol = columnDefs.find(function(c) { return c.field === 'Phone'; });
+    if (phoneCol) JH.mobilePhoneColumn(phoneCol);
+  }
+
   var gridDiv = document.getElementById('app-grid');
   var gridApi = agGrid.createGrid(gridDiv, gridOptions);
+
+  // Mobile: tap row to open detail modal
+  if (JH.isMobile) {
+    gridApi.addEventListener('rowClicked', function(event) {
+      var member = allMembers.find(function(m) { return m._row === event.data._row; });
+      if (member) openModal(member);
+    });
+  }
 
   // Column toggles
   var togglesEl = document.getElementById('colToggles');

@@ -100,7 +100,7 @@
   var memberPanelTitle = document.getElementById('member-panel-title');
   var memberPanelBody = document.getElementById('member-panel-body');
 
-  function esc(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  var esc = JH.esc;
 
   function openMemberPanel(m) {
     memberPanelTitle.textContent = val(m, 'Playa Name') || val(m, 'Name') || 'Member';
@@ -148,18 +148,26 @@
   NameCellRenderer.prototype.getGui = function() { return this.eGui; };
 
   // Roster table
-  agGrid.createGrid(document.getElementById('roster-grid'), {
+  var rosterCols = [
+    { field: 'Playa Name', sortable: true, filter: true, cellRenderer: NameCellRenderer },
+    { field: 'Role', sortable: true, filter: true },
+    { field: 'Phone', sortable: true, filter: true, cellRenderer: JH.PhoneCellRenderer }
+  ];
+  if (JH.isMobile) {
+    var phoneCol = rosterCols.find(function(c) { return c.field === 'Phone'; });
+    if (phoneCol) JH.mobilePhoneColumn(phoneCol);
+  }
+  var rosterGrid = agGrid.createGrid(document.getElementById('roster-grid'), {
     rowData: members.map(function(m) {
       return { 'Playa Name': val(m, 'Playa Name'), Role: val(m, 'Role'), Phone: val(m, 'Phone'), _member: m };
     }),
-    columnDefs: [
-      { field: 'Playa Name', sortable: true, filter: true, cellRenderer: NameCellRenderer },
-      { field: 'Role', sortable: true, filter: true },
-      { field: 'Phone', sortable: true, filter: true, cellRenderer: JH.PhoneCellRenderer }
-    ],
+    columnDefs: rosterCols,
     defaultColDef: { resizable: true, flex: 1, minWidth: 100 },
     pagination: true,
     paginationPageSize: 25,
-    suppressCellFocus: true
+    suppressCellFocus: true,
+    onRowClicked: JH.isMobile ? function(event) {
+      if (event.data._member) openMemberPanel(event.data._member);
+    } : undefined
   });
 })();
