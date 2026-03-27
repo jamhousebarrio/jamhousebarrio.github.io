@@ -4,6 +4,7 @@
 
   var isAdmin = JH.isAdmin();
   var pass = sessionStorage.getItem('jh_pass');
+  var writePass = sessionStorage.getItem('jh_admin');
   var approvedMembers = members.filter(function (m) {
     return (m['Status'] || '').toLowerCase() === 'approved';
   });
@@ -18,8 +19,24 @@
   var nameSelect = document.getElementById('name-select');
   var nameConfirmBtn = document.getElementById('name-confirm-btn');
 
+  function renderNameDisplay() {
+    var existing = document.getElementById('name-display');
+    if (!existing) {
+      existing = document.createElement('div');
+      existing.id = 'name-display';
+      var adminControls = document.getElementById('admin-controls');
+      adminControls.parentNode.insertBefore(existing, adminControls);
+    }
+    existing.innerHTML = '<span style="font-size:0.8rem;color:var(--text-muted)">Signed in as <strong style="color:var(--accent)">' + state.myName + '</strong> \u2014 <a href="#" id="change-name-link" style="color:var(--text-muted);font-size:0.78rem">change</a></span>';
+    document.getElementById('change-name-link').addEventListener('click', function (e) {
+      e.preventDefault();
+      document.getElementById('name-modal').classList.add('active');
+    });
+  }
+
   if (state.myName) {
     nameModal.classList.remove('active');
+    renderNameDisplay();
   } else {
     approvedMembers.forEach(function (m) {
       var name = m['Playa Name'] || m['Name'] || '';
@@ -38,6 +55,7 @@
     state.myName = val;
     sessionStorage.setItem('jh_member_name', val);
     nameModal.classList.remove('active');
+    renderNameDisplay();
     render();
   });
 
@@ -135,12 +153,16 @@
 
   function renderSummary() {
     var wrap = document.getElementById('summary-wrap');
+    var validAssignments = state.assignments.filter(function(a) {
+      return state.shifts.some(function(s) { return s.ShiftID === a.ShiftID; }) &&
+             state.slots.some(function(sl) { return sl.SlotID === a.SlotID; });
+    });
     var confirmedCounts = {};
-    state.assignments.forEach(function (a) {
+    validAssignments.forEach(function (a) {
       if (a.Status === 'confirmed') confirmedCounts[a.MemberName] = (confirmedCounts[a.MemberName] || 0) + 1;
     });
     var bailedSet = {};
-    state.assignments.forEach(function (a) { if (a.Status === 'bailed') bailedSet[a.MemberName] = true; });
+    validAssignments.forEach(function (a) { if (a.Status === 'bailed') bailedSet[a.MemberName] = true; });
 
     if (!state.memberMeta.length) {
       wrap.innerHTML = '<div class="empty-state">No member data yet.</div>';
@@ -310,7 +332,7 @@
           await fetch('/api/shifts-update', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ password: pass, action: 'update-member-meta', memberName: memberName, otherResponsibilities: val }),
+            body: JSON.stringify({ password: writePass, action: 'update-member-meta', memberName: memberName, otherResponsibilities: val }),
           });
           var meta = state.memberMeta.find(function (m) { return m.MemberName === memberName; });
           if (meta) meta.OtherResponsibilities = val;
@@ -335,7 +357,7 @@
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        password: pass,
+        password: writePass,
         action: 'upsert-shift',
         shiftId: currentKBShift.ShiftID,
         name: currentKBShift.Name,
@@ -375,7 +397,7 @@
     await fetch('/api/shifts-update', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password: pass, action: 'confirm-assignment', assignmentId: activeChipId }),
+      body: JSON.stringify({ password: writePass, action: 'confirm-assignment', assignmentId: activeChipId }),
     });
     render();
   });
@@ -387,7 +409,7 @@
     await fetch('/api/shifts-update', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password: pass, action: 'remove-assignment', assignmentId: activeChipId }),
+      body: JSON.stringify({ password: writePass, action: 'remove-assignment', assignmentId: activeChipId }),
     });
     render();
   });
@@ -423,7 +445,7 @@
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        password: pass,
+        password: writePass,
         action: 'admin-add-assignment',
         assignmentId: newId,
         slotId: addModalSlotId,
@@ -477,7 +499,7 @@
         await fetch('/api/shifts-update', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ password: pass, action: 'delete-shift', shiftId: btn.dataset.shiftId }),
+          body: JSON.stringify({ password: writePass, action: 'delete-shift', shiftId: btn.dataset.shiftId }),
         });
         await render();
         renderShiftsList();
@@ -504,7 +526,7 @@
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        password: pass, action: 'upsert-shift', shiftId: shiftId, name: name,
+        password: writePass, action: 'upsert-shift', shiftId: shiftId, name: name,
         description: document.getElementById('sf-desc').value,
         timeExpectation: document.getElementById('sf-time').value,
         kbText: document.getElementById('sf-kb-text').value,
@@ -560,7 +582,7 @@
         await fetch('/api/shifts-update', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ password: pass, action: 'delete-slot', slotId: btn.dataset.slotId }),
+          body: JSON.stringify({ password: writePass, action: 'delete-slot', slotId: btn.dataset.slotId }),
         });
         await render();
         renderSlotsList();
@@ -587,7 +609,7 @@
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        password: pass, action: 'upsert-slot', slotId: slotId, label: label, date: date,
+        password: writePass, action: 'upsert-slot', slotId: slotId, label: label, date: date,
         startTime: document.getElementById('sl-start').value,
         endTime: document.getElementById('sl-end').value,
       }),
