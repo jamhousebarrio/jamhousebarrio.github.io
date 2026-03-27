@@ -134,12 +134,14 @@ body { font-family: var(--body); background: var(--bg); color: var(--text); font
   .sidebar { position: fixed; bottom: 0; top: auto; left: 0; width: 100%; height: auto;
     flex-direction: row; border-right: none; border-top: 1px solid var(--border); }
   .sidebar-brand { display: none; }
-  .sidebar-nav { display: flex; flex-direction: row; justify-content: space-around; padding: 0; overflow: visible; }
-  .nav-item { flex-direction: column; gap: 2px; padding: 8px 4px; margin: 0; font-size: 0.65rem; }
-  .nav-item .icon { font-size: 1.1rem; }
-  .nav-item-text { display: block !important; font-size: 0.6rem; }
+  .sidebar-nav { display: flex; flex-direction: row; justify-content: space-around; padding: 0; overflow-x: auto; overflow-y: visible; -webkit-overflow-scrolling: touch; }
+  .nav-item { flex-direction: column; gap: 2px; padding: 10px 6px; margin: 0; font-size: 0.7rem; min-width: 48px; }
+  .nav-item .icon { font-size: 1.15rem; }
+  .nav-item-text { display: block !important; font-size: 0.65rem; }
   .sidebar-footer { display: none; }
   .main { margin-left: 0; padding: 12px 10px 70px; }
   .stats-row { grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 16px; }
   .stat-card .stat-number { font-size: 1.3rem; }
+  .stat-card .stat-label { font-size: 0.7rem; }
+  .data-table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
 }
