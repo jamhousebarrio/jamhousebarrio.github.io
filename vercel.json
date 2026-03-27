@@ -6,6 +6,7 @@
     { "source": "/admin/demographics", "destination": "/admin/demographics.html" },
     { "source": "/admin/budget", "destination": "/admin/budget.html" },
     { "source": "/admin/shifts", "destination": "/admin/shifts.html" },
+    { "source": "/admin/inventory", "destination": "/admin/inventory.html" },
     { "source": "/apply", "destination": "/apply.html" }
   ]
 }
