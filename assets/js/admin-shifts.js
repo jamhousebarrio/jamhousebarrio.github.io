@@ -305,7 +305,7 @@
     });
     if (res.status === 409) { alert('You are already signed up for this slot. Refreshing...'); }
     else if (!res.ok) { var d = await res.json().catch(function () { return {}; }); alert(d.error || 'Something went wrong.'); }
-    render();
+    await render();
   }
 
   // ── Summary edit (admin) ──────────────────────────────────────────────────
@@ -329,11 +329,13 @@
           span.textContent = val;
           input.replaceWith(span);
           bindSummaryEditEvents();
-          await fetch('/api/shifts-update', {
+          var sr = await fetch('/api/shifts-update', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ password: writePass, action: 'update-member-meta', memberName: memberName, otherResponsibilities: val }),
           });
+          if (!sr.ok) { alert('Action failed. Please try again.'); return; }
+          await render();
           var meta = state.memberMeta.find(function (m) { return m.MemberName === memberName; });
           if (meta) meta.OtherResponsibilities = val;
         }
