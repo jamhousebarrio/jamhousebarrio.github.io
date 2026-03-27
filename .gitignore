@@ -1,7 +1,6 @@
 node_modules/
 _site/
 .jekyll-cache/
-README.md
 .vercel
 .env*.local
 
