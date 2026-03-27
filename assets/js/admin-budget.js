@@ -232,9 +232,24 @@
     gridApi.sizeColumnsToFit();
   });
 
+  function updateCategorySummary(cat) {
+    var el = document.getElementById('category-summary');
+    if (!cat) { el.textContent = ''; return; }
+    var budgeted = 0, spent = 0;
+    items.forEach(function(item) {
+      if (item.Category !== cat) return;
+      var total = (parseFloat(item.Qty) || 0) * (parseFloat(item.Price) || 0);
+      budgeted += total;
+      var paid = item.Paid === true || item.Paid === 'TRUE' || item.Paid === 'true';
+      if (paid) spent += total;
+    });
+    el.textContent = cat + ': Budgeted ' + eur(budgeted) + ' | Spent ' + eur(spent) + ' | Remaining ' + eur(budgeted - spent);
+  }
+
   // Category filter
   document.getElementById('categoryFilter').addEventListener('change', function() {
     var val = this.value;
+    updateCategorySummary(val);
     if (val) {
       gridApi.setColumnFilterModel('Category', { type: 'equals', filter: val }).then(function() {
         gridApi.onFilterChanged();
