@@ -4,7 +4,7 @@
 
   var isAdmin = JH.isAdmin();
   var pass = sessionStorage.getItem('jh_pass');
-  var writePass = sessionStorage.getItem('jh_admin');
+  var writePass = sessionStorage.getItem('jh_pass');
   var approvedMembers = members.filter(function (m) {
     return (m['Status'] || '').toLowerCase() === 'approved';
   });
@@ -27,7 +27,7 @@
       var adminControls = document.getElementById('admin-controls');
       adminControls.parentNode.insertBefore(existing, adminControls);
     }
-    existing.innerHTML = '<span style="font-size:0.8rem;color:var(--text-muted)">Signed in as <strong style="color:var(--accent)">' + state.myName + '</strong> \u2014 <a href="#" id="change-name-link" style="color:var(--text-muted);font-size:0.78rem">change</a></span>';
+    existing.innerHTML = '<span style="font-size:0.8rem;color:var(--text-muted)">Signed in as <strong style="color:var(--accent)">' + esc(state.myName) + '</strong> \u2014 <a href="#" id="change-name-link" style="color:var(--text-muted);font-size:0.78rem">change</a></span>';
     document.getElementById('change-name-link').addEventListener('click', function (e) {
       e.preventDefault();
       document.getElementById('name-modal').classList.add('active');
@@ -121,7 +121,7 @@
         });
 
         cellAssignments.forEach(function (a) {
-          var cls = 'chip chip-' + (a.Status || 'requested');
+          var cls = 'chip chip-' + (a.Status || 'requested').toLowerCase().trim();
           var isMine = state.myName && a.MemberName === state.myName;
           if (isMine) cls += ' my-chip';
           html += '<span class="' + cls + '" data-assignment-id="' + esc(a.AssignmentID) + '" data-status="' + esc(a.Status) + '" data-member="' + esc(a.MemberName) + '">' + esc(a.MemberName) + '</span>';
@@ -353,7 +353,7 @@
     var btn = this;
     btn.textContent = 'Saving...';
     btn.disabled = true;
-    await fetch('/api/shifts-update', {
+    var r = await fetch('/api/shifts-update', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -367,6 +367,7 @@
         kbLinks: kbLinks,
       }),
     });
+    if (!r.ok) { btn.textContent = 'Save'; btn.disabled = false; alert('Action failed. Please try again.'); return; }
     currentKBShift.KBText = kbText;
     currentKBShift.KBLinks = kbLinks;
     document.getElementById('kb-text').textContent = kbText;
@@ -394,24 +395,26 @@
   document.getElementById('chip-confirm-btn').addEventListener('click', async function () {
     chipMenu.style.display = 'none';
     if (!activeChipId) return;
-    await fetch('/api/shifts-update', {
+    var r = await fetch('/api/shifts-update', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ password: writePass, action: 'confirm-assignment', assignmentId: activeChipId }),
     });
-    render();
+    if (!r.ok) { alert('Action failed. Please try again.'); return; }
+    await render();
   });
 
   document.getElementById('chip-remove-btn').addEventListener('click', async function () {
     chipMenu.style.display = 'none';
     if (!activeChipId) return;
     if (!confirm('Remove this assignment?')) return;
-    await fetch('/api/shifts-update', {
+    var r = await fetch('/api/shifts-update', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ password: writePass, action: 'remove-assignment', assignmentId: activeChipId }),
     });
-    render();
+    if (!r.ok) { alert('Action failed. Please try again.'); return; }
+    await render();
   });
 
   // ── Admin: add assignment modal ───────────────────────────────────────────
@@ -441,7 +444,7 @@
     if (!name) return;
     addModal.classList.remove('active');
     var newId = Date.now() + '-' + Math.random().toString(36).slice(2, 7);
-    await fetch('/api/shifts-update', {
+    var r = await fetch('/api/shifts-update', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -453,7 +456,8 @@
         memberName: name,
       }),
     });
-    render();
+    if (!r.ok) { alert('Action failed. Please try again.'); return; }
+    await render();
   });
 
   document.getElementById('add-cancel-btn').addEventListener('click', function () {
@@ -496,11 +500,12 @@
     wrap.querySelectorAll('.delete-shift-btn').forEach(function (btn) {
       btn.addEventListener('click', async function () {
         if (!confirm('Delete shift "' + btn.dataset.shiftId + '"? Existing assignments will be orphaned.')) return;
-        await fetch('/api/shifts-update', {
+        var r = await fetch('/api/shifts-update', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ password: writePass, action: 'delete-shift', shiftId: btn.dataset.shiftId }),
         });
+        if (!r.ok) { alert('Action failed. Please try again.'); return; }
         await render();
         renderShiftsList();
       });
@@ -522,7 +527,7 @@
     var shiftId = document.getElementById('sf-id').value.trim();
     var name = document.getElementById('sf-name').value.trim();
     if (!shiftId || !name) { alert('ID and name are required.'); return; }
-    await fetch('/api/shifts-update', {
+    var r = await fetch('/api/shifts-update', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -533,6 +538,7 @@
         kbLinks: document.getElementById('sf-kb-links').value,
       }),
     });
+    if (!r.ok) { alert('Action failed. Please try again.'); return; }
     document.getElementById('shift-form').style.display = 'none';
     await render();
     renderShiftsList();
@@ -579,11 +585,12 @@
     wrap.querySelectorAll('.delete-slot-btn').forEach(function (btn) {
       btn.addEventListener('click', async function () {
         if (!confirm('Delete slot "' + btn.dataset.slotId + '"? Existing assignments will be orphaned.')) return;
-        await fetch('/api/shifts-update', {
+        var r = await fetch('/api/shifts-update', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ password: writePass, action: 'delete-slot', slotId: btn.dataset.slotId }),
         });
+        if (!r.ok) { alert('Action failed. Please try again.'); return; }
         await render();
         renderSlotsList();
       });
@@ -605,7 +612,7 @@
     var label = document.getElementById('sl-label').value.trim();
     var date = document.getElementById('sl-date').value.trim();
     if (!slotId || !label || !date) { alert('ID, label, and date are required.'); return; }
-    await fetch('/api/shifts-update', {
+    var r = await fetch('/api/shifts-update', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -614,6 +621,7 @@
         endTime: document.getElementById('sl-end').value,
       }),
     });
+    if (!r.ok) { alert('Action failed. Please try again.'); return; }
     document.getElementById('slot-form').style.display = 'none';
     await render();
     renderSlotsList();
