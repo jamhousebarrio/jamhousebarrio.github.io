@@ -8,7 +8,6 @@
     { "source": "/admin/shifts", "destination": "/admin/shifts.html" },
     { "source": "/admin/inventory", "destination": "/admin/inventory.html" },
     { "source": "/admin/logistics", "destination": "/admin/logistics.html" },
-    { "source": "/apply", "destination": "/apply.html" }
     { "source": "/apply", "destination": "/apply.html" },
     { "source": "/admin/meals", "destination": "/admin/meals.html" }
   ]
