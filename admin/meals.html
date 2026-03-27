@@ -70,6 +70,12 @@ access: general
     .modal-body input:focus, .modal-body select:focus, .modal-body textarea:focus { border-color: var(--accent); outline: none; }
     .modal-body textarea { min-height: 70px; resize: vertical; }
     .modal-actions { display: flex; gap: 8px; margin-top: 8px; }
+    @media (max-width: 480px) {
+      .ingredients-table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+      .meal-card { padding: 12px; }
+      .meal-card-header { flex-direction: column; gap: 8px; }
+      .meal-card-actions { align-self: flex-start; }
+    }
   </style>
 </head>
 <body>
