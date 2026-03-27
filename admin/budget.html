@@ -50,6 +50,14 @@ access: general
     .status-approved { background: rgba(76,175,80,0.15); color: #4caf50; }
     .status-rejected { background: rgba(244,67,54,0.1); color: #f44336; }
     .modal-overlay.active { display: flex !important; }
+    @media (max-width: 600px) {
+      .add-bar { flex-direction: column; }
+      .add-bar input, .add-bar select { width: 100% !important; min-width: 0 !important; max-width: none !important; }
+      .add-bar button { width: 100%; }
+      #budget-grid { height: 400px; }
+      .filter-row { flex-wrap: wrap; }
+      .request-row { grid-template-columns: 1fr; }
+    }
   </style>
 </head>
 <body>

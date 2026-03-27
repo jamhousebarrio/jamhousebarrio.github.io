@@ -215,6 +215,9 @@
     /* Responsive */
     @media (max-width: 500px) {
       .hero-content { padding: 24px 16px; }
+      .hero-cta { padding: 12px 32px; font-size: 0.95rem; width: 100%; text-align: center; }
+      .hero-desc { font-size: 0.9rem; }
+      .member-login-btn { bottom: 16px !important; right: 16px !important; font-size: 0.75rem !important; padding: 6px 14px !important; }
     }
   </style>
 </head>
@@ -229,7 +232,7 @@
       <a href="/apply" class="hero-cta">Apply for Membership</a>
       <div class="hero-info">Aragon, Spain &middot; July 2026 &middot; <a href="https://nobodies.team">nobodies.team</a></div>
     </div>
-    <a href="/admin" style="position:absolute;bottom:28px;right:28px;z-index:1;color:rgba(255,255,255,0.7);font-size:0.85rem;text-decoration:none;font-family:var(--heading);font-weight:500;padding:8px 18px;border:1px solid rgba(255,255,255,0.25);border-radius:6px;backdrop-filter:blur(4px);background:rgba(0,0,0,0.3);transition:all 0.2s;" title="Member Login">Member Login</a>
+    <a href="/admin" class="member-login-btn" style="position:absolute;bottom:28px;right:28px;z-index:1;color:rgba(255,255,255,0.7);font-size:0.85rem;text-decoration:none;font-family:var(--heading);font-weight:500;padding:8px 18px;border:1px solid rgba(255,255,255,0.25);border-radius:6px;backdrop-filter:blur(4px);background:rgba(0,0,0,0.3);transition:all 0.2s;" title="Member Login">Member Login</a>
   </section>
   {% else %}
   <header class="hero-compact">
