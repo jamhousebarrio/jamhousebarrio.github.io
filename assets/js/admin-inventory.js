@@ -95,7 +95,7 @@
         var item = state.items.find(function (i) { return i.ItemID === btn.dataset.delete; });
         if (!item) return;
         if (!confirm('Delete "' + item.Name + '"? This cannot be undone.')) return;
-        var r = await fetch('/api/inventory-update', {
+        var r = await fetch('/api/inventory', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ password: pass, action: 'delete', itemId: item.ItemID }),
@@ -176,7 +176,7 @@
     btn.textContent = 'Saving...';
     btn.disabled = true;
 
-    var r = await fetch('/api/inventory-update', {
+    var r = await fetch('/api/inventory', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

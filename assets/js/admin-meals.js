@@ -229,7 +229,7 @@
     document.querySelectorAll('.delete-meal-btn').forEach(function (btn) {
       btn.addEventListener('click', async function () {
         if (!confirm('Delete meal "' + btn.dataset.mealId + '" and all its ingredients?')) return;
-        var r = await fetch('/api/meals-update', {
+        var r = await fetch('/api/meals', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ password: writePass, action: 'delete-meal', mealId: btn.dataset.mealId }),
@@ -259,7 +259,7 @@
     document.querySelectorAll('.delete-ingredient-btn').forEach(function (btn) {
       btn.addEventListener('click', async function () {
         if (!confirm('Delete this ingredient?')) return;
-        var r = await fetch('/api/meals-update', {
+        var r = await fetch('/api/meals', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ password: writePass, action: 'delete-ingredient', ingredientId: btn.dataset.ingredientId }),
@@ -300,7 +300,7 @@
     var btn = this;
     btn.textContent = 'Saving...';
     btn.disabled = true;
-    var r = await fetch('/api/meals-update', {
+    var r = await fetch('/api/meals', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -343,7 +343,7 @@
     var btn = this;
     btn.textContent = 'Saving...';
     btn.disabled = true;
-    var r = await fetch('/api/meals-update', {
+    var r = await fetch('/api/meals', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

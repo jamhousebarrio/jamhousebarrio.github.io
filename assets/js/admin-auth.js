@@ -37,7 +37,7 @@ JH.filterNav = function(isAdmin) {
 JH.fetchBudget = async function() {
   var pass = sessionStorage.getItem('jh_pass');
   try {
-    var res = await fetch('/api/budget', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: pass }) });
+    var res = await fetch('/api/budget', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: pass, action: 'fetch' }) });
     if (res.ok) return await res.json();
     console.error('Budget fetch failed:', res.status);
   } catch (e) { console.error('Budget fetch error:', e); }

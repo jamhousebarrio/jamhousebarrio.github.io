@@ -140,7 +140,7 @@
         notes: document.getElementById('f-notes').value,
       };
 
-      var res = await fetch('/api/logistics-update', {
+      var res = await fetch('/api/logistics', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
