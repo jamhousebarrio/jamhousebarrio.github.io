@@ -6,10 +6,10 @@
   var pass = sessionStorage.getItem('jh_pass');
 
   // Fetch budget items
-  var res = await fetch('/api/budget-items', {
+  var res = await fetch('/api/budget', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ password: pass })
+    body: JSON.stringify({ password: pass, action: 'fetch-items' })
   });
   if (!res.ok) return;
   var data = await res.json();
@@ -157,16 +157,16 @@
       e.stopPropagation();
       if (!confirm('Delete "' + (params.data.Item || '') + '"?')) return;
       try {
-        var res = await fetch('/api/update-budget', {
+        var res = await fetch('/api/budget', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ password: pass, action: 'delete', row: params.data._row })
         });
         if (!res.ok) throw new Error('Failed');
-        var refreshRes = await fetch('/api/budget-items', {
+        var refreshRes = await fetch('/api/budget', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ password: pass })
+          body: JSON.stringify({ password: pass, action: 'fetch-items' })
         });
         if (refreshRes.ok) {
           var refreshData = await refreshRes.json();
@@ -275,7 +275,7 @@
   function saveBudgetField(row, field, value) {
     var updates = {};
     updates[field] = value;
-    fetch('/api/update-budget', {
+    fetch('/api/budget', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ password: pass, action: 'update', row: row, data: updates })
@@ -305,7 +305,7 @@
       msg.style.color = '#888';
 
       try {
-        var res = await fetch('/api/update-budget', {
+        var res = await fetch('/api/budget', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -409,7 +409,7 @@
       wrap.querySelectorAll('.approve-btn').forEach(function(btn) {
         btn.addEventListener('click', async function() {
           var id = btn.dataset.id;
-          var r = await fetch('/api/update-budget', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+          var r = await fetch('/api/budget', { method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ password: pass, action: 'approve-request', requestId: id }) });
           if (!r.ok) { alert('Failed to approve'); return; }
           var req = shoppingRequests.find(function(x) { return x.RequestID === id; });
@@ -420,7 +420,7 @@
       wrap.querySelectorAll('.reject-btn').forEach(function(btn) {
         btn.addEventListener('click', async function() {
           var id = btn.dataset.id;
-          var r = await fetch('/api/update-budget', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+          var r = await fetch('/api/budget', { method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ password: pass, action: 'reject-request', requestId: id }) });
           if (!r.ok) { alert('Failed to reject'); return; }
           var req = shoppingRequests.find(function(x) { return x.RequestID === id; });
@@ -459,8 +459,8 @@
     msg.textContent = 'Submitting...'; msg.style.color = '#888';
     var requestId = Date.now() + '-' + Math.random().toString(36).slice(2, 7);
     try {
-      var r = await fetch('/api/shopping-request', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password: pass, requestId: requestId, item: item, description: desc, link: link, price: price, submittedBy: submittedBy }) });
+      var r = await fetch('/api/budget', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: pass, action: 'shopping-request', requestId: requestId, item: item, description: desc, link: link, price: price, submittedBy: submittedBy }) });
       if (!r.ok) throw new Error('Failed');
       shoppingRequests.push({ RequestID: requestId, Item: item, Description: desc, Link: link, Price: price, SubmittedBy: submittedBy, Status: 'pending' });
       renderShoppingRequests();

@@ -15,75 +15,33 @@ access: general
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/assets/css/admin.css">
   <style>
-    .shifts-layout { display: grid; grid-template-columns: 1fr 280px; gap: 20px; align-items: start; }
-    @media (max-width: 1100px) { .shifts-layout { grid-template-columns: 1fr; } }
-    .shifts-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
-    .shifts-table th { font-family: var(--heading); text-align: left; padding: 8px 10px; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); border-bottom: 1px solid var(--border); font-weight: 600; white-space: nowrap; }
-    .shifts-table td { padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    .shifts-table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+    .shifts-table th { font-family: var(--heading); text-align: left; padding: 8px 12px; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); border-bottom: 1px solid var(--border); font-weight: 600; white-space: nowrap; }
+    .shifts-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
     .shifts-table tr:hover td { background: var(--surface2); }
-    .shift-name-col { min-width: 160px; max-width: 200px; }
-    .shift-name-link { color: var(--accent); cursor: pointer; font-weight: 600; font-size: 0.85rem; text-decoration: none; }
-    .shift-name-link:hover { text-decoration: underline; }
-    .shift-desc { color: var(--text-muted); font-size: 0.75rem; margin-top: 2px; line-height: 1.4; }
-    .slot-cell { min-width: 100px; }
-    .chip { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 10px; font-size: 0.78rem; margin: 2px; cursor: pointer; white-space: nowrap; transition: opacity 0.15s; }
-    .chip:hover { opacity: 0.8; }
-    .chip-confirmed { background: rgba(76,175,80,0.15); color: #4caf50; border: 1px solid #4caf50; }
-    .chip-requested { background: rgba(232,168,76,0.12); color: var(--accent); border: 1px solid var(--accent); opacity: 0.75; }
-    .chip-bailed { background: rgba(244,67,54,0.1); color: #f44336; border: 1px solid #f44336; text-decoration: line-through; }
-    .my-chip { box-shadow: 0 0 0 2px var(--accent); }
-    .request-btn { background: none; border: 1px dashed var(--border); border-radius: 10px; color: var(--text-muted); font-size: 0.75rem; padding: 2px 8px; cursor: pointer; margin: 2px; }
-    .request-btn:hover { border-color: var(--accent); color: var(--accent); }
-    .add-btn { background: none; border: none; color: var(--text-muted); font-size: 1rem; cursor: pointer; padding: 2px 4px; }
-    .add-btn:hover { color: var(--accent); }
-    .admin-controls-bar { display: flex; gap: 10px; margin-bottom: 16px; }
-    .btn-secondary { padding: 0.45rem 1rem; background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-family: var(--heading); font-size: 0.85rem; cursor: pointer; }
-    .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
-    .btn-primary { padding: 0.45rem 1rem; background: var(--accent); border: none; border-radius: 6px; color: var(--bg); font-family: var(--heading); font-size: 0.85rem; font-weight: 600; cursor: pointer; }
-    .btn-primary:hover { opacity: 0.9; }
-    .btn-danger { padding: 0.45rem 0.75rem; background: rgba(244,67,54,0.15); border: 1px solid #f44336; border-radius: 6px; color: #f44336; font-family: var(--heading); font-size: 0.8rem; cursor: pointer; }
-    .btn-danger:hover { background: rgba(244,67,54,0.25); }
-    .summary-warn td { background: rgba(232,168,76,0.05); }
-    .resp-text { cursor: text; padding: 2px 4px; border-radius: 4px; }
-    .resp-text:hover { background: var(--surface2); }
-    .resp-input { background: var(--bg); border: 1px solid var(--accent); border-radius: 4px; color: var(--text); font-family: var(--body); font-size: 0.85rem; padding: 2px 6px; width: 100%; }
-    .empty-state { color: var(--text-muted); font-size: 0.9rem; padding: 24px; text-align: center; }
-    .kb-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 50; }
-    .kb-overlay.active { display: block; }
-    .kb-panel { position: fixed; top: 0; right: -420px; width: 420px; max-width: 100vw; height: 100vh; background: var(--surface); border-left: 1px solid var(--border); z-index: 51; overflow-y: auto; padding: 24px; transition: right 0.25s; display: flex; flex-direction: column; gap: 16px; }
-    .kb-panel.active { right: 0; }
-    .kb-panel-header { display: flex; justify-content: space-between; align-items: center; }
-    .kb-panel-header h3 { font-family: var(--heading); color: var(--accent); font-size: 1.1rem; margin: 0; }
-    .kb-close { background: none; border: none; color: var(--text-muted); font-size: 1.4rem; cursor: pointer; }
-    .kb-close:hover { color: var(--text); }
-    .kb-meta { font-size: 0.8rem; color: var(--text-muted); border-top: 1px solid var(--border); padding-top: 10px; }
-    .kb-text { font-size: 0.9rem; line-height: 1.6; white-space: pre-wrap; color: var(--text); }
-    .kb-links a { display: block; color: var(--accent); font-size: 0.85rem; margin-bottom: 6px; text-decoration: none; }
-    .kb-links a:hover { text-decoration: underline; }
-    .kb-edit-area { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
-    .kb-edit-area label { font-size: 0.78rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
-    .kb-edit-area textarea { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-family: var(--body); font-size: 0.85rem; padding: 8px; resize: vertical; min-height: 80px; }
-    .kb-edit-area textarea:focus { border-color: var(--accent); outline: none; }
+    .shift-time { color: var(--text-muted); font-size: 0.82rem; }
+    .assigned-chip { display: inline-block; padding: 3px 10px; border-radius: 10px; font-size: 0.8rem; background: rgba(76,175,80,0.15); color: #4caf50; border: 1px solid #4caf50; }
+    .open-badge { display: inline-block; padding: 3px 10px; border-radius: 10px; font-size: 0.8rem; background: rgba(232,168,76,0.12); color: var(--accent); border: 1px solid var(--accent); }
+    .btn-sm { padding: 0.3rem 0.75rem; border-radius: 6px; font-family: var(--heading); font-size: 0.8rem; cursor: pointer; border: 1px solid var(--border); background: var(--surface); color: var(--text); }
+    .btn-sm:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-danger-sm { padding: 0.3rem 0.75rem; border-radius: 6px; font-family: var(--heading); font-size: 0.8rem; cursor: pointer; border: 1px solid #f44336; background: rgba(244,67,54,0.1); color: #f44336; }
+    .btn-danger-sm:hover { background: rgba(244,67,54,0.2); }
+    .empty-state { color: var(--text-muted); font-size: 0.9rem; padding: 32px; text-align: center; }
     .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 100; justify-content: center; align-items: center; }
     .modal-overlay.active { display: flex; }
-    .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; max-width: 500px; width: 90%; max-height: 85vh; overflow-y: auto; padding: 24px; }
-    .modal-wide { max-width: 660px; }
-    .modal h2 { font-family: var(--heading); color: var(--accent); margin: 0 0 16px; display: flex; justify-content: space-between; align-items: center; font-size: 1.1rem; }
+    .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; max-width: 440px; width: 90%; padding: 24px; display: flex; flex-direction: column; gap: 12px; }
+    .modal h2 { font-family: var(--heading); color: var(--accent); margin: 0; font-size: 1.1rem; display: flex; justify-content: space-between; align-items: center; }
     .modal-close { background: none; border: none; color: var(--text-muted); font-size: 1.4rem; cursor: pointer; }
     .modal-close:hover { color: var(--text); }
-    .modal-body { display: flex; flex-direction: column; gap: 10px; }
-    .modal-body label { font-size: 0.8rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 2px; }
-    .modal-body input, .modal-body select, .modal-body textarea { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-family: var(--body); font-size: 0.85rem; padding: 7px 10px; box-sizing: border-box; }
-    .modal-body input:focus, .modal-body select:focus, .modal-body textarea:focus { border-color: var(--accent); outline: none; }
-    .modal-body textarea { min-height: 70px; resize: vertical; }
-    .modal-actions { display: flex; gap: 8px; margin-top: 8px; }
-    .context-menu { position: fixed; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 4px; z-index: 200; box-shadow: 0 4px 20px rgba(0,0,0,0.4); }
-    .context-menu button { display: block; width: 100%; padding: 7px 14px; background: none; border: none; color: var(--text); font-family: var(--body); font-size: 0.85rem; cursor: pointer; text-align: left; border-radius: 4px; }
-    .context-menu button:hover { background: var(--surface); color: var(--accent); }
-    .context-menu .danger:hover { color: #f44336; }
-    .shift-list-item, .slot-list-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 0.85rem; }
-    .shift-list-item:last-child, .slot-list-item:last-child { border-bottom: none; }
-    .shift-list-actions { display: flex; gap: 6px; }
+    .field { display: flex; flex-direction: column; gap: 4px; }
+    .field label { font-size: 0.75rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+    .field input, .field select { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-family: var(--body); font-size: 0.85rem; padding: 7px 10px; }
+    .field input:focus, .field select:focus { border-color: var(--accent); outline: none; }
+    .modal-actions { display: flex; gap: 8px; margin-top: 4px; }
+    .btn-primary { padding: 0.45rem 1rem; background: var(--accent); border: none; border-radius: 6px; color: var(--bg); font-family: var(--heading); font-size: 0.85rem; font-weight: 600; cursor: pointer; }
+    .btn-primary:hover { opacity: 0.9; }
+    .btn-secondary { padding: 0.45rem 1rem; background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-family: var(--heading); font-size: 0.85rem; cursor: pointer; }
+    .msg { font-size: 0.8rem; align-self: center; }
   </style>
 </head>
 <body>
@@ -109,9 +67,11 @@ access: general
     <a class="nav-item" href="/admin/inventory" data-access="general">
       <span class="icon">&#128722;</span>
       <span class="nav-item-text">Inventory</span>
+    </a>
     <a class="nav-item" href="/admin/logistics" data-access="general">
       <span class="icon">&#9992;</span>
       <span class="nav-item-text">Logistics</span>
+    </a>
     <a class="nav-item" href="/admin/meals" data-access="general">
       <span class="icon">&#127859;</span>
       <span class="nav-item-text">Meals</span>
@@ -126,119 +86,58 @@ access: general
 <div class="main">
   <div class="page-header">
     <h1><span class="icon" style="color:var(--accent)">&#9835;</span> Volunteer Shifts</h1>
-    <div class="subtitle">Shift schedule, sign-ups, and knowledge base</div>
+    <div class="subtitle">Sign up for shifts or manage the schedule</div>
   </div>
 
-  <div id="admin-controls" class="admin-controls-bar" style="display:none">
-    <button id="btn-manage-shifts" class="btn-secondary">Manage Shifts</button>
-    <button id="btn-manage-slots" class="btn-secondary">Configure Slots</button>
-  </div>
-
-  <div class="shifts-layout">
-    <div class="panel">
-      <div id="shifts-grid-wrap"><div class="empty-state">Loading shifts...</div></div>
+  <div class="panel">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <h2 style="margin:0">Schedule</h2>
+      <button id="add-shift-btn" class="btn-primary" style="display:none">+ Add Shift</button>
     </div>
-    <div class="panel">
-      <h2>Shift Summary</h2>
-      <div id="summary-wrap"><div class="empty-state">Loading...</div></div>
-    </div>
+    <div id="shifts-wrap"><div class="empty-state">Loading...</div></div>
   </div>
 </div>
 
-<!-- KB slide-out panel -->
-<div class="kb-overlay" id="kb-overlay"></div>
-<div class="kb-panel" id="kb-panel">
-  <div class="kb-panel-header">
-    <h3 id="kb-title"></h3>
-    <button class="kb-close" id="kb-close">&times;</button>
-  </div>
-  <div class="kb-meta" id="kb-meta"></div>
-  <div class="kb-text" id="kb-text"></div>
-  <div class="kb-links" id="kb-links"></div>
-  <div id="kb-edit-area" class="kb-edit-area" style="display:none">
-    <label>Knowledge Base Text</label>
-    <textarea id="kb-edit-text" placeholder="Free-form notes, instructions, tips..."></textarea>
-    <label>Links (one per line: Label|URL)</label>
-    <textarea id="kb-edit-links" rows="4" placeholder="Meal Plan|https://...&#10;Shopping List|https://..."></textarea>
-    <div class="modal-actions">
-      <button id="kb-save-btn" class="btn-primary">Save</button>
-    </div>
-  </div>
-</div>
-
-<!-- Name selector modal -->
-<div class="modal-overlay active" id="name-modal">
-  <div class="modal">
-    <h2>Who are you?</h2>
-    <div class="modal-body">
-      <p style="color:var(--text-muted);font-size:0.9rem;margin-bottom:8px">Select your name to sign up for and manage your shifts. You can change this later.</p>
-      <label>Your name</label>
-      <select id="name-select"><option value="">Select your name...</option></select>
-    </div>
-    <div class="modal-actions" style="margin-top:16px">
-      <button id="name-confirm-btn" class="btn-primary">Confirm</button>
-    </div>
-  </div>
-</div>
-
-<!-- Chip context menu (admin) -->
-<div id="chip-menu" class="context-menu" style="display:none">
-  <button id="chip-confirm-btn">Confirm assignment</button>
-  <button id="chip-remove-btn" class="danger">Remove assignment</button>
-</div>
-
-<!-- Add assignment modal (admin) -->
+<!-- Add shift modal (admin) -->
 <div class="modal-overlay" id="add-modal">
   <div class="modal">
-    <h2>Add Assignment <button class="modal-close" data-close="add-modal">&times;</button></h2>
-    <div class="modal-body">
+    <h2>Add Shift <button class="modal-close" id="add-modal-close">&times;</button></h2>
+    <div class="field">
+      <label>Shift name</label>
+      <input id="shift-name" placeholder="e.g. Dinner Cleanup">
+    </div>
+    <div class="field">
+      <label>Date</label>
+      <input id="shift-date" type="date">
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="field">
+        <label>Start time</label>
+        <input id="shift-start" type="time">
+      </div>
+      <div class="field">
+        <label>End time</label>
+        <input id="shift-end" type="time">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button id="add-shift-save" class="btn-primary">Save</button>
+      <span id="add-msg" class="msg"></span>
+    </div>
+  </div>
+</div>
+
+<!-- Assign modal -->
+<div class="modal-overlay" id="assign-modal">
+  <div class="modal">
+    <h2>Assign Member <button class="modal-close" id="assign-modal-close">&times;</button></h2>
+    <div class="field">
       <label>Member</label>
-      <select id="add-member-select"><option value="">Select member...</option></select>
+      <select id="assign-select"><option value="">Select...</option></select>
     </div>
-    <div class="modal-actions" style="margin-top:16px">
-      <button id="add-confirm-btn" class="btn-primary">Add (confirmed)</button>
-      <button id="add-cancel-btn" class="btn-secondary">Cancel</button>
-    </div>
-  </div>
-</div>
-
-<!-- Manage Shifts modal (admin) -->
-<div class="modal-overlay" id="manage-shifts-modal">
-  <div class="modal modal-wide">
-    <h2>Manage Shifts <button class="modal-close" data-close="manage-shifts-modal">&times;</button></h2>
-    <div id="shifts-list-wrap" style="margin-bottom:16px"></div>
-    <button id="add-shift-btn" class="btn-secondary">+ Add Shift</button>
-    <div id="shift-form" class="modal-body" style="display:none;margin-top:16px">
-      <input id="sf-id" placeholder="ID (slug, no spaces, e.g. dinner)">
-      <input id="sf-name" placeholder="Display name">
-      <input id="sf-time" placeholder="Time expectation (e.g. ~2h after dinner)">
-      <textarea id="sf-desc" placeholder="Description"></textarea>
-      <textarea id="sf-kb-text" placeholder="Knowledge base text"></textarea>
-      <textarea id="sf-kb-links" placeholder="Label|URL (one per line)"></textarea>
-      <div class="modal-actions">
-        <button id="sf-save-btn" class="btn-primary">Save Shift</button>
-        <button id="sf-cancel-btn" class="btn-secondary">Cancel</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Configure Slots modal (admin) -->
-<div class="modal-overlay" id="manage-slots-modal">
-  <div class="modal modal-wide">
-    <h2>Configure Slots <button class="modal-close" data-close="manage-slots-modal">&times;</button></h2>
-    <div id="slots-list-wrap" style="margin-bottom:16px"></div>
-    <button id="add-slot-btn" class="btn-secondary">+ Add Slot</button>
-    <div id="slot-form" class="modal-body" style="display:none;margin-top:16px">
-      <input id="sl-id" placeholder="ID (slug, e.g. tue-1)">
-      <input id="sl-label" placeholder="Label (e.g. Tuesday 1 July)">
-      <input id="sl-date" type="date">
-      <input id="sl-start" placeholder="Start time (optional, e.g. 10:00)">
-      <input id="sl-end" placeholder="End time (optional, e.g. 12:00)">
-      <div class="modal-actions">
-        <button id="sl-save-btn" class="btn-primary">Save Slot</button>
-        <button id="sl-cancel-btn" class="btn-secondary">Cancel</button>
-      </div>
+    <div class="modal-actions">
+      <button id="assign-save" class="btn-primary">Assign</button>
+      <span id="assign-msg" class="msg"></span>
     </div>
   </div>
 </div>

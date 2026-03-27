@@ -145,10 +145,10 @@
     if (!member) return;
     var pass = sessionStorage.getItem('jh_pass');
     try {
-      var res = await fetch('/api/update-status', {
+      var res = await fetch('/api/members', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password: pass, row: data._row, status: newStatus })
+        body: JSON.stringify({ password: pass, action: 'update-status', row: data._row, status: newStatus })
       });
       if (!res.ok) throw new Error('Failed');
       member['Status'] = newStatus;
@@ -227,10 +227,10 @@
         document.getElementById('modal-msg').textContent = 'Saving...';
         document.getElementById('modal-msg').style.color = '#888';
         try {
-          var res = await fetch('/api/update-member', {
+          var res = await fetch('/api/members', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ password: pass, row: m._row, updates: updates })
+            body: JSON.stringify({ password: pass, action: 'update', row: m._row, updates: updates })
           });
           if (!res.ok) {
             var err = await res.json().catch(function() { return {}; });
