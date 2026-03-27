@@ -41,12 +41,33 @@ export default async function handler(req, res) {
       totalPaid += parseFloat(r[3]) || 0;
     });
 
+    // Read ShoppingRequests tab (safe fetch)
+    let shoppingRequests = [];
+    try {
+      const srRes = await sheets.spreadsheets.values.get({
+        spreadsheetId: process.env.BUDGET_SHEET_ID,
+        range: 'ShoppingRequests',
+      });
+      const srRows = srRes.data.values || [];
+      if (srRows.length > 1) {
+        const srHeaders = srRows[0];
+        shoppingRequests = srRows.slice(1).map(row => {
+          const obj = {};
+          srHeaders.forEach((h, j) => { obj[h] = row[j] || ''; });
+          return obj;
+        });
+      }
+    } catch (e) {
+      // Tab missing or unreadable — return empty array
+    }
+
     const sheetUrl = `https://docs.google.com/spreadsheets/d/${process.env.BUDGET_SHEET_ID}`;
     return res.status(200).json({
       items,
       headers,
       fees: { expected: totalExpected, paid: totalPaid },
       sheetUrl,
+      shoppingRequests,
     });
   } catch (e) {
     console.error('Budget items error:', e);
