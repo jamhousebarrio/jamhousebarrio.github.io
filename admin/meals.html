@@ -1,0 +1,193 @@
+---
+layout: none
+title: Meals - JamHouse Admin
+access: general
+---
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Meals - JamHouse Admin</title>
+  <meta name="access" content="general">
+  <link rel="icon" type="image/svg+xml" href="/images/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/admin.css">
+  <style>
+    .date-filter { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+    .date-btn { padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border); background: var(--surface); color: var(--text-muted); font-family: var(--heading); font-size: 0.8rem; cursor: pointer; transition: all 0.15s; }
+    .date-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .date-btn.active { background: var(--accent); border-color: var(--accent); color: var(--bg); font-weight: 600; }
+    .meals-date-group { margin-bottom: 28px; }
+    .meals-date-heading { font-family: var(--heading); font-size: 1rem; font-weight: 700; color: var(--accent); margin: 0 0 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
+    .meals-date-heading .headcount-note { font-size: 0.78rem; font-weight: 400; color: var(--text-muted); font-family: var(--body); }
+    .meal-cards { display: flex; flex-direction: column; gap: 12px; }
+    .meal-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; }
+    .meal-card-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 10px; }
+    .meal-card-title { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .meal-card-title h3 { font-family: var(--heading); font-size: 1rem; margin: 0; color: var(--text); }
+    .meal-type-badge { display: inline-block; padding: 2px 10px; border-radius: 10px; font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; font-family: var(--heading); }
+    .badge-breakfast { background: rgba(76,175,80,0.15); color: #4caf50; border: 1px solid #4caf50; }
+    .badge-lunch { background: rgba(33,150,243,0.15); color: #2196f3; border: 1px solid #2196f3; }
+    .badge-dinner { background: rgba(232,168,76,0.12); color: var(--accent); border: 1px solid var(--accent); }
+    .badge-snack { background: rgba(156,39,176,0.12); color: #9c27b0; border: 1px solid #9c27b0; }
+    .meal-card-actions { display: flex; gap: 6px; flex-shrink: 0; }
+    .meal-desc { font-size: 0.85rem; color: var(--text-muted); margin: 0 0 10px; line-height: 1.5; }
+    .instructions-toggle { background: none; border: none; color: var(--text-muted); font-size: 0.78rem; cursor: pointer; padding: 0; margin-bottom: 8px; text-decoration: underline; }
+    .instructions-toggle:hover { color: var(--text); }
+    .instructions-text { font-size: 0.82rem; color: var(--text); line-height: 1.6; white-space: pre-wrap; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; margin-bottom: 10px; }
+    .ingredients-section { margin-top: 10px; }
+    .ingredients-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+    .ingredients-header span { font-family: var(--heading); font-size: 0.78rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); }
+    .ingredients-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+    .ingredients-table th { text-align: left; padding: 5px 8px; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); border-bottom: 1px solid var(--border); font-family: var(--heading); font-weight: 600; }
+    .ingredients-table td { padding: 5px 8px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    .ingredients-table tr:last-child td { border-bottom: none; }
+    .ingredients-table tr:hover td { background: rgba(255,255,255,0.02); }
+    .ing-actions { display: flex; gap: 4px; }
+    .btn-icon { background: none; border: none; color: var(--text-muted); font-size: 0.78rem; cursor: pointer; padding: 2px 6px; border-radius: 4px; }
+    .btn-icon:hover { color: var(--accent); background: rgba(232,168,76,0.08); }
+    .btn-icon.danger:hover { color: #f44336; background: rgba(244,67,54,0.08); }
+    .admin-controls-bar { display: flex; gap: 10px; margin-bottom: 16px; }
+    .btn-secondary { padding: 0.45rem 1rem; background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-family: var(--heading); font-size: 0.85rem; cursor: pointer; }
+    .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-primary { padding: 0.45rem 1rem; background: var(--accent); border: none; border-radius: 6px; color: var(--bg); font-family: var(--heading); font-size: 0.85rem; font-weight: 600; cursor: pointer; }
+    .btn-primary:hover { opacity: 0.9; }
+    .btn-danger { padding: 0.45rem 0.75rem; background: rgba(244,67,54,0.15); border: 1px solid #f44336; border-radius: 6px; color: #f44336; font-family: var(--heading); font-size: 0.8rem; cursor: pointer; }
+    .btn-danger:hover { background: rgba(244,67,54,0.25); }
+    .btn-sm { padding: 0.3rem 0.7rem; font-size: 0.78rem; }
+    .empty-state { color: var(--text-muted); font-size: 0.9rem; padding: 24px; text-align: center; }
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 100; justify-content: center; align-items: center; }
+    .modal-overlay.active { display: flex; }
+    .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; max-width: 500px; width: 90%; max-height: 85vh; overflow-y: auto; padding: 24px; }
+    .modal h2 { font-family: var(--heading); color: var(--accent); margin: 0 0 16px; display: flex; justify-content: space-between; align-items: center; font-size: 1.1rem; }
+    .modal-close { background: none; border: none; color: var(--text-muted); font-size: 1.4rem; cursor: pointer; }
+    .modal-close:hover { color: var(--text); }
+    .modal-body { display: flex; flex-direction: column; gap: 10px; }
+    .modal-body label { font-size: 0.8rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 2px; }
+    .modal-body input, .modal-body select, .modal-body textarea { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-family: var(--body); font-size: 0.85rem; padding: 7px 10px; box-sizing: border-box; }
+    .modal-body input:focus, .modal-body select:focus, .modal-body textarea:focus { border-color: var(--accent); outline: none; }
+    .modal-body textarea { min-height: 70px; resize: vertical; }
+    .modal-actions { display: flex; gap: 8px; margin-top: 8px; }
+  </style>
+</head>
+<body>
+<nav class="sidebar">
+  <div class="sidebar-brand">JamHouse <span>Admin 2026</span></div>
+  <div class="sidebar-nav">
+    <a class="nav-item" href="/admin/applications" data-access="admin">
+      <span class="icon">&#9993;</span>
+      <span class="nav-item-text">Applications</span>
+    </a>
+    <a class="nav-item" href="/admin/demographics" data-access="general">
+      <span class="icon">&#9776;</span>
+      <span class="nav-item-text">Approved Members</span>
+    </a>
+    <a class="nav-item" href="/admin/budget" data-access="general">
+      <span class="icon">&#9733;</span>
+      <span class="nav-item-text">Budget</span>
+    </a>
+    <a class="nav-item" href="/admin/shifts" data-access="general">
+      <span class="icon">&#9835;</span>
+      <span class="nav-item-text">Shifts</span>
+    </a>
+    <a class="nav-item active" href="/admin/meals" data-access="general">
+      <span class="icon">&#127859;</span>
+      <span class="nav-item-text">Meals</span>
+    </a>
+  </div>
+  <div class="sidebar-footer">
+    <a href="/">&#8592; Back to Site</a>
+    <a href="#" onclick="sessionStorage.clear();window.location.href='/admin';return false;">Logout</a>
+  </div>
+</nav>
+
+<div class="main">
+  <div class="page-header">
+    <h1><span class="icon" style="color:var(--accent)">&#127859;</span> Meal Planning</h1>
+    <div class="subtitle">Meals and ingredient quantities by headcount</div>
+  </div>
+
+  <div id="admin-controls" class="admin-controls-bar" style="display:none">
+    <button id="btn-add-meal" class="btn-primary">+ Add Meal</button>
+  </div>
+
+  <div class="date-filter" id="date-filter"></div>
+
+  <div id="meals-wrap"><div class="empty-state">Loading meals...</div></div>
+</div>
+
+<!-- Add/Edit Meal Modal -->
+<div class="modal-overlay" id="meal-modal">
+  <div class="modal">
+    <h2 id="meal-modal-title">Add Meal <button class="modal-close" data-close="meal-modal">&times;</button></h2>
+    <div class="modal-body">
+      <div>
+        <label>Meal ID (slug, e.g. 2026-07-01-dinner)</label>
+        <input id="meal-id" placeholder="2026-07-01-dinner">
+      </div>
+      <div>
+        <label>Name</label>
+        <input id="meal-name" placeholder="Meal name">
+      </div>
+      <div>
+        <label>Date</label>
+        <input id="meal-date" type="date">
+      </div>
+      <div>
+        <label>Meal Type</label>
+        <select id="meal-type">
+          <option value="breakfast">Breakfast</option>
+          <option value="lunch">Lunch</option>
+          <option value="dinner">Dinner</option>
+          <option value="snack">Snack</option>
+        </select>
+      </div>
+      <div>
+        <label>Description</label>
+        <textarea id="meal-desc" placeholder="Short description..."></textarea>
+      </div>
+      <div>
+        <label>Instructions</label>
+        <textarea id="meal-instructions" placeholder="Cooking instructions..."></textarea>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button id="meal-save-btn" class="btn-primary">Save Meal</button>
+      <button class="btn-secondary" data-close="meal-modal">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add/Edit Ingredient Modal -->
+<div class="modal-overlay" id="ingredient-modal">
+  <div class="modal">
+    <h2 id="ingredient-modal-title">Add Ingredient <button class="modal-close" data-close="ingredient-modal">&times;</button></h2>
+    <div class="modal-body">
+      <input id="ingredient-id" type="hidden">
+      <input id="ingredient-meal-id" type="hidden">
+      <div>
+        <label>Name</label>
+        <input id="ingredient-name" placeholder="e.g. Oats">
+      </div>
+      <div>
+        <label>Quantity per person</label>
+        <input id="ingredient-quantity" type="number" step="any" min="0" placeholder="e.g. 0.08">
+      </div>
+      <div>
+        <label>Unit</label>
+        <input id="ingredient-unit" placeholder="e.g. kg, g, L, units, slices">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button id="ingredient-save-btn" class="btn-primary">Save Ingredient</button>
+      <button class="btn-secondary" data-close="ingredient-modal">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script src="/assets/js/admin-auth.js"></script>
+<script src="/assets/js/admin-meals.js"></script>
+</body>
+</html>
