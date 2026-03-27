@@ -91,7 +91,7 @@
       responsive: true, maintainAspectRatio: false,
       plugins: { legend: { labels: { color: '#e8e4df' } } },
       scales: {
-        x: { ticks: { color: '#8a8580' }, grid: { display: false } },
+        x: { ticks: { color: '#8a8580', maxRotation: 45, minRotation: 0, font: { size: window.innerWidth < 480 ? 9 : 12 } }, grid: { display: false } },
         y: { ticks: { color: '#8a8580', callback: function(v) { return '\u20AC' + v; } }, grid: { color: '#2a2a2a22' }, beginAtZero: true }
       }
     }
@@ -106,7 +106,7 @@
     },
     options: {
       responsive: true, maintainAspectRatio: false, cutout: '55%',
-      plugins: { legend: { position: 'bottom', labels: { color: '#e8e4df', padding: 12, usePointStyle: true, pointStyle: 'circle', font: { size: 11 } } } }
+      plugins: { legend: { position: 'bottom', labels: { color: '#e8e4df', padding: window.innerWidth < 480 ? 8 : 12, usePointStyle: true, pointStyle: 'circle', font: { size: window.innerWidth < 480 ? 9 : 11 } } } }
     }
   });
 
