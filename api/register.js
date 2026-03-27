@@ -68,18 +68,22 @@ export default async function handler(req, res) {
     });
 
     // Telegram notification
-    if (process.env.TELEGRAM_BOT_TOKEN && process.env.TELEGRAM_CHAT_ID) {
+    try {
       var playaName = b.playaName || b.name || 'Unknown';
       var tgBody = {
         chat_id: process.env.TELEGRAM_CHAT_ID,
         text: 'New JamHouse application from ' + playaName
       };
       if (process.env.TELEGRAM_TOPIC_ID) tgBody.message_thread_id = parseInt(process.env.TELEGRAM_TOPIC_ID);
-      fetch('https://api.telegram.org/bot' + process.env.TELEGRAM_BOT_TOKEN + '/sendMessage', {
+      var tgRes = await fetch('https://api.telegram.org/bot' + process.env.TELEGRAM_BOT_TOKEN + '/sendMessage', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(tgBody)
-      }).catch(function() {});
+      });
+      var tgData = await tgRes.json();
+      if (!tgData.ok) console.error('Telegram error:', tgData);
+    } catch (tgErr) {
+      console.error('Telegram send failed:', tgErr);
     }
 
     return res.status(200).json({ success: true });
