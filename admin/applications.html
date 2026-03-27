@@ -101,6 +101,14 @@ access: admin
     .filter-row select { padding: 0.45rem 0.75rem; background: #0a0a0a; border: 1px solid #2a2a2a; border-radius: 6px; color: #e0e0e0; font-size: 0.85rem; }
     .filter-row .count { color: #888; font-size: 0.85rem; margin-left: auto; }
     #app-grid { height: 500px; }
+    @media (max-width: 600px) {
+      .modal { padding: 1.25rem; max-height: 90vh; width: 95%; }
+      .detail-row { grid-template-columns: 1fr; gap: 0.25rem; }
+      .detail-label { font-size: 0.75rem; }
+      #app-grid { height: 400px; }
+      .col-toggles { gap: 0.3rem; }
+      .col-toggle { font-size: 0.7rem; }
+    }
   </style>
 </head>
 <body>
