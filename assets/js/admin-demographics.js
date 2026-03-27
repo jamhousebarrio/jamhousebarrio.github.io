@@ -94,13 +94,66 @@
     }
   });
 
+  // Member profile panel
+  var memberOverlay = document.getElementById('member-overlay');
+  var memberPanel = document.getElementById('member-panel');
+  var memberPanelTitle = document.getElementById('member-panel-title');
+  var memberPanelBody = document.getElementById('member-panel-body');
+
+  function esc(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+  function openMemberPanel(m) {
+    memberPanelTitle.textContent = val(m, 'Playa Name') || val(m, 'Name') || 'Member';
+    var fields = [
+      ['Real Name', val(m, 'Name')],
+      ['Age', val(m, 'Age')],
+      ['Gender', val(m, 'Gender')],
+      ['Nationality', val(m, 'Nationality')],
+      ['Location', val(m, 'Location')],
+      ['Role', val(m, 'Role')],
+      ['Phone', val(m, 'Phone')],
+      ['Email', val(m, 'Email')],
+      ['First Burn', val(m, 'First Burn')],
+      ['First Elsewhere', val(m, 'First Elsewhere/Nowhere')],
+      ['Has Ticket', val(m, 'Has Ticket')],
+      ['Volunteer', val(m, 'Volunteer')]
+    ];
+    memberPanelBody.innerHTML = fields.filter(function(f) { return f[1]; }).map(function(f) {
+      return '<div class="member-field"><span class="member-field-label">' + esc(f[0]) + '</span><span class="member-field-value">' + esc(f[1]) + '</span></div>';
+    }).join('');
+    memberOverlay.classList.add('active');
+    memberPanel.classList.add('active');
+  }
+
+  function closeMemberPanel() {
+    memberOverlay.classList.remove('active');
+    memberPanel.classList.remove('active');
+  }
+
+  document.getElementById('member-panel-close').addEventListener('click', closeMemberPanel);
+  memberOverlay.addEventListener('click', closeMemberPanel);
+
+  function NameCellRenderer() {}
+  NameCellRenderer.prototype.init = function(params) {
+    this.eGui = document.createElement('a');
+    this.eGui.className = 'name-link';
+    this.eGui.textContent = params.value || '';
+    this.eGui.href = '#';
+    var memberData = params.data._member;
+    this.eGui.addEventListener('click', function(e) {
+      e.preventDefault();
+      openMemberPanel(memberData);
+    });
+  };
+  NameCellRenderer.prototype.getGui = function() { return this.eGui; };
+
   // Roster table
   agGrid.createGrid(document.getElementById('roster-grid'), {
     rowData: members.map(function(m) {
-      return { 'Playa Name': val(m, 'Playa Name'), Role: val(m, 'Role'), Phone: val(m, 'Phone') };
+      return { 'Playa Name': val(m, 'Playa Name'), Role: val(m, 'Role'), Phone: val(m, 'Phone'), _member: m };
     }),
     columnDefs: [
-      { field: 'Playa Name', sortable: true, filter: true },
+      { field: 'Playa Name', sortable: true, filter: true, cellRenderer: NameCellRenderer },
       { field: 'Role', sortable: true, filter: true },
       { field: 'Phone', sortable: true, filter: true, cellRenderer: JH.PhoneCellRenderer }
     ],
