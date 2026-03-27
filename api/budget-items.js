@@ -41,10 +41,12 @@ export default async function handler(req, res) {
       totalPaid += parseFloat(r[3]) || 0;
     });
 
+    const sheetUrl = `https://docs.google.com/spreadsheets/d/${process.env.BUDGET_SHEET_ID}`;
     return res.status(200).json({
       items,
       headers,
       fees: { expected: totalExpected, paid: totalPaid },
+      sheetUrl,
     });
   } catch (e) {
     console.error('Budget items error:', e);
