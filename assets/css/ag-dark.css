@@ -1,12 +1,12 @@
 .ag-theme-alpine-dark {
-  --ag-background-color: #141414;
-  --ag-header-background-color: #1a1a1a;
-  --ag-odd-row-background-color: #141414;
-  --ag-row-hover-color: transparent;
-  --ag-selected-row-background-color: transparent;
-  --ag-border-color: #2a2a2a;
-  --ag-row-border-color: #1e1e1e;
-  --ag-header-foreground-color: #888;
+  --ag-background-color: #0a0a0a;
+  --ag-header-background-color: #141414;
+  --ag-odd-row-background-color: #0e0e0e;
+  --ag-row-hover-color: rgba(232,168,76,0.06);
+  --ag-selected-row-background-color: rgba(232,168,76,0.08);
+  --ag-border-color: #1e1e1e;
+  --ag-row-border-color: #1a1a1a;
+  --ag-header-foreground-color: #e8a84c;
   --ag-foreground-color: #e0e0e0;
   --ag-font-family: 'Inter', sans-serif;
   --ag-font-size: 13px;
@@ -14,24 +14,32 @@
   --ag-range-selection-border-color: transparent;
   --ag-input-focus-border-color: #e8a84c;
   --ag-secondary-foreground-color: #888;
-  --ag-control-panel-background-color: #1a1a1a;
-  --ag-subheader-background-color: #141414;
+  --ag-control-panel-background-color: #141414;
+  --ag-subheader-background-color: #0a0a0a;
   --ag-chip-background-color: #2a2a2a;
   --ag-invalid-color: #f44336;
   --ag-checkbox-checked-color: #e8a84c;
   --ag-toggle-button-on-background-color: #e8a84c;
-  --ag-icon-font-color: #888;
+  --ag-icon-font-color: #555;
   --ag-wrapper-border-radius: 8px;
   --ag-cell-horizontal-border: none;
   --ag-header-column-separator-display: none;
   --ag-pagination-page-size-selector-background-color: #0a0a0a;
+  --ag-header-height: 38px;
+  --ag-row-height: 36px;
 }
 .ag-theme-alpine-dark .ag-root-wrapper {
   border-radius: 8px;
-  border: 1px solid #2a2a2a;
+  border: 1px solid #1e1e1e;
 }
-.ag-theme-alpine-dark .ag-row:hover {
-  background: transparent !important;
+.ag-theme-alpine-dark .ag-header {
+  border-bottom: 1px solid #2a2a2a;
+}
+.ag-theme-alpine-dark .ag-header-cell {
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 .ag-theme-alpine-dark .ag-cell:focus,
 .ag-theme-alpine-dark .ag-header-cell:focus {
@@ -40,12 +48,16 @@
   border: none !important;
 }
 .ag-theme-alpine-dark .ag-paging-panel {
-  background: #1a1a1a;
-  border-top: 1px solid #2a2a2a;
+  background: #0e0e0e;
+  border-top: 1px solid #1e1e1e;
   color: #888;
 }
 .ag-theme-alpine-dark .ag-paging-button {
   color: #e0e0e0;
+}
+.ag-theme-alpine-dark .ag-cell-inline-editing {
+  background: #141414 !important;
+  border-color: #e8a84c !important;
 }
 .col-toggles { display: flex; gap: 0.5rem; flex-wrap: wrap; }
 .col-toggle { display: flex; align-items: center; gap: 4px; font-size: 0.8rem; color: #888; cursor: pointer; user-select: none; }
