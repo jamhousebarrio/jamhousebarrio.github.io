@@ -242,16 +242,16 @@ title: Apply - JamHouse 2026
           <input type="text" name="contactOther">
         </div>
         <div class="form-group">
-          <label>Where do you live?</label>
-          <input type="text" name="location">
+          <label>Where do you live? <span class="optional">*</span></label>
+          <input type="text" name="location" required>
         </div>
         <div class="form-group">
-          <label>Nationality</label>
-          <input type="text" name="nationality">
+          <label>Nationality <span class="optional">*</span></label>
+          <input type="text" name="nationality" required>
         </div>
         <div class="form-group">
-          <label>Gender</label>
-          <select name="gender">
+          <label>Gender <span class="optional">*</span></label>
+          <select name="gender" required>
             <option value="">Select...</option>
             <option value="Male">Male</option>
             <option value="Female">Female</option>
@@ -260,8 +260,8 @@ title: Apply - JamHouse 2026
           </select>
         </div>
         <div class="form-group">
-          <label>Age</label>
-          <input type="number" name="age" min="18" max="120">
+          <label>Age <span class="optional">*</span></label>
+          <input type="number" name="age" min="18" max="120" required>
         </div>
         <div class="form-group">
           <label>Primary Language</label>
@@ -279,16 +279,16 @@ title: Apply - JamHouse 2026
         <p class="section-desc">Tell us about your burn history.</p>
 
         <div class="form-group">
-          <label>Is this your first Burn?</label>
-          <select name="firstBurn">
+          <label>Is this your first Burn? <span class="optional">*</span></label>
+          <select name="firstBurn" required>
             <option value="">Select...</option>
             <option value="Yes">Yes</option>
             <option value="No">No</option>
           </select>
         </div>
         <div class="form-group">
-          <label>Is this your first Elsewhere/Nowhere?</label>
-          <select name="firstElsewhere">
+          <label>Is this your first Elsewhere/Nowhere? <span class="optional">*</span></label>
+          <select name="firstElsewhere" required>
             <option value="">Select...</option>
             <option value="Yes, this will be my first!">Yes, this will be my first!</option>
             <option value="Yes, and I'm super excited!">Yes, and I'm super excited!</option>
@@ -307,16 +307,16 @@ title: Apply - JamHouse 2026
         <p class="section-desc">We'd love to know what drives you.</p>
 
         <div class="form-group">
-          <label>What does "Leave No Trace" evoke to you?</label>
-          <textarea name="leaveNoTrace"></textarea>
+          <label>What does "Leave No Trace" evoke to you? <span class="optional">*</span></label>
+          <textarea name="leaveNoTrace" required></textarea>
         </div>
         <div class="form-group">
-          <label>What does "Consent" evoke to you?</label>
-          <textarea name="consent"></textarea>
+          <label>What does "Consent" evoke to you? <span class="optional">*</span></label>
+          <textarea name="consent" required></textarea>
         </div>
         <div class="form-group">
-          <label>What are the main reasons you want to come to Elsewhere this year?</label>
-          <textarea name="whyElsewhere"></textarea>
+          <label>What are the main reasons you want to come to Elsewhere this year? <span class="optional">*</span></label>
+          <textarea name="whyElsewhere" required></textarea>
         </div>
         <div class="form-group">
           <label>What is your background?</label>
@@ -357,8 +357,8 @@ title: Apply - JamHouse 2026
         <p class="section-desc">A few practical things.</p>
 
         <div class="form-group">
-          <label>Do you have your ticket for Elsewhere 2026?</label>
-          <select name="hasTicket">
+          <label>Do you have your ticket for Elsewhere 2026? <span class="optional">*</span></label>
+          <select name="hasTicket" required>
             <option value="">Select...</option>
             <option value="Yes">Yes</option>
             <option value="No, not yet">No, not yet</option>
@@ -399,8 +399,8 @@ title: Apply - JamHouse 2026
           </select>
         </div>
         <div class="form-group">
-          <label>Are you ready to volunteer?</label>
-          <select name="volunteer">
+          <label>Are you ready to volunteer? <span class="optional">*</span></label>
+          <select name="volunteer" required>
             <option value="">Select...</option>
             <option value="Of course, count on me">Of course, count on me</option>
             <option value="I just want to work on what is needed">I just want to work on what is needed</option>
@@ -449,6 +449,8 @@ title: Apply - JamHouse 2026
 
     form.addEventListener('submit', async function(e) {
       e.preventDefault();
+      if (!confirm('Are you sure you want to submit your application?')) return;
+
       const btn = document.getElementById('submitBtn');
       const errorMsg = document.getElementById('errorMsg');
       errorMsg.style.display = 'none';
@@ -460,9 +462,12 @@ title: Apply - JamHouse 2026
       if (form.contactTelegram.checked) contactMethods.push('Telegram');
       if (form.contactDiscord.checked) contactMethods.push('Discord');
 
+      var playaName = form.playaName.value.trim();
+      if (!playaName) playaName = form.name.value.trim().split(' ')[0];
+
       const data = {
         name: form.name.value,
-        playaName: form.playaName.value,
+        playaName: playaName,
         email: form.email.value,
         phone: form.phone.value,
         contactMethods: contactMethods.join(','),
