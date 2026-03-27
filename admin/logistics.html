@@ -1,0 +1,125 @@
+---
+layout: none
+title: Logistics - JamHouse Admin
+access: general
+---
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Logistics - JamHouse Admin</title>
+  <meta name="access" content="general">
+  <link rel="icon" type="image/svg+xml" href="/images/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/admin.css">
+  <style>
+    .logistics-layout { display: grid; grid-template-columns: 340px 1fr; gap: 20px; align-items: start; }
+    @media (max-width: 1100px) { .logistics-layout { grid-template-columns: 1fr; } }
+    .form-row { display: flex; flex-direction: column; gap: 4px; margin-bottom: 14px; }
+    .form-row label { font-size: 0.78rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+    .form-row input, .form-row select, .form-row textarea { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-family: var(--body); font-size: 0.85rem; padding: 7px 10px; box-sizing: border-box; width: 100%; }
+    .form-row input:focus, .form-row select:focus, .form-row textarea:focus { border-color: var(--accent); outline: none; }
+    .form-row textarea { min-height: 70px; resize: vertical; }
+    .tent-size-row { display: none; }
+    .tent-size-row.visible { display: flex; }
+    .logistics-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    .logistics-table th { font-family: var(--heading); text-align: left; padding: 8px 10px; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); border-bottom: 1px solid var(--border); font-weight: 600; white-space: nowrap; }
+    .logistics-table td { padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    .logistics-table tr:hover td { background: var(--surface2); }
+    .logistics-table tr.my-row td { background: rgba(232,168,76,0.07); }
+    .logistics-table tr.my-row:hover td { background: rgba(232,168,76,0.12); }
+    .not-filled { color: var(--text-muted); font-style: italic; font-size: 0.8rem; }
+    .camp-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 0.75rem; font-weight: 600; text-transform: capitalize; }
+    .camp-tent { background: rgba(76,175,80,0.15); color: #4caf50; border: 1px solid #4caf50; }
+    .camp-van { background: rgba(33,150,243,0.15); color: #2196f3; border: 1px solid #2196f3; }
+    .camp-in-camp-cabin { background: rgba(156,39,176,0.15); color: #9c27b0; border: 1px solid #9c27b0; }
+    .camp-out-of-camp { background: rgba(255,152,0,0.15); color: #ff9800; border: 1px solid #ff9800; }
+    .btn-primary { padding: 0.5rem 1.25rem; background: var(--accent); border: none; border-radius: 6px; color: var(--bg); font-family: var(--heading); font-size: 0.85rem; font-weight: 600; cursor: pointer; }
+    .btn-primary:hover { opacity: 0.9; }
+    .btn-primary:disabled { opacity: 0.5; cursor: default; }
+    .save-feedback { font-size: 0.8rem; color: #4caf50; margin-left: 10px; display: none; }
+    .save-feedback.visible { display: inline; }
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 100; justify-content: center; align-items: center; }
+    .modal-overlay.active { display: flex; }
+    .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; max-width: 500px; width: 90%; max-height: 85vh; overflow-y: auto; padding: 24px; }
+    .modal h2 { font-family: var(--heading); color: var(--accent); margin: 0 0 16px; font-size: 1.1rem; }
+    .modal-body { display: flex; flex-direction: column; gap: 10px; }
+    .modal-body label { font-size: 0.8rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 2px; }
+    .modal-body select { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-family: var(--body); font-size: 0.85rem; padding: 7px 10px; box-sizing: border-box; }
+    .modal-body select:focus { border-color: var(--accent); outline: none; }
+    .modal-actions { display: flex; gap: 8px; margin-top: 16px; }
+    .empty-state { color: var(--text-muted); font-size: 0.9rem; padding: 24px; text-align: center; }
+  </style>
+</head>
+<body>
+<nav class="sidebar">
+  <div class="sidebar-brand">JamHouse <span>Admin 2026</span></div>
+  <div class="sidebar-nav">
+    <a class="nav-item" href="/admin/applications" data-access="admin">
+      <span class="icon">&#9993;</span>
+      <span class="nav-item-text">Applications</span>
+    </a>
+    <a class="nav-item" href="/admin/demographics" data-access="general">
+      <span class="icon">&#9776;</span>
+      <span class="nav-item-text">Approved Members</span>
+    </a>
+    <a class="nav-item" href="/admin/budget" data-access="general">
+      <span class="icon">&#9733;</span>
+      <span class="nav-item-text">Budget</span>
+    </a>
+    <a class="nav-item" href="/admin/shifts" data-access="general">
+      <span class="icon">&#9835;</span>
+      <span class="nav-item-text">Shifts</span>
+    </a>
+    <a class="nav-item active" href="/admin/logistics" data-access="general">
+      <span class="icon">&#9992;</span>
+      <span class="nav-item-text">Logistics</span>
+    </a>
+  </div>
+  <div class="sidebar-footer">
+    <a href="/">&#8592; Back to Site</a>
+    <a href="#" onclick="sessionStorage.clear();window.location.href='/admin';return false;">Logout</a>
+  </div>
+</nav>
+
+<div class="main">
+  <div class="page-header">
+    <h1><span class="icon" style="color:var(--accent)">&#9992;</span> Logistics</h1>
+    <div class="subtitle">Arrival dates and camping info</div>
+  </div>
+
+  <div id="name-display-wrap"></div>
+
+  <div class="logistics-layout">
+    <div class="panel" id="my-info-panel">
+      <h2>My Info</h2>
+      <div id="my-info-content"><div class="empty-state">Select your name to fill in your info.</div></div>
+    </div>
+    <div class="panel">
+      <h2>All Members</h2>
+      <div id="all-members-content"><div class="empty-state">Loading...</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- Name selector modal -->
+<div class="modal-overlay active" id="name-modal">
+  <div class="modal">
+    <h2>Who are you?</h2>
+    <div class="modal-body">
+      <p style="color:var(--text-muted);font-size:0.9rem;margin-bottom:8px">Select your name to fill in your arrival and camping info. You can change this later.</p>
+      <label>Your name</label>
+      <select id="name-select"><option value="">Select your name...</option></select>
+    </div>
+    <div class="modal-actions">
+      <button id="name-confirm-btn" class="btn-primary">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<script src="/assets/js/admin-auth.js"></script>
+<script src="/assets/js/admin-logistics.js"></script>
+</body>
+</html>
