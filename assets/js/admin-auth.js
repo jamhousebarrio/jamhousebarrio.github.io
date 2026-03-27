@@ -65,3 +65,43 @@ JH.PhoneCellRenderer.prototype.init = function(params) {
   this.eGui.innerHTML = v.replace(/</g, '&lt;') + JH.contactLinks(v);
 };
 JH.PhoneCellRenderer.prototype.getGui = function() { return this.eGui; };
+
+// Mobile utilities
+JH.isMobile = window.innerWidth < 480;
+
+JH.IconsOnlyRenderer = function() {};
+JH.IconsOnlyRenderer.prototype.init = function(params) {
+  this.eGui = document.createElement('span');
+  var v = (params.value || '').trim();
+  if (v) this.eGui.innerHTML = JH.contactLinks(v);
+};
+JH.IconsOnlyRenderer.prototype.getGui = function() { return this.eGui; };
+
+JH.NameLinkRenderer = function() {};
+JH.NameLinkRenderer.prototype.init = function(params) {
+  this.eGui = document.createElement('a');
+  this.eGui.href = '#';
+  this.eGui.textContent = params.value || '';
+  this.eGui.style.cssText = 'color:var(--accent);cursor:pointer;font-weight:600;text-decoration:none;';
+  this.eGui.addEventListener('click', function(e) { e.preventDefault(); });
+};
+JH.NameLinkRenderer.prototype.getGui = function() { return this.eGui; };
+
+JH.mobileColumns = function(columnDefs, keepFields) {
+  if (!JH.isMobile) return;
+  columnDefs.forEach(function(col) {
+    var match = (col.field && keepFields.indexOf(col.field) !== -1) ||
+                (col.headerName && keepFields.indexOf(col.headerName) !== -1);
+    if (!match) col.hide = true;
+  });
+};
+
+JH.mobilePhoneColumn = function(col) {
+  col.headerName = '';
+  col.width = 80;
+  col.maxWidth = 90;
+  col.suppressSizeToFit = true;
+  col.cellRenderer = JH.IconsOnlyRenderer;
+};
+
+JH.esc = function(s) { return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); };

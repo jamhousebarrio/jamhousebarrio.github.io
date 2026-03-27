@@ -145,8 +145,9 @@ body { font-family: var(--body); background: var(--bg); color: var(--text); font
   .stat-card .stat-label { font-size: 0.7rem; }
   .data-table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
   .ag-theme-alpine-dark { overflow-x: auto !important; -webkit-overflow-scrolling: touch; }
-  .ag-theme-alpine-dark .ag-root-wrapper { min-width: 500px; }
   .ag-theme-alpine-dark .ag-body-viewport { overflow-x: auto !important; }
+  .ag-theme-alpine-dark .ag-paging-panel { font-size: 0.7rem; flex-wrap: nowrap; white-space: nowrap; }
+  .ag-theme-alpine-dark .ag-paging-panel > * { min-width: 0; }
   .panel { padding: 10px 8px; overflow: hidden; }
   .main { overflow-x: hidden; }
 }
