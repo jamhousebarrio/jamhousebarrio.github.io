@@ -1,5 +1,15 @@
 import { google } from 'googleapis';
 
+function colToLetter(col) {
+  var letter = '';
+  var c = col;
+  while (c >= 0) {
+    letter = String.fromCharCode(65 + (c % 26)) + letter;
+    c = Math.floor(c / 26) - 1;
+  }
+  return letter;
+}
+
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
@@ -22,17 +32,12 @@ export default async function handler(req, res) {
       spreadsheetId: process.env.SHEET_ID,
       range: 'Sheet1!1:1',
     });
-    const headers = headersRes.data.values[0];
+    const headers = (headersRes.data.values || [[]])[0] || [];
     var data = [];
     for (var key in updates) {
       var col = headers.indexOf(key);
       if (col === -1) continue;
-      var colLetter = '';
-      var c = col;
-      while (c >= 0) {
-        colLetter = String.fromCharCode(65 + (c % 26)) + colLetter;
-        c = Math.floor(c / 26) - 1;
-      }
+      var colLetter = colToLetter(col);
       data.push({ range: 'Sheet1!' + colLetter + row, values: [[updates[key]]] });
     }
     if (data.length === 0) {

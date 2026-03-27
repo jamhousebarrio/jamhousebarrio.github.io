@@ -13,8 +13,8 @@
   });
   if (!res.ok) return;
   var data = await res.json();
-  var items = data.items;
-  var fees = data.fees;
+  var items = data.items || [];
+  var fees = data.fees || { expected: 0, paid: 0 };
 
   function eur(n) { return '\u20AC' + n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 
@@ -158,14 +158,19 @@
           body: JSON.stringify({ password: pass, action: 'delete', row: params.data._row })
         });
         if (!res.ok) throw new Error('Failed');
-        var idx = items.findIndex(function(it) { return it._row === params.data._row; });
-        if (idx !== -1) items.splice(idx, 1);
-        // Adjust row numbers for items after deleted row
-        items.forEach(function(it) { if (it._row > params.data._row) it._row--; });
-        gridApi.setGridOption('rowData', items);
+        var refreshRes = await fetch('/api/budget-items', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password: pass })
+        });
+        if (refreshRes.ok) {
+          var refreshData = await refreshRes.json();
+          items = refreshData.items;
+          gridApi.setGridOption('rowData', items);
+        }
         updateStats();
         updateCharts();
-      } catch (err) { /* silent */ }
+      } catch (err) { console.error('Delete error:', err); }
     });
   };
   DeleteBtnRenderer.prototype.getGui = function() { return this.eGui; };
@@ -269,6 +274,10 @@
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ password: pass, action: 'update', row: row, data: updates })
+    }).then(function(res) {
+      if (!res.ok) console.error('Save failed:', field, res.status);
+    }).catch(function(err) {
+      console.error('Save error:', err);
     });
   }
 
