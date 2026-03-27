@@ -29,20 +29,13 @@ export default async function handler(req, res) {
       return obj;
     }).filter(item => item.Item || item.Category);
 
-    // Read Total tab
-    const totalRes = await sheets.spreadsheets.values.get({
-      spreadsheetId: process.env.BUDGET_SHEET_ID,
-      range: 'Total',
-    });
-    const totalRows = totalRes.data.values || [];
-
     // Read Barrio Fee tab for fee stats
     const feeRes = await sheets.spreadsheets.values.get({
       spreadsheetId: process.env.BUDGET_SHEET_ID,
       range: "'Barrio Fee'",
     });
     const feeRows = feeRes.data.values || [];
-    var totalExpected = 0, totalPaid = 0;
+    let totalExpected = 0, totalPaid = 0;
     feeRows.slice(1).forEach(r => {
       totalExpected += parseFloat(r[2]) || 0;
       totalPaid += parseFloat(r[3]) || 0;

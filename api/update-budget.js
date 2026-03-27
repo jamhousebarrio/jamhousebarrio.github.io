@@ -1,5 +1,15 @@
 import { google } from 'googleapis';
 
+function colToLetter(col) {
+  var letter = '';
+  var c = col;
+  while (c >= 0) {
+    letter = String.fromCharCode(65 + (c % 26)) + letter;
+    c = Math.floor(c / 26) - 1;
+  }
+  return letter;
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -23,7 +33,10 @@ export default async function handler(req, res) {
       spreadsheetId,
       range: 'Budget!1:1',
     });
-    const headers = headersRes.data.values[0];
+    const headers = (headersRes.data.values || [[]])[0] || [];
+    if (headers.length === 0) {
+      return res.status(500).json({ error: "Budget sheet has no headers" });
+    }
 
     if (action === 'add') {
       // Add new row
@@ -43,20 +56,24 @@ export default async function handler(req, res) {
       // Get the row number that was added
       const updatedRange = appendRes.data.updates.updatedRange;
       const addedRow = parseInt(updatedRange.match(/\d+$/)[0]);
-      // Set formula for Total Actual column (E)
-      await sheets.spreadsheets.values.update({
-        spreadsheetId,
-        range: 'Budget!E' + addedRow,
-        valueInputOption: 'USER_ENTERED',
-        requestBody: { values: [['=C' + addedRow + '*D' + addedRow]] },
-      });
+      // Set formula for Total Actual column
+      const totalCol = headers.indexOf('Total Actual');
+      if (totalCol !== -1) {
+        const qtyCol = colToLetter(headers.indexOf('Qty'));
+        const priceCol = colToLetter(headers.indexOf('Price'));
+        await sheets.spreadsheets.values.update({
+          spreadsheetId,
+          range: 'Budget!' + colToLetter(totalCol) + addedRow,
+          valueInputOption: 'USER_ENTERED',
+          requestBody: { values: [['=' + qtyCol + addedRow + '*' + priceCol + addedRow]] },
+        });
+      }
       // Set Paid checkbox to FALSE
       const paidCol = headers.indexOf('Paid');
       if (paidCol !== -1) {
-        const colLetter = String.fromCharCode(65 + paidCol);
         await sheets.spreadsheets.values.update({
           spreadsheetId,
-          range: 'Budget!' + colLetter + addedRow,
+          range: 'Budget!' + colToLetter(paidCol) + addedRow,
           valueInputOption: 'USER_ENTERED',
           requestBody: { values: [[false]] },
         });
@@ -72,13 +89,8 @@ export default async function handler(req, res) {
       for (var key in data) {
         var col = headers.indexOf(key);
         if (col === -1) continue;
-        if (key === 'Total Actual') continue; // formula, don't overwrite
-        var colLetter = '';
-        var c = col;
-        while (c >= 0) {
-          colLetter = String.fromCharCode(65 + (c % 26)) + colLetter;
-          c = Math.floor(c / 26) - 1;
-        }
+        if (key === 'Total Actual') continue;
+        var colLetter = colToLetter(col);
         var val = data[key];
         // Paid column: use USER_ENTERED for booleans
         if (key === 'Paid') {

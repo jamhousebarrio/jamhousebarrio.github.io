@@ -10,6 +10,9 @@ export default async function handler(req, res) {
   if (!b.name || !b.email) {
     return res.status(400).json({ error: "Name and Email are required" });
   }
+  if (!b.email.includes('@') || !b.email.includes('.')) {
+    return res.status(400).json({ error: "Invalid email format" });
+  }
 
   try {
     const credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY);
