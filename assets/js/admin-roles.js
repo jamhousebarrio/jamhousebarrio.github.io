@@ -5,6 +5,11 @@
   var isAdmin = JH.isAdmin();
   var pass = sessionStorage.getItem('jh_pass');
   var state = { roles: [] };
+  var approvedMembers = members.filter(function (m) {
+    return (m['Status'] || '').toLowerCase() === 'approved';
+  }).map(function (m) {
+    return m['Playa Name'] || m['Name'] || '';
+  }).filter(Boolean).sort();
 
   // ── Helpers ───────────────────────────────────────────────────────────────
 
@@ -162,7 +167,15 @@
 
     document.getElementById('field-name').value = role ? role.Name : '';
     document.getElementById('field-description').value = role ? role.Description : '';
-    document.getElementById('field-assignedTo').value = role ? role.AssignedTo : '';
+    var sel = document.getElementById('field-assignedTo');
+    sel.innerHTML = '<option value="">Unassigned</option>';
+    approvedMembers.forEach(function (name) {
+      var opt = document.createElement('option');
+      opt.value = name;
+      opt.textContent = name;
+      if (role && role.AssignedTo === name) opt.selected = true;
+      sel.appendChild(opt);
+    });
     document.getElementById('field-status').value = role ? (role.Status || 'open') : 'open';
     document.getElementById('field-notes').value = role ? role.Notes : '';
 
