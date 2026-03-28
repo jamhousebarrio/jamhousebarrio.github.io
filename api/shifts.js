@@ -134,7 +134,7 @@ export default async function handler(req, res) {
 
     return res.status(400).json({ error: 'Unknown action' });
   } catch (e) {
-    console.error('shifts error:', e);
-    return res.status(500).json({ error: 'Failed' });
+    console.error('shifts error:', e.message, e.stack);
+    return res.status(500).json({ error: 'Failed', detail: e.message });
   }
 }
