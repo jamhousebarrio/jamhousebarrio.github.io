@@ -1,0 +1,194 @@
+---
+layout: none
+title: Event Planning - JamHouse Admin
+access: general
+---
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Event Planning - JamHouse Admin</title>
+  <meta name="access" content="general">
+  <link rel="icon" type="image/svg+xml" href="/images/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/admin.css">
+  <style>
+    .events-toolbar { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+    .filter-btns { display: flex; gap: 6px; flex-wrap: wrap; }
+    .filter-btn { padding: 0.45rem 0.95rem; background: var(--surface); border: 1px solid var(--border); border-radius: 20px; color: var(--text-muted); font-family: var(--heading); font-size: 0.8rem; cursor: pointer; transition: all 0.15s; }
+    .filter-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .filter-btn.active { background: var(--accent); border-color: var(--accent); color: var(--bg); font-weight: 600; }
+    .add-event-btn { margin-left: auto; padding: 0.45rem 1rem; background: var(--accent); border: none; border-radius: 6px; color: var(--bg); font-family: var(--heading); font-size: 0.85rem; font-weight: 600; cursor: pointer; }
+    .add-event-btn:hover { opacity: 0.9; }
+
+    #events-wrap { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
+
+    .event-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 18px; display: flex; flex-direction: column; gap: 8px; transition: border-color 0.15s; }
+    .event-card:hover { border-color: var(--accent); }
+    .event-card-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+    .event-card-title { font-family: var(--heading); font-size: 1rem; font-weight: 700; color: var(--text); margin: 0; }
+    .event-card-datetime { font-size: 0.8rem; color: var(--text-muted); font-family: var(--heading); }
+    .event-card-desc { font-size: 0.85rem; color: var(--text-muted); line-height: 1.4; }
+    .event-card-responsible { font-size: 0.8rem; color: var(--accent); font-weight: 600; }
+    .event-card-notes { font-size: 0.8rem; color: var(--text-muted); font-style: italic; }
+    .event-card-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 4px; }
+    .event-card-actions { display: flex; gap: 4px; }
+    .btn-icon { background: none; border: none; color: var(--text-muted); font-size: 0.78rem; cursor: pointer; padding: 2px 6px; border-radius: 4px; }
+    .btn-icon:hover { color: var(--accent); background: rgba(232,168,76,0.08); }
+    .btn-icon.danger:hover { color: #f44336; background: rgba(244,67,54,0.08); }
+
+    .status-badge { display: inline-block; padding: 2px 10px; border-radius: 10px; font-size: 0.73rem; font-weight: 600; font-family: var(--heading); text-transform: uppercase; letter-spacing: 0.05em; }
+    .status-planned { background: rgba(232,168,76,0.15); color: #e8a84c; border: 1px solid #e8a84c; }
+    .status-confirmed { background: rgba(76,175,80,0.15); color: #66bb6a; border: 1px solid #66bb6a; }
+    .status-completed { background: rgba(33,150,243,0.15); color: #42a5f5; border: 1px solid #42a5f5; }
+    .status-cancelled { background: rgba(244,67,54,0.15); color: #e57373; border: 1px solid #e57373; opacity: 0.7; }
+
+    .empty-state { color: var(--text-muted); font-size: 0.9rem; padding: 24px; text-align: center; }
+
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 100; justify-content: center; align-items: center; }
+    .modal-overlay.active { display: flex; }
+    .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; max-width: 500px; width: 90%; max-height: 85vh; overflow-y: auto; padding: 24px; }
+    .modal h2 { font-family: var(--heading); color: var(--accent); margin: 0 0 16px; display: flex; justify-content: space-between; align-items: center; font-size: 1.1rem; }
+    .modal-close { background: none; border: none; color: var(--text-muted); font-size: 1.4rem; cursor: pointer; }
+    .modal-close:hover { color: var(--text); }
+    .modal-body { display: flex; flex-direction: column; gap: 10px; }
+    .modal-body label { font-size: 0.8rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 2px; }
+    .modal-body input, .modal-body select, .modal-body textarea { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-family: var(--body); font-size: 0.85rem; padding: 7px 10px; box-sizing: border-box; }
+    .modal-body input:focus, .modal-body select:focus, .modal-body textarea:focus { border-color: var(--accent); outline: none; }
+    .modal-body textarea { min-height: 70px; resize: vertical; }
+    .modal-actions { display: flex; gap: 8px; margin-top: 8px; }
+    .btn-primary { padding: 0.45rem 1rem; background: var(--accent); border: none; border-radius: 6px; color: var(--bg); font-family: var(--heading); font-size: 0.85rem; font-weight: 600; cursor: pointer; }
+    .btn-primary:hover { opacity: 0.9; }
+    .btn-secondary { padding: 0.45rem 1rem; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-family: var(--heading); font-size: 0.85rem; cursor: pointer; }
+    .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+
+    @media (max-width: 480px) {
+      #events-wrap { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+<nav class="sidebar">
+  <div class="sidebar-brand">JamHouse <span>Admin 2026</span></div>
+  <div class="sidebar-nav">
+    <a class="nav-item" href="/admin/applications" data-access="admin">
+      <span class="icon">&#9993;</span>
+      <span class="nav-item-text">Applications</span>
+    </a>
+    <a class="nav-item" href="/admin/demographics" data-access="general">
+      <span class="icon">&#9776;</span>
+      <span class="nav-item-text">Approved Members</span>
+    </a>
+    <a class="nav-item" href="/admin/budget" data-access="general">
+      <span class="icon">&#9733;</span>
+      <span class="nav-item-text">Budget</span>
+    </a>
+    <a class="nav-item" href="/admin/shifts" data-access="general">
+      <span class="icon">&#9835;</span>
+      <span class="nav-item-text">Shifts</span>
+    </a>
+    <a class="nav-item" href="/admin/inventory" data-access="general">
+      <span class="icon">&#128722;</span>
+      <span class="nav-item-text">Inventory</span>
+    </a>
+    <a class="nav-item" href="/admin/logistics" data-access="general">
+      <span class="icon">&#9992;</span>
+      <span class="nav-item-text">Logistics</span>
+    </a>
+    <a class="nav-item" href="/admin/meals" data-access="general">
+      <span class="icon">&#127859;</span>
+      <span class="nav-item-text">Meals</span>
+    </a>
+    <a class="nav-item" href="/admin/drinks" data-access="general">
+      <span class="icon">&#127866;</span>
+      <span class="nav-item-text">Drinks & Snacks</span>
+    </a>
+    <a class="nav-item active" href="/admin/events" data-access="general">
+      <span class="icon">&#127926;</span>
+      <span class="nav-item-text">Events</span>
+    </a>
+    <a class="nav-item" href="/admin/roles" data-access="general">
+      <span class="icon">&#128101;</span>
+      <span class="nav-item-text">Roles & Leads</span>
+    </a>
+  </div>
+  <div class="sidebar-footer">
+    <a href="/">&#8592; Back to Site</a>
+    <a href="#" onclick="sessionStorage.clear();window.location.href='/admin';return false;">Logout</a>
+  </div>
+</nav>
+
+<div class="main">
+  <div class="page-header">
+    <h1><span class="icon" style="color:var(--accent)">&#127926;</span> Event Planning</h1>
+    <div class="subtitle">Plan and coordinate barrio events</div>
+  </div>
+
+  <div class="events-toolbar">
+    <div class="filter-btns">
+      <button class="filter-btn active" data-filter="all">All</button>
+      <button class="filter-btn" data-filter="planned">Planned</button>
+      <button class="filter-btn" data-filter="confirmed">Confirmed</button>
+      <button class="filter-btn" data-filter="completed">Completed</button>
+    </div>
+    <button class="add-event-btn" id="add-event-btn" style="display:none">+ Add Event</button>
+  </div>
+
+  <div id="events-wrap">
+    <div class="empty-state">Loading events...</div>
+  </div>
+</div>
+
+<!-- Add / Edit Event Modal -->
+<div class="modal-overlay" id="event-modal">
+  <div class="modal">
+    <h2 id="event-modal-title">Add Event <button class="modal-close" data-close="event-modal">&times;</button></h2>
+    <div class="modal-body">
+      <input id="event-id" type="hidden">
+      <div>
+        <label>Name</label>
+        <input id="event-name" placeholder="Event name">
+      </div>
+      <div>
+        <label>Date</label>
+        <input id="event-date" type="date">
+      </div>
+      <div>
+        <label>Time</label>
+        <input id="event-time" type="time">
+      </div>
+      <div>
+        <label>Description</label>
+        <textarea id="event-description" placeholder="What's this event about?"></textarea>
+      </div>
+      <div>
+        <label>Responsible</label>
+        <input id="event-responsible" placeholder="Who's running this?">
+      </div>
+      <div>
+        <label>Status</label>
+        <select id="event-status">
+          <option value="planned">Planned</option>
+          <option value="confirmed">Confirmed</option>
+          <option value="completed">Completed</option>
+          <option value="cancelled">Cancelled</option>
+        </select>
+      </div>
+      <div>
+        <label>Notes</label>
+        <textarea id="event-notes" placeholder="Any additional notes"></textarea>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button id="event-save-btn" class="btn-primary">Save Event</button>
+      <button class="btn-secondary" data-close="event-modal">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script src="/assets/js/admin-auth.js"></script>
+<script src="/assets/js/admin-events.js"></script>
+</body>
+</html>

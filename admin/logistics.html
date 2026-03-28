@@ -54,6 +54,11 @@ access: general
     .modal-body select:focus { border-color: var(--accent); outline: none; }
     .modal-actions { display: flex; gap: 8px; margin-top: 16px; }
     .empty-state { color: var(--text-muted); font-size: 0.9rem; padding: 24px; text-align: center; }
+    .transport-row { display: none; }
+    .transport-row.visible { display: flex; }
+    .pickup-row { display: none; }
+    .pickup-row.visible { display: flex; }
+    .form-hint { font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; font-style: italic; }
   </style>
 </head>
 <body>
@@ -87,6 +92,18 @@ access: general
     <a class="nav-item" href="/admin/meals" data-access="general">
       <span class="icon">&#127859;</span>
       <span class="nav-item-text">Meals</span>
+    </a>
+    <a class="nav-item" href="/admin/drinks" data-access="general">
+      <span class="icon">&#127866;</span>
+      <span class="nav-item-text">Drinks & Snacks</span>
+    </a>
+    <a class="nav-item" href="/admin/events" data-access="general">
+      <span class="icon">&#127926;</span>
+      <span class="nav-item-text">Events</span>
+    </a>
+    <a class="nav-item" href="/admin/roles" data-access="general">
+      <span class="icon">&#128101;</span>
+      <span class="nav-item-text">Roles & Leads</span>
     </a>
   </div>
   <div class="sidebar-footer">

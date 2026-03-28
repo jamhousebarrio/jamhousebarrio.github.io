@@ -14,7 +14,9 @@ access: general
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/assets/css/admin.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
   <style>
+    .headcount-tooltip-row { display: flex; justify-content: space-between; gap: 12px; }
     .date-filter { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
     .date-btn { padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border); background: var(--surface); color: var(--text-muted); font-family: var(--heading); font-size: 0.8rem; cursor: pointer; transition: all 0.15s; }
     .date-btn:hover { border-color: var(--accent); color: var(--accent); }
@@ -70,8 +72,15 @@ access: general
     .modal-body input:focus, .modal-body select:focus, .modal-body textarea:focus { border-color: var(--accent); outline: none; }
     .modal-body textarea { min-height: 70px; resize: vertical; }
     .modal-actions { display: flex; gap: 8px; margin-top: 8px; }
+    .shopping-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    .shopping-table th { font-family: var(--heading); text-align: left; padding: 8px 10px; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); border-bottom: 1px solid var(--border); font-weight: 600; }
+    .shopping-table td { padding: 7px 10px; border-bottom: 1px solid var(--border); }
+    .shopping-table tr:hover td { background: rgba(255,255,255,0.02); }
+    .shopping-table .unit-col { color: var(--text-muted); }
+    .shopping-table .total-col { font-weight: 600; color: var(--accent); }
+    .shopping-cat-header td { font-family: var(--heading); font-weight: 700; color: var(--text); font-size: 0.82rem; padding-top: 14px; background: none !important; border-bottom: 2px solid var(--border); }
     @media (max-width: 480px) {
-      .ingredients-table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+      .ingredients-table, .shopping-table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
       .meal-card { padding: 12px; }
       .meal-card-header { flex-direction: column; gap: 8px; }
       .meal-card-actions { align-self: flex-start; }
@@ -110,6 +119,18 @@ access: general
       <span class="icon">&#127859;</span>
       <span class="nav-item-text">Meals</span>
     </a>
+    <a class="nav-item" href="/admin/drinks" data-access="general">
+      <span class="icon">&#127866;</span>
+      <span class="nav-item-text">Drinks & Snacks</span>
+    </a>
+    <a class="nav-item" href="/admin/events" data-access="general">
+      <span class="icon">&#127926;</span>
+      <span class="nav-item-text">Events</span>
+    </a>
+    <a class="nav-item" href="/admin/roles" data-access="general">
+      <span class="icon">&#128101;</span>
+      <span class="nav-item-text">Roles & Leads</span>
+    </a>
   </div>
   <div class="sidebar-footer">
     <a href="/">&#8592; Back to Site</a>
@@ -129,7 +150,20 @@ access: general
 
   <div class="date-filter" id="date-filter"></div>
 
+  <div class="panel" style="margin-bottom:20px;padding:16px">
+    <div style="height:180px"><canvas id="headcount-chart"></canvas></div>
+  </div>
+
   <div id="meals-wrap"><div class="empty-state">Loading meals...</div></div>
+
+  <div class="panel" id="shopping-list-panel" style="margin-top:24px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <h2 style="font-family:var(--heading);color:var(--accent);margin:0;font-size:1rem">Shopping List</h2>
+      <button id="copy-shopping-list" class="btn-secondary btn-sm">Copy to clipboard</button>
+    </div>
+    <p style="color:var(--text-muted);font-size:0.82rem;margin:0 0 12px">All ingredients totalled across meals, scaled by daily headcount.</p>
+    <div id="shopping-list-content"><div class="empty-state">Loading...</div></div>
+  </div>
 </div>
 
 <!-- Add/Edit Meal Modal -->
@@ -137,10 +171,6 @@ access: general
   <div class="modal">
     <h2 id="meal-modal-title">Add Meal <button class="modal-close" data-close="meal-modal">&times;</button></h2>
     <div class="modal-body">
-      <div>
-        <label>Meal ID (slug, e.g. 2026-07-01-dinner)</label>
-        <input id="meal-id" placeholder="2026-07-01-dinner">
-      </div>
       <div>
         <label>Name</label>
         <input id="meal-name" placeholder="Meal name">
