@@ -193,7 +193,7 @@
         var display = '<span style="color:#555;">—</span>';
         if (v) {
           var d = new Date(v);
-          display = isNaN(d.getTime()) ? escaped : d.toLocaleString();
+          display = isNaN(d.getTime()) ? escaped : d.toLocaleString('en-GB', { hour12: false });
         }
         return '<div class="detail-row"><div class="detail-label">Submitted</div><div class="detail-value">' + display + '</div></div>';
       }

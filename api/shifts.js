@@ -56,8 +56,17 @@ export default async function handler(req, res) {
       if (!shiftId || !name || !date) return res.status(400).json({ error: 'shiftId, name, date required' });
       const existing = await getRows(sheets, spreadsheetId);
       if (!existing.length) {
-        await sheets.spreadsheets.values.append({
-          spreadsheetId, range: 'ShiftData', valueInputOption: 'RAW',
+        // Tab may not exist — create it first
+        try {
+          await sheets.spreadsheets.batchUpdate({
+            spreadsheetId,
+            requestBody: { requests: [{ addSheet: { properties: { title: 'ShiftData' } } }] },
+          });
+        } catch (e) {
+          // Tab already exists, ignore
+        }
+        await sheets.spreadsheets.values.update({
+          spreadsheetId, range: 'ShiftData!A1', valueInputOption: 'RAW',
           requestBody: { values: [
             ['ShiftID', 'Name', 'Date', 'StartTime', 'EndTime', 'AssignedTo'],
             [shiftId, name, date, startTime || '', endTime || '', ''],
