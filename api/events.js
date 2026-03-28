@@ -99,7 +99,7 @@ export default async function handler(req, res) {
 
   const spreadsheetId = process.env.SHEET_ID;
   const TAB = 'Events';
-  const HEADERS = ['Name', 'Date', 'Time', 'Description', 'Responsible', 'Status', 'Notes'];
+  const HEADERS = ['Name', 'Date', 'Time', 'EndTime', 'Description', 'Responsible', 'Status', 'Notes'];
 
   try {
     // ── Fetch (default) ───────────────────────────────────────────────────
@@ -118,10 +118,10 @@ export default async function handler(req, res) {
 
     switch (action) {
       case 'upsert': {
-        const { name, date, time, description, responsible, status, notes } = payload;
+        const { name, date, time, endTime, description, responsible, status, notes } = payload;
         if (!name) return res.status(400).json({ error: 'name required' });
         await upsertRow(sheets, spreadsheetId, TAB, 'Name', name, HEADERS,
-          [name, date || '', time || '', description || '', responsible || '', status || '', notes || '']);
+          [name, date || '', time || '', endTime || '', description || '', responsible || '', status || '', notes || '']);
         break;
       }
       case 'delete': {

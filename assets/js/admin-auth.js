@@ -24,14 +24,20 @@ JH.initDate = function(el, opts) {
     setTimeout(function() { JH.initDate(el, opts); }, 100);
     return;
   }
-  return flatpickr(el, Object.assign({
+  // Default to July 1, 2026 when opening calendar if field is empty
+  var defaults = {
     dateFormat: 'Y-m-d',
     altInput: true,
     altFormat: 'd/m/Y',
     allowInput: true,
     static: true,
-    appendTo: el.closest('.modal') || undefined
-  }, opts || {}));
+    appendTo: el.closest('.modal') || undefined,
+    defaultDate: el.value || undefined,
+    onReady: function(selectedDates, dateStr, instance) {
+      if (!dateStr) instance.jumpToDate('2026-07-01');
+    }
+  };
+  return flatpickr(el, Object.assign(defaults, opts || {}));
 };
 
 JH.initTime = function(el, opts) {
