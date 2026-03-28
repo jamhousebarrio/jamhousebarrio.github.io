@@ -139,6 +139,21 @@
   };
   PaidRenderer.prototype.getGui = function() { return this.eGui; };
 
+  function DiscussRenderer() {}
+  DiscussRenderer.prototype.init = function(params) {
+    this.eGui = document.createElement('input');
+    this.eGui.type = 'checkbox';
+    this.eGui.checked = params.value === true || params.value === 'TRUE' || params.value === 'true';
+    this.eGui.style.accentColor = '#ff9800';
+    this.eGui.addEventListener('change', function() {
+      var item = items.find(function(it) { return it._row === params.data._row; });
+      if (item) item.Discuss = this.checked ? 'TRUE' : 'FALSE';
+      saveBudgetField(params.data._row, 'Discuss', this.checked);
+      gridApi.refreshCells({ force: true });
+    });
+  };
+  DiscussRenderer.prototype.getGui = function() { return this.eGui; };
+
   function TotalRenderer() {}
   TotalRenderer.prototype.init = function(params) {
     var qty = parseFloat(params.data.Qty) || 0;
@@ -191,6 +206,7 @@
     { headerName: 'Total', field: '_total', cellRenderer: TotalRenderer, width: 120, suppressSizeToFit: true, sortable: true,
       valueGetter: function(p) { return (parseFloat(p.data.Qty) || 0) * (parseFloat(p.data.Price) || 0); } },
     { field: 'Paid', cellRenderer: PaidRenderer, width: 80, suppressSizeToFit: true, sortable: true },
+    { field: 'Discuss', cellRenderer: DiscussRenderer, width: 80, suppressSizeToFit: true, sortable: true, filter: true },
     { field: 'Paid by', sortable: true, filter: true, editable: isAdmin, width: 120, suppressSizeToFit: true },
     { field: 'Link', sortable: true, editable: isAdmin, width: 80, suppressSizeToFit: true,
       cellRenderer: function(params) {
@@ -217,6 +233,10 @@
     paginationPageSize: 50,
     suppressCellFocus: !isAdmin,
     singleClickEdit: true,
+    getRowClass: function(params) {
+      var d = params.data.Discuss;
+      return (d === true || d === 'TRUE' || d === 'true') ? 'row-discuss' : '';
+    },
     onCellValueChanged: function(event) {
       if (!isAdmin) return;
       var field = event.colDef.field;
@@ -285,6 +305,23 @@
       });
     } else {
       gridApi.setColumnFilterModel('Category', null).then(function() {
+        gridApi.onFilterChanged();
+      });
+    }
+  });
+
+  // Discuss filter
+  document.getElementById('discussCheck').addEventListener('change', function() {
+    var checked = this.checked;
+    var label = document.getElementById('discussFilter');
+    label.style.borderColor = checked ? '#ff9800' : '';
+    label.style.color = checked ? '#ff9800' : '';
+    if (checked) {
+      gridApi.setColumnFilterModel('Discuss', { type: 'equals', filter: 'TRUE' }).then(function() {
+        gridApi.onFilterChanged();
+      });
+    } else {
+      gridApi.setColumnFilterModel('Discuss', null).then(function() {
         gridApi.onFilterChanged();
       });
     }
@@ -385,6 +422,7 @@
     var price = parseFloat(d.Price) || 0;
     var total = qty * price;
     var paid = d.Paid === true || d.Paid === 'TRUE' || d.Paid === 'true';
+    var discuss = d.Discuss === true || d.Discuss === 'TRUE' || d.Discuss === 'true';
     detailTitle.textContent = d.Item || '';
     var inputStyle = 'background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:0.85rem;padding:4px 6px;';
     var catOpts = categories.map(function(c) {
@@ -397,6 +435,7 @@
       '<div class="budget-detail-row"><span class="label">Price</span><span class="value">' + (isAdmin ? '<input data-field="Price" type="number" step="0.01" value="' + (parseFloat(d.Price) || 0) + '" style="' + inputStyle + 'width:100px;">' : eur(parseFloat(d.Price) || 0)) + '</span></div>' +
       '<div class="budget-detail-row"><span class="label">Total</span><span class="value" style="font-weight:600;color:var(--accent);">' + eur(total) + '</span></div>' +
       '<div class="budget-detail-row"><span class="label">Paid</span><span class="value"><input data-field="Paid" type="checkbox"' + (paid ? ' checked' : '') + (isAdmin ? '' : ' disabled') + ' style="accent-color:var(--accent);width:18px;height:18px;"></span></div>' +
+      '<div class="budget-detail-row"><span class="label">Discuss</span><span class="value"><input data-field="Discuss" type="checkbox"' + (discuss ? ' checked' : '') + ' style="accent-color:#ff9800;width:18px;height:18px;"></span></div>' +
       '<div class="budget-detail-row"><span class="label">Paid by</span><span class="value">' + (isAdmin ? '<input data-field="Paid by" value="' + esc(d['Paid by'] || '') + '" style="' + inputStyle + 'width:100%;box-sizing:border-box;">' : esc(d['Paid by'] || '')) + '</span></div>' +
       '<div class="budget-detail-row"><span class="label">Link</span><span class="value">' + (isAdmin ? '<input data-field="Link" value="' + esc(d.Link || '') + '" style="' + inputStyle + 'width:100%;box-sizing:border-box;">' : (d.Link ? '<a href="' + esc(d.Link) + '" target="_blank" style="color:var(--accent);text-decoration:none;">Link ↗</a>' : '')) + '</span></div>' +
       '<div class="budget-detail-row"><span class="label">Comment</span><span class="value">' + (isAdmin ? '<textarea data-field="Comment" style="' + inputStyle + 'width:100%;box-sizing:border-box;min-height:50px;resize:vertical;">' + esc(d.Comment || '') + '</textarea>' : esc(d.Comment || '')) + '</span></div>' +
