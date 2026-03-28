@@ -106,6 +106,17 @@ JH.mobilePhoneColumn = function(col) {
 
 JH.esc = function(s) { return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); };
 
+JH.to24h = function(t) {
+  if (!t) return '';
+  var m = t.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+  if (!m) return t;
+  var h = parseInt(m[1], 10);
+  var ampm = m[3].toUpperCase();
+  if (ampm === 'AM' && h === 12) h = 0;
+  else if (ampm === 'PM' && h !== 12) h += 12;
+  return (h < 10 ? '0' : '') + h + ':' + m[2];
+};
+
 JH.formatDate = function(dateStr) {
   if (!dateStr) return '';
   var parts = dateStr.split('-');
