@@ -21,6 +21,17 @@
     return d.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
   }
 
+  function to24h(t) {
+    if (!t) return '';
+    var m = t.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+    if (!m) return t;
+    var h = parseInt(m[1], 10);
+    var ampm = m[3].toUpperCase();
+    if (ampm === 'AM' && h === 12) h = 0;
+    else if (ampm === 'PM' && h !== 12) h += 12;
+    return (h < 10 ? '0' : '') + h + ':' + m[2];
+  }
+
   async function fetchShifts() {
     var r = await fetch('/api/shifts', {
       method: 'POST',
@@ -48,8 +59,8 @@
       + '</tr></thead><tbody>';
 
     shifts.forEach(function (s) {
-      var time = s.StartTime && s.EndTime ? s.StartTime + ' \u2013 ' + s.EndTime
-               : s.StartTime ? s.StartTime : '';
+      var time = s.StartTime && s.EndTime ? to24h(s.StartTime) + ' \u2013 ' + to24h(s.EndTime)
+               : s.StartTime ? to24h(s.StartTime) : '';
       var assignedHtml = s.AssignedTo
         ? '<span class="assigned-chip">' + esc(s.AssignedTo) + '</span>'
         : '<span class="open-badge">Open</span>';
