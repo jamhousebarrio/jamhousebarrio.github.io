@@ -133,6 +133,11 @@
       var item = items.find(function(it) { return it._row === params.data._row; });
       if (item) item.Paid = self.eGui.checked ? 'TRUE' : 'FALSE';
       saveBudgetField(params.data._row, 'Paid', self.eGui.checked);
+      if (self.eGui.checked && item && !item['Paid by']) {
+        item['Paid by'] = 'Barrio';
+        saveBudgetField(params.data._row, 'Paid by', 'Barrio');
+        gridApi.refreshCells({ force: true });
+      }
       updateStats();
       updateCharts();
     });
@@ -458,6 +463,10 @@
           saveBudgetField(d._row, field, val);
         }
       });
+      if (item.Paid === 'TRUE' && !item['Paid by']) {
+        item['Paid by'] = 'Barrio';
+        saveBudgetField(d._row, 'Paid by', 'Barrio');
+      }
       gridApi.setGridOption('rowData', items);
       updateStats();
       updateCharts();
