@@ -153,11 +153,12 @@ access: general
       </div>
       <div>
         <label>Date</label>
-        <input id="event-date" type="date">
+        <input id="event-date" type="text" placeholder="dd/mm/yyyy">
       </div>
       <div>
         <label>Time</label>
-        <input id="event-time" type="time">
+        <input id="event-time" type="text" placeholder="HH:MM">
+        <script>document.addEventListener('DOMContentLoaded', function() { JH.initDate(document.getElementById('event-date')); JH.initTime(document.getElementById('event-time')); });</script>
       </div>
       <div>
         <label>Description</label>
