@@ -23,21 +23,25 @@ access: general
     .add-event-btn { margin-left: auto; padding: 0.45rem 1rem; background: var(--accent); border: none; border-radius: 6px; color: var(--bg); font-family: var(--heading); font-size: 0.85rem; font-weight: 600; cursor: pointer; }
     .add-event-btn:hover { opacity: 0.9; }
 
-    #events-wrap { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
-
-    .event-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 18px; display: flex; flex-direction: column; gap: 8px; transition: border-color 0.15s; }
-    .event-card:hover { border-color: var(--accent); }
-    .event-card-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
-    .event-card-title { font-family: var(--heading); font-size: 1rem; font-weight: 700; color: var(--text); margin: 0; }
-    .event-card-datetime { font-size: 0.8rem; color: var(--text-muted); font-family: var(--heading); }
-    .event-card-desc { font-size: 0.85rem; color: var(--text-muted); line-height: 1.4; }
-    .event-card-responsible { font-size: 0.8rem; color: var(--accent); font-weight: 600; }
-    .event-card-notes { font-size: 0.8rem; color: var(--text-muted); font-style: italic; }
-    .event-card-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 4px; }
-    .event-card-actions { display: flex; gap: 4px; }
-    .btn-icon { background: none; border: none; color: var(--text-muted); font-size: 0.78rem; cursor: pointer; padding: 2px 6px; border-radius: 4px; }
-    .btn-icon:hover { color: var(--accent); background: rgba(232,168,76,0.08); }
-    .btn-icon.danger:hover { color: #f44336; background: rgba(244,67,54,0.08); }
+    .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+    .cal-header { font-family: var(--heading); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); text-align: center; padding: 8px 4px; font-weight: 600; }
+    .cal-day { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; min-height: 110px; padding: 6px 8px; display: flex; flex-direction: column; }
+    .cal-day.empty { background: transparent; border-color: transparent; min-height: 0; }
+    .cal-day-num { font-family: var(--heading); font-size: 0.82rem; font-weight: 700; color: var(--text-muted); margin-bottom: 4px; }
+    .cal-day.has-events .cal-day-num { color: var(--accent); }
+    .cal-event { background: rgba(232,168,76,0.1); border-left: 3px solid var(--accent); border-radius: 0 4px 4px 0; padding: 3px 6px; margin-bottom: 3px; font-size: 0.73rem; cursor: pointer; transition: background 0.1s; }
+    .cal-event:hover { background: rgba(232,168,76,0.2); }
+    .cal-event-name { font-weight: 600; color: var(--text); }
+    .cal-event-time { color: var(--text-muted); font-size: 0.68rem; }
+    .cal-event-lead { color: var(--accent); font-size: 0.68rem; }
+    .cal-event.status-confirmed { border-left-color: #66bb6a; background: rgba(76,175,80,0.08); }
+    .cal-event.status-completed { border-left-color: #42a5f5; background: rgba(33,150,243,0.08); }
+    .cal-event.status-cancelled { border-left-color: #e57373; background: rgba(244,67,54,0.08); opacity: 0.6; }
+    .cal-nav { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+    .cal-nav-btn { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; color: var(--text); padding: 6px 12px; font-family: var(--heading); font-size: 0.85rem; cursor: pointer; }
+    .cal-nav-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .cal-month-label { font-family: var(--heading); font-size: 1rem; font-weight: 700; color: var(--text); }
+    @media (max-width: 680px) { .cal-grid { grid-template-columns: repeat(7, 1fr); } .cal-day { min-height: 80px; padding: 4px; } .cal-event { font-size: 0.68rem; } }
 
     .status-badge { display: inline-block; padding: 2px 10px; border-radius: 10px; font-size: 0.73rem; font-weight: 600; font-family: var(--heading); text-transform: uppercase; letter-spacing: 0.05em; }
     .status-planned { background: rgba(232,168,76,0.15); color: #e8a84c; border: 1px solid #e8a84c; }
@@ -65,7 +69,7 @@ access: general
     .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
 
     @media (max-width: 480px) {
-      #events-wrap { grid-template-columns: 1fr; }
+      .cal-day { min-height: 70px; }
     }
   </style>
 </head>
@@ -159,10 +163,15 @@ access: general
         <label>Date</label>
         <input id="event-date" type="text" placeholder="dd/mm/yyyy">
       </div>
-      <div>
-        <label>Time</label>
-        <input id="event-time" type="text" placeholder="HH:MM">
-        <script>document.addEventListener('DOMContentLoaded', function() { JH.initDate(document.getElementById('event-date')); JH.initTime(document.getElementById('event-time')); });</script>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div>
+          <label>Start Time</label>
+          <input id="event-time" type="text" placeholder="HH:MM">
+        </div>
+        <div>
+          <label>End Time</label>
+          <input id="event-end-time" type="text" placeholder="HH:MM">
+        </div>
       </div>
       <div>
         <label>Description</label>

@@ -6,6 +6,8 @@
   var pass = sessionStorage.getItem('jh_pass');
   var state = { events: [] };
   var activeFilter = 'all';
+  var viewYear = 2026;
+  var viewMonth = 6; // July (0-indexed)
 
   function esc(str) {
     return (str || '').toString()
@@ -13,29 +15,12 @@
       .replace(/"/g, '&quot;');
   }
 
-  function formatDate(dateStr) {
-    return JH.formatDateLong(dateStr);
-  }
-
   function statusClass(status) {
     var s = (status || '').toLowerCase();
-    if (s === 'planned') return 'status-planned';
     if (s === 'confirmed') return 'status-confirmed';
     if (s === 'completed') return 'status-completed';
     if (s === 'cancelled') return 'status-cancelled';
-    return 'status-planned';
-  }
-
-  function sortEvents(events) {
-    return events.slice().sort(function (a, b) {
-      var da = a.Date || '';
-      var db = b.Date || '';
-      if (da !== db) return da < db ? -1 : 1;
-      var ta = a.Time || '';
-      var tb = b.Time || '';
-      if (ta !== tb) return ta < tb ? -1 : 1;
-      return (a.Name || '').toLowerCase() < (b.Name || '').toLowerCase() ? -1 : 1;
-    });
+    return '';
   }
 
   // ── Data fetching ─────────────────────────────────────────────────────────
@@ -58,121 +43,99 @@
       document.querySelectorAll('.filter-btn').forEach(function (b) { b.classList.remove('active'); });
       btn.classList.add('active');
       activeFilter = btn.dataset.filter;
-      renderEvents();
+      renderCalendar();
     });
   });
 
-  // ── Render event cards ────────────────────────────────────────────────────
+  // ── Calendar rendering ────────────────────────────────────────────────────
 
-  function renderEvents() {
+  function getFilteredEvents() {
+    if (activeFilter === 'all') return state.events;
+    return state.events.filter(function (ev) {
+      return (ev.Status || '').toLowerCase() === activeFilter;
+    });
+  }
+
+  function renderCalendar() {
     var wrap = document.getElementById('events-wrap');
+    var filtered = getFilteredEvents();
+    var dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    var monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
-    var filtered;
-    if (activeFilter === 'all') {
-      filtered = state.events;
-    } else {
-      filtered = state.events.filter(function (ev) {
-        return (ev.Status || '').toLowerCase() === activeFilter;
-      });
-    }
+    // Month nav
+    var html = '<div class="cal-nav">';
+    html += '<button class="cal-nav-btn" id="cal-prev">&lsaquo;</button>';
+    html += '<span class="cal-month-label">' + monthNames[viewMonth] + ' ' + viewYear + '</span>';
+    html += '<button class="cal-nav-btn" id="cal-next">&rsaquo;</button>';
+    html += '</div>';
 
-    var sorted = sortEvents(filtered);
-
-    if (!sorted.length) {
-      wrap.innerHTML = '<div class="empty-state">' +
-        (state.events.length ? 'No events match this filter.' : 'No events yet.' +
-        (isAdmin ? ' Use "+ Add Event" to get started.' : ' Check back later.')) +
-        '</div>';
-      return;
-    }
-
-    // Group by date
-    var groups = [];
-    var currentDate = null;
-    sorted.forEach(function (ev) {
-      var d = ev.Date || 'TBD';
-      if (d !== currentDate) {
-        groups.push({ date: d, events: [] });
-        currentDate = d;
-      }
-      groups[groups.length - 1].events.push(ev);
+    // Day headers
+    html += '<div class="cal-grid">';
+    dayNames.forEach(function (d) {
+      html += '<div class="cal-header">' + d + '</div>';
     });
 
-    var html = '';
-    groups.forEach(function (group) {
-      var dateLabel = group.date === 'TBD' ? 'Date TBD' : formatDate(group.date);
-      html += '<div class="event-date-group">';
-      html += '<h3 class="event-date-heading">' + esc(dateLabel) + '</h3>';
+    // First day of month (0=Sun, adjust to Mon=0)
+    var firstDay = new Date(viewYear, viewMonth, 1).getDay();
+    var startOffset = (firstDay === 0) ? 6 : firstDay - 1; // Monday-based
+    var daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
 
-      group.events.forEach(function (ev) {
+    // Empty cells before first day
+    for (var e = 0; e < startOffset; e++) {
+      html += '<div class="cal-day empty"></div>';
+    }
+
+    // Day cells
+    for (var day = 1; day <= daysInMonth; day++) {
+      var dateStr = viewYear + '-' + String(viewMonth + 1).padStart(2, '0') + '-' + String(day).padStart(2, '0');
+      var dayEvents = filtered.filter(function (ev) { return ev.Date === dateStr; });
+      var hasEvents = dayEvents.length > 0;
+
+      html += '<div class="cal-day' + (hasEvents ? ' has-events' : '') + '">';
+      html += '<div class="cal-day-num">' + day + '</div>';
+
+      dayEvents.forEach(function (ev) {
         var sClass = statusClass(ev.Status);
-
-        html += '<div class="event-card">';
-        html += '<div class="event-card-header">';
-        html += '<h3 class="event-card-title">' + esc(ev.Name) + '</h3>';
-        html += '<span class="event-status-badge ' + sClass + '">' + esc(ev.Status || 'Planned') + '</span>';
-        html += '</div>';
-
-        var dateTime = '';
-        if (ev.Date) dateTime += formatDate(ev.Date);
-        if (ev.Time) dateTime += (dateTime ? ' at ' : '') + JH.to24h(ev.Time);
-        if (dateTime) {
-          html += '<div class="event-datetime">' + dateTime + '</div>';
+        var timeStr = '';
+        if (ev.Time) {
+          timeStr = JH.to24h(ev.Time);
+          if (ev.EndTime) timeStr += ' - ' + JH.to24h(ev.EndTime);
         }
 
-        if (ev.Description) {
-          html += '<p class="event-description">' + esc(ev.Description) + '</p>';
-        }
-
-        if (ev.Responsible) {
-          html += '<div class="event-responsible"><strong>Lead:</strong> ' + esc(ev.Responsible) + '</div>';
-        }
-
-        if (ev.Notes) {
-          html += '<p class="event-notes">' + esc(ev.Notes) + '</p>';
-        }
-
-        if (isAdmin) {
-          html += '<div class="event-actions">' +
-            '<button class="btn-secondary btn-sm edit-event-btn" data-name="' + esc(ev.Name) + '">Edit</button>' +
-            '<button class="btn-danger btn-sm delete-event-btn" data-name="' + esc(ev.Name) + '">Delete</button>' +
-            '</div>';
-        }
-
+        html += '<div class="cal-event ' + sClass + '" data-name="' + esc(ev.Name) + '">';
+        html += '<div class="cal-event-name">' + esc(ev.Name) + '</div>';
+        if (timeStr) html += '<div class="cal-event-time">' + esc(timeStr) + '</div>';
+        if (ev.Responsible) html += '<div class="cal-event-lead">' + esc(ev.Responsible) + '</div>';
         html += '</div>';
       });
 
       html += '</div>';
-    });
+    }
 
+    html += '</div>';
     wrap.innerHTML = html;
-    bindCardEvents();
-  }
 
-  function bindCardEvents() {
-    if (!isAdmin) return;
-
-    document.querySelectorAll('.edit-event-btn').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        var ev = state.events.find(function (e) { return e.Name === btn.dataset.name; });
-        if (ev) openModal(ev);
-      });
+    // Bind nav
+    document.getElementById('cal-prev').addEventListener('click', function () {
+      viewMonth--;
+      if (viewMonth < 0) { viewMonth = 11; viewYear--; }
+      renderCalendar();
+    });
+    document.getElementById('cal-next').addEventListener('click', function () {
+      viewMonth++;
+      if (viewMonth > 11) { viewMonth = 0; viewYear++; }
+      renderCalendar();
     });
 
-    document.querySelectorAll('.delete-event-btn').forEach(function (btn) {
-      btn.addEventListener('click', async function () {
-        var ev = state.events.find(function (e) { return e.Name === btn.dataset.name; });
-        if (!ev) return;
-        if (!confirm('Delete "' + ev.Name + '"? This cannot be undone.')) return;
-        var r = await fetch('/api/events', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ password: pass, action: 'delete', name: ev.Name }),
+    // Bind event clicks
+    if (isAdmin) {
+      document.querySelectorAll('.cal-event').forEach(function (el) {
+        el.addEventListener('click', function () {
+          var ev = state.events.find(function (e) { return e.Name === el.dataset.name; });
+          if (ev) openModal(ev);
         });
-        if (!r.ok) { alert('Delete failed.'); return; }
-        await reload();
       });
-    });
+    }
   }
 
   // ── Modal ─────────────────────────────────────────────────────────────────
@@ -189,17 +152,42 @@
     document.getElementById('event-name').value = event ? event.Name : '';
     document.getElementById('event-date').value = event ? event.Date : '';
     document.getElementById('event-time').value = event ? event.Time : '';
+    document.getElementById('event-end-time').value = event ? (event.EndTime || '') : '';
     document.getElementById('event-description').value = event ? event.Description : '';
     document.getElementById('event-responsible').value = event ? event.Responsible : '';
     document.getElementById('event-status').value = event ? event.Status : 'planned';
     document.getElementById('event-notes').value = event ? event.Notes : '';
 
-    // Init Flatpickr on date/time fields
     JH.initDate(document.getElementById('event-date'));
     JH.initTime(document.getElementById('event-time'));
+    JH.initTime(document.getElementById('event-end-time'));
 
     modal.classList.add('active');
     document.getElementById('event-name').focus();
+
+    // Delete button
+    var actionsDiv = document.querySelector('#event-modal .modal-actions');
+    var existingDelete = document.getElementById('event-delete-btn');
+    if (existingDelete) existingDelete.remove();
+    if (event && isAdmin) {
+      var delBtn = document.createElement('button');
+      delBtn.id = 'event-delete-btn';
+      delBtn.className = 'btn-secondary';
+      delBtn.style.cssText = 'color:#f44336;border-color:#f44336;margin-left:auto;';
+      delBtn.textContent = 'Delete';
+      delBtn.addEventListener('click', async function () {
+        if (!confirm('Delete "' + event.Name + '"?')) return;
+        var r = await fetch('/api/events', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password: pass, action: 'delete', name: event.Name }),
+        });
+        if (!r.ok) { alert('Delete failed.'); return; }
+        closeModal();
+        await reload();
+      });
+      actionsDiv.appendChild(delBtn);
+    }
   }
 
   function closeModal() {
@@ -240,6 +228,7 @@
         originalName: editingName,
         date: document.getElementById('event-date').value,
         time: document.getElementById('event-time').value,
+        endTime: document.getElementById('event-end-time').value,
         description: document.getElementById('event-description').value,
         responsible: document.getElementById('event-responsible').value,
         status: document.getElementById('event-status').value,
@@ -259,7 +248,7 @@
 
   async function reload() {
     await fetchData();
-    renderEvents();
+    renderCalendar();
   }
 
   // ── Init ──────────────────────────────────────────────────────────────────
@@ -267,5 +256,4 @@
   if (isAdmin) document.getElementById('add-event-btn').style.display = '';
 
   await reload();
-
 })();
