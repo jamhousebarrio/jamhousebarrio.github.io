@@ -1,0 +1,102 @@
+---
+layout: none
+title: Setup Timeline - JamHouse Admin
+access: general
+---
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Setup Timeline - JamHouse Admin</title>
+  <meta name="access" content="general">
+  <link rel="icon" type="image/svg+xml" href="/images/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/admin.css">
+  <style>
+    .timeline-grid { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .timeline-table { border-collapse: collapse; font-size: 0.78rem; min-width: 100%; }
+    .timeline-table th { position: sticky; top: 0; background: var(--surface); font-family: var(--heading); padding: 6px 8px; text-align: center; border: 1px solid var(--border); font-weight: 600; white-space: nowrap; z-index: 2; }
+    .timeline-table th.date-header { color: var(--accent); font-size: 0.85rem; border-bottom: none; }
+    .timeline-table th.period-header { color: var(--text-muted); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; }
+    .timeline-table td { padding: 4px 6px; border: 1px solid var(--border); min-width: 120px; max-width: 180px; vertical-align: top; white-space: pre-wrap; word-wrap: break-word; }
+    .timeline-table td.name-cell { position: sticky; left: 0; background: var(--surface); font-weight: 600; min-width: 80px; max-width: 120px; z-index: 1; white-space: nowrap; }
+    .timeline-table td.task-cell { cursor: pointer; min-height: 28px; transition: background 0.1s; }
+    .timeline-table td.task-cell:hover { background: rgba(232,168,76,0.08); }
+    .timeline-table td.task-cell.editing { padding: 0; }
+    .timeline-table td.task-cell.editing textarea { width: 100%; min-height: 50px; background: var(--bg); color: var(--text); border: 2px solid var(--accent); font-family: var(--body); font-size: 0.78rem; padding: 4px 6px; resize: vertical; box-sizing: border-box; outline: none; }
+    .timeline-table tr.resource-row td { background: rgba(232,168,76,0.05); font-size: 0.75rem; color: var(--text-muted); }
+    .timeline-table tr.resource-row td.name-cell { font-weight: 700; color: var(--accent); }
+    .empty-state { color: var(--text-muted); font-size: 0.9rem; padding: 24px; text-align: center; }
+    .timeline-legend { font-size: 0.78rem; color: var(--text-muted); margin-bottom: 12px; }
+  </style>
+</head>
+<body>
+<nav class="sidebar">
+  <div class="sidebar-brand">JamHouse <span>Admin 2026</span></div>
+  <div class="sidebar-nav">
+    <a class="nav-item" href="/admin/applications" data-access="admin">
+      <span class="icon">&#9993;</span>
+      <span class="nav-item-text">Applications</span>
+    </a>
+    <a class="nav-item" href="/admin/demographics" data-access="general">
+      <span class="icon">&#9776;</span>
+      <span class="nav-item-text">Approved Members</span>
+    </a>
+    <a class="nav-item" href="/admin/budget" data-access="general">
+      <span class="icon">&#9733;</span>
+      <span class="nav-item-text">Budget</span>
+    </a>
+    <a class="nav-item" href="/admin/shifts" data-access="general">
+      <span class="icon">&#9835;</span>
+      <span class="nav-item-text">Shifts</span>
+    </a>
+    <a class="nav-item" href="/admin/inventory" data-access="general">
+      <span class="icon">&#128722;</span>
+      <span class="nav-item-text">Inventory</span>
+    </a>
+    <a class="nav-item" href="/admin/logistics" data-access="general">
+      <span class="icon">&#9992;</span>
+      <span class="nav-item-text">Logistics</span>
+    </a>
+    <a class="nav-item" href="/admin/meals" data-access="general">
+      <span class="icon">&#127859;</span>
+      <span class="nav-item-text">Meals</span>
+    </a>
+    <a class="nav-item" href="/admin/drinks" data-access="general">
+      <span class="icon">&#127866;</span>
+      <span class="nav-item-text">Drinks & Snacks</span>
+    </a>
+    <a class="nav-item" href="/admin/events" data-access="general">
+      <span class="icon">&#127926;</span>
+      <span class="nav-item-text">Events</span>
+    </a>
+    <a class="nav-item" href="/admin/roles" data-access="general">
+      <span class="icon">&#128101;</span>
+      <span class="nav-item-text">Roles & Leads</span>
+    </a>
+    <a class="nav-item active" href="/admin/timeline" data-access="general">
+      <span class="icon">&#128197;</span>
+      <span class="nav-item-text">Timeline</span>
+    </a>
+  </div>
+  <div class="sidebar-footer">
+    <a href="/">&#8592; Back to Site</a>
+    <a href="#" onclick="sessionStorage.clear();window.location.href='/admin';return false;">Logout</a>
+  </div>
+</nav>
+
+<div class="main">
+  <div class="page-header">
+    <h1><span class="icon" style="color:var(--accent)">&#128197;</span> Setup Timeline</h1>
+    <div class="subtitle">Who does what, when</div>
+  </div>
+
+  <div id="timeline-wrap">Loading timeline...</div>
+</div>
+
+<script src="/assets/js/admin-auth.js"></script>
+<script src="/assets/js/admin-timeline.js"></script>
+</body>
+</html>
