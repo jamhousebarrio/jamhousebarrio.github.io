@@ -53,11 +53,21 @@ async function deleteRowById(sheets, spreadsheetId, tab, idColName, idValue) {
   return true;
 }
 
+async function ensureTab(sheets, spreadsheetId, tab) {
+  try {
+    await sheets.spreadsheets.batchUpdate({
+      spreadsheetId,
+      requestBody: { requests: [{ addSheet: { properties: { title: tab } } }] },
+    });
+  } catch (e) { /* tab already exists */ }
+}
+
 async function upsertRow(sheets, spreadsheetId, tab, idColName, idValue, headers, rowValues) {
   const rows = await getRows(sheets, spreadsheetId, tab);
   if (!rows.length) {
-    await sheets.spreadsheets.values.append({
-      spreadsheetId, range: tab, valueInputOption: 'RAW',
+    await ensureTab(sheets, spreadsheetId, tab);
+    await sheets.spreadsheets.values.update({
+      spreadsheetId, range: tab + '!A1', valueInputOption: 'RAW',
       requestBody: { values: [headers, rowValues] }
     });
     return;
