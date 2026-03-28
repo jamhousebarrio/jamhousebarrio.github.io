@@ -14,7 +14,7 @@ function getSheets(write = false) {
 
 async function getRows(sheets, spreadsheetId) {
   try {
-    const res = await sheets.spreadsheets.values.get({ spreadsheetId, range: 'Shifts' });
+    const res = await sheets.spreadsheets.values.get({ spreadsheetId, range: 'ShiftData' });
     return res.data.values || [];
   } catch (e) { return []; }
 }
@@ -57,7 +57,7 @@ export default async function handler(req, res) {
       const existing = await getRows(sheets, spreadsheetId);
       if (!existing.length) {
         await sheets.spreadsheets.values.append({
-          spreadsheetId, range: 'Shifts', valueInputOption: 'RAW',
+          spreadsheetId, range: 'ShiftData', valueInputOption: 'RAW',
           requestBody: { values: [
             ['ShiftID', 'Name', 'Date', 'StartTime', 'EndTime', 'AssignedTo'],
             [shiftId, name, date, startTime || '', endTime || '', ''],
@@ -65,7 +65,7 @@ export default async function handler(req, res) {
         });
       } else {
         await sheets.spreadsheets.values.append({
-          spreadsheetId, range: 'Shifts', valueInputOption: 'RAW',
+          spreadsheetId, range: 'ShiftData', valueInputOption: 'RAW',
           requestBody: { values: [[shiftId, name, date, startTime || '', endTime || '', '']] },
         });
       }
@@ -120,8 +120,8 @@ export default async function handler(req, res) {
       const rowIdx = rows.findIndex((r, i) => i > 0 && r[idCol] === shiftId);
       if (rowIdx === -1) return res.status(404).json({ error: 'Shift not found' });
       const metaRes = await sheets.spreadsheets.get({ spreadsheetId, fields: 'sheets.properties' });
-      const sheet = metaRes.data.sheets.find(s => s.properties.title === 'Shifts');
-      if (!sheet) return res.status(500).json({ error: 'Shifts tab not found' });
+      const sheet = metaRes.data.sheets.find(s => s.properties.title === 'ShiftData');
+      if (!sheet) return res.status(500).json({ error: 'ShiftData tab not found' });
       await sheets.spreadsheets.batchUpdate({
         spreadsheetId,
         requestBody: { requests: [{ deleteDimension: { range: {
