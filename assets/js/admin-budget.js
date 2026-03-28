@@ -274,6 +274,7 @@
     gridApi.setColumnsVisible(hideFields, false);
     gridApi.setColumnsVisible(['Item', '_total'], true);
     columnDefs.forEach(function(col) { col.editable = false; });
+    gridApi.setGridOption('suppressCellFocus', true);
     var itemCol = columnDefs.find(function(c) { return c.field === 'Item'; });
     if (itemCol) { itemCol.cellRenderer = JH.NameLinkRenderer; itemCol.flex = 2; }
     var totalCol = columnDefs.find(function(c) { return c.field === '_total'; });
