@@ -60,6 +60,11 @@ access: general
     .budget-detail-row:last-child { border-bottom: none; }
     .budget-detail-row .label { color: var(--text-muted); }
     .budget-detail-row .value { color: var(--text); font-weight: 500; text-align: right; max-width: 60%; word-break: break-word; }
+    #mobile-add-btn { display: none; padding: 0.4rem 0.9rem; background: var(--accent); border: none; border-radius: 6px; color: var(--bg); font-family: var(--heading); font-size: 0.82rem; font-weight: 600; cursor: pointer; }
+    @media (max-width: 480px) {
+      #add-bar { display: none !important; }
+      #mobile-add-btn { display: inline-block; }
+    }
     @media (max-width: 600px) {
       .add-bar { flex-direction: column; }
       .add-bar input, .add-bar select { width: 100% !important; min-width: 0 !important; max-width: none !important; }
@@ -163,6 +168,7 @@ access: general
       <span class="msg" id="add-msg"></span>
     </div>
     <div class="filter-row">
+      <button id="mobile-add-btn">+ Add</button>
       <label id="discussFilter" style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:0.82rem;color:var(--text-muted);padding:0.35rem 0.75rem;border:1px solid var(--border);border-radius:20px;background:var(--surface);user-select:none;"><input type="checkbox" id="discussCheck" style="accent-color:#ff9800;width:15px;height:15px;"> Discuss</label>
       <select id="categoryFilter">
         <option value="">All Categories</option>

@@ -145,10 +145,11 @@
     this.eGui.type = 'checkbox';
     this.eGui.checked = params.value === true || params.value === 'TRUE' || params.value === 'true';
     this.eGui.style.accentColor = '#ff9800';
+    var self = this;
     this.eGui.addEventListener('change', function() {
       var item = items.find(function(it) { return it._row === params.data._row; });
-      if (item) item.Discuss = this.checked ? 'TRUE' : 'FALSE';
-      saveBudgetField(params.data._row, 'Discuss', this.checked);
+      if (item) item.Discuss = self.eGui.checked ? 'TRUE' : 'FALSE';
+      saveBudgetField(params.data._row, 'Discuss', self.eGui.checked);
       gridApi.refreshCells({ force: true });
     });
   };
@@ -342,70 +343,50 @@
     });
   }
 
-  // Add item (admin only)
+  // Shared add-item logic
+  async function doAddItem(cat, item, qty, price, msgEl, onSuccess) {
+    if (!cat || !item) { msgEl.textContent = 'Category and Item required'; msgEl.style.color = '#f44336'; return; }
+    msgEl.textContent = 'Adding...'; msgEl.style.color = '#888';
+    try {
+      var res = await fetch('/api/budget', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: pass, action: 'add', data: { Category: cat, Item: item, Qty: qty || '1', Price: price || '0' } })
+      });
+      if (!res.ok) throw new Error('Failed');
+      var result = await res.json();
+      items.push({ _row: result.row, Category: cat, Item: item, Qty: qty || '1', Price: price || '0', 'Total Actual': '', Paid: 'FALSE', Discuss: 'FALSE', 'Paid by': '', Link: '', Comment: '' });
+      gridApi.setGridOption('rowData', items);
+      updateStats(); updateCharts();
+      msgEl.textContent = 'Added!'; msgEl.style.color = '#4caf50';
+      if (onSuccess) onSuccess();
+    } catch (e) { msgEl.textContent = 'Error adding item'; msgEl.style.color = '#f44336'; }
+  }
+
+  // Add item (admin only) — desktop
   if (isAdmin) {
     document.getElementById('add-bar').style.display = 'flex';
-    document.getElementById('add-btn').addEventListener('click', async function() {
-      var cat = document.getElementById('add-category').value;
-      var item = document.getElementById('add-item').value.trim();
-      var qty = document.getElementById('add-qty').value;
-      var price = document.getElementById('add-price').value;
-      var msg = document.getElementById('add-msg');
-
-      if (!cat || !item) {
-        msg.textContent = 'Category and Item required';
-        msg.style.color = '#f44336';
-        return;
-      }
-      msg.textContent = 'Adding...';
-      msg.style.color = '#888';
-
-      try {
-        var res = await fetch('/api/budget', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            password: pass,
-            action: 'add',
-            data: { Category: cat, Item: item, Qty: qty || '1', Price: price || '0' }
-          })
-        });
-        if (!res.ok) throw new Error('Failed');
-        var result = await res.json();
-        var newItem = {
-          _row: result.row,
-          Category: cat,
-          Item: item,
-          Qty: qty || '1',
-          Price: price || '0',
-          'Total Actual': '',
-          Paid: 'FALSE',
-          'Paid by': '',
-          Link: '',
-          Comment: ''
-        };
-        items.push(newItem);
-        gridApi.setGridOption('rowData', items);
-        updateStats();
-        updateCharts();
-
-        // Clear inputs
-        document.getElementById('add-item').value = '';
-        document.getElementById('add-qty').value = '';
-        document.getElementById('add-price').value = '';
-        msg.textContent = 'Added!';
-        msg.style.color = '#4caf50';
-        setTimeout(function() { msg.textContent = ''; }, 2000);
-      } catch (e) {
-        msg.textContent = 'Error adding item';
-        msg.style.color = '#f44336';
-      }
+    document.getElementById('add-btn').addEventListener('click', function() {
+      doAddItem(
+        document.getElementById('add-category').value,
+        document.getElementById('add-item').value.trim(),
+        document.getElementById('add-qty').value,
+        document.getElementById('add-price').value,
+        document.getElementById('add-msg'),
+        function() {
+          document.getElementById('add-item').value = '';
+          document.getElementById('add-qty').value = '';
+          document.getElementById('add-price').value = '';
+          setTimeout(function() { document.getElementById('add-msg').textContent = ''; }, 2000);
+        }
+      );
     });
   }
-  // Budget detail modal
+  // Budget detail modal (shared for edit + add)
   var detailOverlay = document.getElementById('budget-detail-overlay');
   var detailBody = document.getElementById('budget-detail-body');
   var detailTitle = document.getElementById('budget-detail-title');
+  var inputStyle = 'background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:0.85rem;padding:4px 6px;';
+  var btnStyle = 'padding:0.45rem 1rem;background:var(--accent);border:none;border-radius:6px;color:var(--bg);font-family:var(--heading);font-size:0.85rem;font-weight:600;cursor:pointer;';
   if (detailOverlay) {
     document.getElementById('budget-detail-close').addEventListener('click', function() {
       detailOverlay.classList.remove('active');
@@ -415,33 +396,57 @@
     });
   }
 
-  gridApi.addEventListener('rowClicked', function(event) {
-    if (!JH.isMobile) return;
-    var d = event.data;
+  function buildModalFields(d, isNew) {
     var qty = parseFloat(d.Qty) || 0;
     var price = parseFloat(d.Price) || 0;
     var total = qty * price;
     var paid = d.Paid === true || d.Paid === 'TRUE' || d.Paid === 'true';
     var discuss = d.Discuss === true || d.Discuss === 'TRUE' || d.Discuss === 'true';
-    detailTitle.textContent = d.Item || '';
-    var inputStyle = 'background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:0.85rem;padding:4px 6px;';
+    var editable = isAdmin || isNew;
     var catOpts = categories.map(function(c) {
       return '<option' + (c === d.Category ? ' selected' : '') + '>' + esc(c) + '</option>';
     }).join('');
-    var html =
-      '<div class="budget-detail-row"><span class="label">Category</span><span class="value">' + (isAdmin ? '<select data-field="Category" style="' + inputStyle + '">' + catOpts + '</select>' : esc(d.Category || '')) + '</span></div>' +
-      '<div class="budget-detail-row"><span class="label">Item</span><span class="value">' + (isAdmin ? '<input data-field="Item" value="' + esc(d.Item || '') + '" style="' + inputStyle + 'width:100%;box-sizing:border-box;">' : esc(d.Item || '')) + '</span></div>' +
-      '<div class="budget-detail-row"><span class="label">Qty</span><span class="value">' + (isAdmin ? '<input data-field="Qty" type="number" value="' + qty + '" style="' + inputStyle + 'width:70px;">' : esc(String(qty))) + '</span></div>' +
-      '<div class="budget-detail-row"><span class="label">Price</span><span class="value">' + (isAdmin ? '<input data-field="Price" type="number" step="0.01" value="' + (parseFloat(d.Price) || 0) + '" style="' + inputStyle + 'width:100px;">' : eur(parseFloat(d.Price) || 0)) + '</span></div>' +
+    var s = inputStyle;
+    var w = s + 'width:100%;box-sizing:border-box;';
+    return '<div class="budget-detail-row"><span class="label">Category</span><span class="value">' + (editable ? '<select data-field="Category" style="' + s + '"><option value="">Select...</option>' + catOpts + '</select>' : esc(d.Category || '')) + '</span></div>' +
+      '<div class="budget-detail-row"><span class="label">Item</span><span class="value">' + (editable ? '<input data-field="Item" value="' + esc(d.Item || '') + '" placeholder="Item name" style="' + w + '">' : esc(d.Item || '')) + '</span></div>' +
+      '<div class="budget-detail-row"><span class="label">Qty</span><span class="value">' + (editable ? '<input data-field="Qty" type="number" value="' + (isNew ? 1 : qty) + '" style="' + s + 'width:70px;">' : esc(String(qty))) + '</span></div>' +
+      '<div class="budget-detail-row"><span class="label">Price</span><span class="value">' + (editable ? '<input data-field="Price" type="number" step="0.01" value="' + (isNew ? '' : price) + '" placeholder="0.00" style="' + s + 'width:100px;">' : eur(price)) + '</span></div>' +
       '<div class="budget-detail-row"><span class="label">Total</span><span class="value" style="font-weight:600;color:var(--accent);">' + eur(total) + '</span></div>' +
-      '<div class="budget-detail-row"><span class="label">Paid</span><span class="value"><input data-field="Paid" type="checkbox"' + (paid ? ' checked' : '') + (isAdmin ? '' : ' disabled') + ' style="accent-color:var(--accent);width:18px;height:18px;"></span></div>' +
-      '<div class="budget-detail-row"><span class="label">Discuss</span><span class="value"><input data-field="Discuss" type="checkbox"' + (discuss ? ' checked' : '') + ' style="accent-color:#ff9800;width:18px;height:18px;"></span></div>' +
-      '<div class="budget-detail-row"><span class="label">Paid by</span><span class="value">' + (isAdmin ? '<input data-field="Paid by" value="' + esc(d['Paid by'] || '') + '" style="' + inputStyle + 'width:100%;box-sizing:border-box;">' : esc(d['Paid by'] || '')) + '</span></div>' +
-      '<div class="budget-detail-row"><span class="label">Link</span><span class="value">' + (isAdmin ? '<input data-field="Link" value="' + esc(d.Link || '') + '" style="' + inputStyle + 'width:100%;box-sizing:border-box;">' : (d.Link ? '<a href="' + esc(d.Link) + '" target="_blank" style="color:var(--accent);text-decoration:none;">Link ↗</a>' : '')) + '</span></div>' +
-      '<div class="budget-detail-row"><span class="label">Comment</span><span class="value">' + (isAdmin ? '<textarea data-field="Comment" style="' + inputStyle + 'width:100%;box-sizing:border-box;min-height:50px;resize:vertical;">' + esc(d.Comment || '') + '</textarea>' : esc(d.Comment || '')) + '</span></div>' +
-      (isAdmin ? '<div style="margin-top:12px;display:flex;gap:8px;"><button id="budget-detail-save" style="padding:0.45rem 1rem;background:var(--accent);border:none;border-radius:6px;color:var(--bg);font-family:var(--heading);font-size:0.85rem;font-weight:600;cursor:pointer;">Save</button><span id="budget-detail-msg" style="font-size:0.8rem;color:#888;align-self:center;"></span></div>' : '');
-    detailBody.innerHTML = html;
-    if (isAdmin) document.getElementById('budget-detail-save').addEventListener('click', function() {
+      '<div class="budget-detail-row"><span class="label">Paid</span><span class="value"><input data-field="Paid" type="checkbox"' + (paid ? ' checked' : '') + (editable ? '' : ' disabled') + ' style="accent-color:var(--accent);width:18px;height:18px;"></span></div>' +
+      '<div class="budget-detail-row"><span class="label">Discuss</span><span class="value"><input data-field="Discuss" type="checkbox"' + (discuss ? ' checked' : '') + (editable ? '' : ' disabled') + ' style="accent-color:#ff9800;width:18px;height:18px;"></span></div>' +
+      '<div class="budget-detail-row"><span class="label">Paid by</span><span class="value">' + (editable ? '<input data-field="Paid by" value="' + esc(d['Paid by'] || '') + '" style="' + w + '">' : esc(d['Paid by'] || '')) + '</span></div>' +
+      '<div class="budget-detail-row"><span class="label">Link</span><span class="value">' + (editable ? '<input data-field="Link" value="' + esc(d.Link || '') + '" style="' + w + '">' : (d.Link ? '<a href="' + esc(d.Link) + '" target="_blank" style="color:var(--accent);text-decoration:none;">Link ↗</a>' : '')) + '</span></div>' +
+      '<div class="budget-detail-row"><span class="label">Comment</span><span class="value">' + (editable ? '<textarea data-field="Comment" style="' + w + 'min-height:50px;resize:vertical;">' + esc(d.Comment || '') + '</textarea>' : esc(d.Comment || '')) + '</span></div>' +
+      (editable ? '<div style="margin-top:12px;display:flex;gap:8px;"><button id="budget-detail-save" style="' + btnStyle + '">' + (isNew ? 'Add Item' : 'Save') + '</button><span id="budget-detail-msg" style="font-size:0.8rem;color:#888;align-self:center;"></span></div>' : '');
+  }
+
+  // Mobile: "+ Add" opens detail modal in add mode
+  if (isAdmin && JH.isMobile) {
+    document.getElementById('mobile-add-btn').addEventListener('click', function() {
+      detailTitle.textContent = 'Add Item';
+      detailBody.innerHTML = buildModalFields({}, true);
+      document.getElementById('budget-detail-save').onclick = function() {
+        doAddItem(
+          detailBody.querySelector('[data-field="Category"]').value,
+          detailBody.querySelector('[data-field="Item"]').value.trim(),
+          detailBody.querySelector('[data-field="Qty"]').value,
+          detailBody.querySelector('[data-field="Price"]').value,
+          document.getElementById('budget-detail-msg'),
+          function() { setTimeout(function() { detailOverlay.classList.remove('active'); }, 600); }
+        );
+      };
+      detailOverlay.classList.add('active');
+    });
+  }
+
+  // Mobile: tap row opens detail modal in edit mode
+  gridApi.addEventListener('rowClicked', function(event) {
+    if (!JH.isMobile) return;
+    var d = event.data;
+    detailTitle.textContent = d.Item || '';
+    detailBody.innerHTML = buildModalFields(d, false);
+    if (isAdmin) document.getElementById('budget-detail-save').onclick = function() {
       var msg = document.getElementById('budget-detail-msg');
       var item = items.find(function(it) { return it._row === d._row; });
       if (!item) return;
@@ -459,7 +464,7 @@
       msg.textContent = 'Saved!';
       msg.style.color = '#4caf50';
       setTimeout(function() { detailOverlay.classList.remove('active'); }, 600);
-    });
+    };
     detailOverlay.classList.add('active');
   });
 

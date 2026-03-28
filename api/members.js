@@ -1,4 +1,5 @@
-import { google } from 'googleapis';
+import { sheets as sheetsApi } from '@googleapis/sheets';
+import { GoogleAuth } from 'google-auth-library';
 
 function colToLetter(col) {
   var letter = '';
@@ -23,13 +24,13 @@ export default async function handler(req, res) {
   try {
     const credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY);
     const needsWrite = action === 'update' || action === 'update-status';
-    const auth = new google.auth.GoogleAuth({
+    const auth = new GoogleAuth({
       credentials,
       scopes: [needsWrite
         ? 'https://www.googleapis.com/auth/spreadsheets'
         : 'https://www.googleapis.com/auth/spreadsheets.readonly'],
     });
-    const sheets = google.sheets({ version: 'v4', auth });
+    const sheets = sheetsApi({ version: 'v4', auth });
     const spreadsheetId = process.env.SHEET_ID;
 
     // ── Fetch members (default) ───────────────────────────────────────────

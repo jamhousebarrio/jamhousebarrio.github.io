@@ -1,14 +1,15 @@
-import { google } from 'googleapis';
+import { sheets as sheetsApi } from '@googleapis/sheets';
+import { GoogleAuth } from 'google-auth-library';
 
 function getSheets(write) {
   const creds = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY);
-  const auth = new google.auth.GoogleAuth({
+  const auth = new GoogleAuth({
     credentials: creds,
     scopes: [write
       ? 'https://www.googleapis.com/auth/spreadsheets'
       : 'https://www.googleapis.com/auth/spreadsheets.readonly'],
   });
-  return google.sheets({ version: 'v4', auth });
+  return sheetsApi({ version: 'v4', auth });
 }
 
 async function safeGet(sheets, spreadsheetId, range) {
