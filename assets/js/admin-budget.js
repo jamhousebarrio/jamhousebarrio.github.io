@@ -251,7 +251,7 @@
     var itemCol = columnDefs.find(function(c) { return c.field === 'Item'; });
     if (itemCol) { itemCol.cellRenderer = JH.NameLinkRenderer; itemCol.flex = 2; }
     var totalCol = columnDefs.find(function(c) { return c.field === '_total'; });
-    if (totalCol) { totalCol.flex = 1; delete totalCol.width; delete totalCol.suppressSizeToFit; }
+    if (totalCol) { delete totalCol.flex; totalCol.width = 90; totalCol.maxWidth = 100; delete totalCol.suppressSizeToFit; }
     if (itemCol) { delete itemCol.width; delete itemCol.suppressSizeToFit; }
     gridApi.setGridOption('columnDefs', columnDefs);
     gridApi.sizeColumnsToFit();
