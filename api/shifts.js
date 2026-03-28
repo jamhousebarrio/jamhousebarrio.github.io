@@ -93,7 +93,7 @@ export default async function handler(req, res) {
       if (rowIdx === -1) return res.status(404).json({ error: 'Shift not found' });
       const colLetter = String.fromCharCode(65 + assignedCol);
       await sheets.spreadsheets.values.update({
-        spreadsheetId, range: `Shifts!${colLetter}${rowIdx + 1}`,
+        spreadsheetId, range: `ShiftData!${colLetter}${rowIdx + 1}`,
         valueInputOption: 'RAW', requestBody: { values: [[memberName]] },
       });
       return res.status(200).json({ success: true });
@@ -112,7 +112,7 @@ export default async function handler(req, res) {
       if (rowIdx === -1) return res.status(404).json({ error: 'Shift not found' });
       const colLetter = String.fromCharCode(65 + assignedCol);
       await sheets.spreadsheets.values.update({
-        spreadsheetId, range: `Shifts!${colLetter}${rowIdx + 1}`,
+        spreadsheetId, range: `ShiftData!${colLetter}${rowIdx + 1}`,
         valueInputOption: 'RAW', requestBody: { values: [['']] },
       });
       return res.status(200).json({ success: true });
