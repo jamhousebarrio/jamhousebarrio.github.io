@@ -447,27 +447,25 @@
     }
 
     // Aggregate: for each ingredient, sum qty*headcount across all meals it appears in
-    var agg = {}; // key: name|unit → { name, unit, total, meals: [] }
+    var agg = {}; // key: ingredient name → { name, unit, total, meals: [] }
     state.meals.forEach(function (meal) {
       var headcount = getHeadcount(meal.Date);
       var mealIngredients = state.ingredients.filter(function (i) { return i.MealID === meal.MealID; });
       mealIngredients.forEach(function (ing) {
-        var key = (ing.Name || '').toLowerCase().trim() + '|' + (ing.Unit || '').toLowerCase().trim();
+        var key = (ing.Name || '').toLowerCase().trim();
+        if (!key) return;
         if (!agg[key]) {
-          agg[key] = { name: ing.Name, unit: ing.Unit, total: 0, meals: [] };
+          agg[key] = { name: ing.Name, unit: ing.Unit || '', total: 0, meals: [] };
         }
         var qty = parseFloat(ing.Quantity) || 0;
         var amount = qty * headcount;
         agg[key].total += amount;
-        agg[key].meals.push(meal.Name + ' (' + headcount + 'p)');
+        agg[key].meals.push(meal.Name);
       });
     });
 
     var items = Object.keys(agg).map(function (k) { return agg[k]; });
     items.sort(function (a, b) {
-      var ua = (a.unit || '').toLowerCase();
-      var ub = (b.unit || '').toLowerCase();
-      if (ua !== ub) return ua < ub ? -1 : 1;
       return a.name.toLowerCase() < b.name.toLowerCase() ? -1 : 1;
     });
 
@@ -476,29 +474,18 @@
       return;
     }
 
-    // Group by unit
-    var groups = {};
-    items.forEach(function (item) {
-      var unit = item.unit || 'other';
-      if (!groups[unit]) groups[unit] = [];
-      groups[unit].push(item);
-    });
-
     var html = '<div style="overflow-x:auto"><table class="shopping-table"><thead><tr>';
-    html += '<th>Ingredient</th><th>Total</th><th>Unit</th><th>Used in</th>';
+    html += '<th>Ingredient</th><th>Total needed</th><th>Used in</th>';
     html += '</tr></thead><tbody>';
 
-    Object.keys(groups).sort().forEach(function (unit) {
-      html += '<tr class="shopping-cat-header"><td colspan="4">' + esc(unit === 'other' ? 'Other' : unit) + '</td></tr>';
-      groups[unit].forEach(function (item) {
-        var totalStr = item.total === Math.floor(item.total) ? String(item.total) : item.total.toFixed(2).replace(/\.?0+$/, '');
-        html += '<tr>';
-        html += '<td>' + esc(item.name) + '</td>';
-        html += '<td class="total-col">' + esc(totalStr) + '</td>';
-        html += '<td class="unit-col">' + esc(item.unit) + '</td>';
-        html += '<td style="font-size:0.78rem;color:var(--text-muted)">' + esc(item.meals.join(', ')) + '</td>';
-        html += '</tr>';
-      });
+    items.forEach(function (item) {
+      var totalStr = item.total === Math.floor(item.total) ? String(item.total) : item.total.toFixed(2).replace(/\.?0+$/, '');
+      var totalDisplay = totalStr + (item.unit ? ' ' + item.unit : '');
+      html += '<tr>';
+      html += '<td>' + esc(item.name) + '</td>';
+      html += '<td class="total-col">' + esc(totalDisplay) + '</td>';
+      html += '<td style="font-size:0.78rem;color:var(--text-muted)">' + esc(item.meals.join(', ')) + '</td>';
+      html += '</tr>';
     });
 
     html += '</tbody></table></div>';
@@ -508,13 +495,12 @@
   // Copy shopping list to clipboard
   document.getElementById('copy-shopping-list').addEventListener('click', function () {
     var items = [];
-    document.querySelectorAll('.shopping-table tbody tr:not(.shopping-cat-header)').forEach(function (row) {
+    document.querySelectorAll('.shopping-table tbody tr').forEach(function (row) {
       var cells = row.querySelectorAll('td');
-      if (cells.length >= 3) {
+      if (cells.length >= 2) {
         var name = cells[0].textContent.trim();
         var total = cells[1].textContent.trim();
-        var unit = cells[2].textContent.trim();
-        items.push(total + ' ' + unit + ' ' + name);
+        items.push(total + '  ' + name);
       }
     });
     if (!items.length) return;
