@@ -1,4 +1,5 @@
-import { google } from 'googleapis';
+import { sheets as sheetsApi } from '@googleapis/sheets';
+import { GoogleAuth } from 'google-auth-library';
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -16,11 +17,11 @@ export default async function handler(req, res) {
 
   try {
     const credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY);
-    const auth = new google.auth.GoogleAuth({
+    const auth = new GoogleAuth({
       credentials,
       scopes: ["https://www.googleapis.com/auth/spreadsheets"],
     });
-    const sheets = google.sheets({ version: "v4", auth });
+    const sheets = sheetsApi({ version: "v4", auth });
 
     const row = [
       new Date().toISOString(),
