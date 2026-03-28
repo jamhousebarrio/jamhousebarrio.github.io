@@ -16,10 +16,7 @@
   }
 
   function formatDate(dateStr) {
-    if (!dateStr) return '';
-    var parts = dateStr.split('-');
-    var d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
-    return d.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short' });
+    return JH.formatDateLong(dateStr);
   }
 
   function statusClass(status) {

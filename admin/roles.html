@@ -30,8 +30,9 @@ access: general
     .role-card-title { font-family: var(--heading); font-size: 1rem; font-weight: 700; color: var(--text); margin: 0; }
     .role-card-desc { font-size: 0.85rem; color: var(--text-muted); line-height: 1.4; }
     .role-card-assigned { font-size: 0.8rem; font-weight: 600; }
-    .role-card-assigned.filled { color: var(--accent); }
+    .role-card-assigned.filled { color: var(--accent); display: flex; flex-wrap: wrap; gap: 4px; }
     .role-card-assigned.unassigned { color: #e8a84c; }
+    .assigned-chip { display: inline-block; padding: 2px 8px; background: rgba(232,168,76,0.12); border: 1px solid var(--accent); border-radius: 12px; font-size: 0.78rem; color: var(--accent); }
     .role-card-notes { font-size: 0.8rem; color: var(--text-muted); font-style: italic; }
     .role-card-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 4px; }
     .role-card-actions { display: flex; gap: 4px; }
@@ -149,8 +150,8 @@ access: general
         <textarea id="field-description" placeholder="What does this role involve?"></textarea>
       </div>
       <div>
-        <label>Assigned To</label>
-        <select id="field-assignedTo"></select>
+        <label>Assigned To <span style="font-weight:400;text-transform:none;letter-spacing:0">(hold Ctrl/Cmd to select multiple)</span></label>
+        <select id="field-assignedTo" multiple style="min-height:120px"></select>
       </div>
       <div>
         <label>Status</label>

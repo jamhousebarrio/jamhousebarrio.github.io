@@ -106,6 +106,27 @@ JH.mobilePhoneColumn = function(col) {
 
 JH.esc = function(s) { return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); };
 
+JH.formatDate = function(dateStr) {
+  if (!dateStr) return '';
+  var parts = dateStr.split('-');
+  if (parts.length !== 3) return dateStr;
+  var d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+  var day = String(d.getDate()).padStart(2, '0');
+  var mon = String(d.getMonth() + 1).padStart(2, '0');
+  return day + '/' + mon + '/' + d.getFullYear();
+};
+
+JH.formatDateLong = function(dateStr) {
+  if (!dateStr) return '';
+  var parts = dateStr.split('-');
+  if (parts.length !== 3) return dateStr;
+  var d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+  var days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  var day = String(d.getDate()).padStart(2, '0');
+  var mon = String(d.getMonth() + 1).padStart(2, '0');
+  return days[d.getDay()] + ' ' + day + '/' + mon;
+};
+
 JH.checkLogisticsPrompt = async function() {
   // Don't show on the logistics page itself
   if (window.location.pathname.indexOf('/admin/logistics') !== -1) return;
