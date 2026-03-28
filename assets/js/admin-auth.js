@@ -12,7 +12,7 @@ window.JH = window.JH || {};
   dark.href = 'https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.css';
   document.head.appendChild(dark);
   var style = document.createElement('style');
-  style.textContent = '.flatpickr-input { cursor: pointer; } .flatpickr-calendar { font-family: Inter, sans-serif; }';
+  style.textContent = '.flatpickr-input { cursor: pointer; } .flatpickr-calendar { font-family: Inter, sans-serif; z-index: 999999 !important; }';
   document.head.appendChild(style);
   var script = document.createElement('script');
   script.src = 'https://cdn.jsdelivr.net/npm/flatpickr';
