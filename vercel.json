@@ -12,6 +12,7 @@
     { "source": "/admin/meals", "destination": "/admin/meals.html" },
     { "source": "/admin/drinks", "destination": "/admin/drinks.html" },
     { "source": "/admin/events", "destination": "/admin/events.html" },
-    { "source": "/admin/roles", "destination": "/admin/roles.html" }
+    { "source": "/admin/roles", "destination": "/admin/roles.html" },
+    { "source": "/admin/timeline", "destination": "/admin/timeline.html" }
   ]
 }
