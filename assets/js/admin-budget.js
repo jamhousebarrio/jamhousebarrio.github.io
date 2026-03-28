@@ -237,19 +237,25 @@
     }
   };
 
-  JH.mobileColumns(columnDefs, ['Item', 'Total']);
+  var gridApi = agGrid.createGrid(document.getElementById('budget-grid'), gridOptions);
+
   if (JH.isMobile) {
-    columnDefs.forEach(function(col) {
-      col.editable = false;
-      delete col.width;
-      delete col.suppressSizeToFit;
-      if (!col.hide) col.flex = 1;
-    });
+    var hideFields = columnDefs.filter(function(c) {
+      var keep = (c.field && ['Item', '_total'].indexOf(c.field) !== -1) ||
+                 (c.headerName && c.headerName === 'Total');
+      return !keep;
+    }).map(function(c) { return c.field || c.headerName || ''; }).filter(Boolean);
+    gridApi.setColumnsVisible(hideFields, false);
+    gridApi.setColumnsVisible(['Item', '_total'], true);
+    columnDefs.forEach(function(col) { col.editable = false; });
     var itemCol = columnDefs.find(function(c) { return c.field === 'Item'; });
     if (itemCol) { itemCol.cellRenderer = JH.NameLinkRenderer; itemCol.flex = 2; }
+    var totalCol = columnDefs.find(function(c) { return c.field === '_total'; });
+    if (totalCol) { totalCol.flex = 1; delete totalCol.width; delete totalCol.suppressSizeToFit; }
+    if (itemCol) { delete itemCol.width; delete itemCol.suppressSizeToFit; }
+    gridApi.setGridOption('columnDefs', columnDefs);
+    gridApi.sizeColumnsToFit();
   }
-
-  var gridApi = agGrid.createGrid(document.getElementById('budget-grid'), gridOptions);
 
   gridApi.addEventListener('firstDataRendered', function() {
     gridApi.sizeColumnsToFit();
