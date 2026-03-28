@@ -105,3 +105,27 @@ JH.mobilePhoneColumn = function(col) {
 };
 
 JH.esc = function(s) { return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); };
+
+JH.checkLogisticsPrompt = async function() {
+  // Don't show on the logistics page itself
+  if (window.location.pathname.indexOf('/admin/logistics') !== -1) return;
+  var myName = sessionStorage.getItem('jh_member_name');
+  if (!myName) return;
+  var pass = sessionStorage.getItem('jh_pass');
+  try {
+    var res = await fetch('/api/logistics', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: pass }) });
+    if (!res.ok) return;
+    var data = await res.json();
+    var row = (data.logistics || []).find(function(r) { return r['MemberName'] === myName; });
+    if (row && (row['ArrivalDate'] || row['DepartureDate'])) return;
+    var banner = document.createElement('div');
+    banner.style.cssText = 'background:rgba(232,168,76,0.1);border:1px solid var(--accent);border-radius:8px;padding:10px 16px;margin-bottom:16px;font-size:0.84rem;color:var(--text);display:flex;align-items:center;justify-content:space-between;gap:12px;';
+    banner.innerHTML = '<span>We don\'t have your arrival info yet! Please <a href="/admin/logistics" style="color:var(--accent);font-weight:600">fill in your logistics</a> so we can plan meals and pickups.</span>' +
+      '<button onclick="this.parentNode.remove()" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:1.1rem;flex-shrink:0">&times;</button>';
+    var main = document.querySelector('.main');
+    if (main) main.insertBefore(banner, main.firstChild.nextSibling);
+  } catch (e) {}
+};
+
+// Auto-check after page loads
+setTimeout(function() { JH.checkLogisticsPrompt(); }, 500);

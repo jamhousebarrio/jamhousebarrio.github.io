@@ -142,7 +142,7 @@
     if (!name || !date) { msg.textContent = 'Name and date required'; msg.style.color = '#f44336'; return; }
     msg.textContent = 'Saving...'; msg.style.color = '#888';
 
-    var shiftId = Date.now() + '-' + Math.random().toString(36).slice(2, 6);
+    var shiftId = name.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + date;
     var r = await fetch('/api/shifts', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

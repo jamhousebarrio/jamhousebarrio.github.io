@@ -93,9 +93,32 @@
     }
 
     var row = state.logistics.find(function (r) { return r['MemberName'] === state.myName; }) || {};
+    var hasData = row['ArrivalDate'] || row['DepartureDate'];
 
-    var html = '<form id="logistics-form">';
+    var html = '';
+    if (!hasData) {
+      html += '<div style="background:rgba(232,168,76,0.1);border:1px solid var(--accent);border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:0.85rem;color:var(--text)">';
+      html += '<strong style="color:var(--accent)">Hey ' + esc(state.myName) + '!</strong> We don\'t have your arrival info yet. Please fill in the form below so we can plan meals and pickups.';
+      html += '</div>';
+    }
+    html += '<form id="logistics-form">';
     html += '<div class="form-row"><label>Arrival Date</label><input type="date" id="f-arrival" value="' + esc(row['ArrivalDate'] || '') + '"></div>';
+    html += '<div class="form-row"><label>Arriving at (time)</label><input type="time" id="f-arrival-time" value="' + esc(row['ArrivalTime'] || '') + '"><div class="form-hint">So we know how many mouths to feed!</div></div>';
+    html += '<div class="form-row"><label>How are you getting there?</label><select id="f-transport">';
+    ['', 'vehicle', 'bus', 'train', 'ride-share', 'other'].forEach(function (opt) {
+      var selected = (row['Transport'] || '') === opt ? ' selected' : '';
+      var label = opt ? opt.charAt(0).toUpperCase() + opt.slice(1) : 'Select...';
+      html += '<option value="' + esc(opt) + '"' + selected + '>' + label + '</option>';
+    });
+    html += '</select></div>';
+    var showPickup = row['Transport'] && row['Transport'] !== 'vehicle';
+    html += '<div class="form-row pickup-row' + (showPickup ? ' visible' : '') + '" id="pickup-row"><label>Would you like to be picked up?</label><select id="f-pickup">';
+    ['', 'yes', 'no'].forEach(function (opt) {
+      var selected = (row['NeedsPickup'] || '') === opt ? ' selected' : '';
+      var label = opt === 'yes' ? 'Yes please!' : opt === 'no' ? 'No, I\'ll manage' : 'Select...';
+      html += '<option value="' + esc(opt) + '"' + selected + '>' + label + '</option>';
+    });
+    html += '</select></div>';
     html += '<div class="form-row"><label>Departure Date</label><input type="date" id="f-departure" value="' + esc(row['DepartureDate'] || '') + '"></div>';
     html += '<div class="form-row"><label>Camping Type</label><select id="f-camping">';
     ['', 'tent', 'van', 'in-camp cabin', 'out-of-camp'].forEach(function (opt) {
@@ -123,6 +146,15 @@
       }
     });
 
+    document.getElementById('f-transport').addEventListener('change', function () {
+      var pickupRow = document.getElementById('pickup-row');
+      if (this.value && this.value !== 'vehicle') {
+        pickupRow.classList.add('visible');
+      } else {
+        pickupRow.classList.remove('visible');
+      }
+    });
+
     document.getElementById('logistics-form').addEventListener('submit', async function (e) {
       e.preventDefault();
       var btn = document.getElementById('save-btn');
@@ -134,6 +166,9 @@
         action: 'upsert',
         memberName: state.myName,
         arrivalDate: document.getElementById('f-arrival').value,
+        arrivalTime: document.getElementById('f-arrival-time').value,
+        transport: document.getElementById('f-transport').value,
+        needsPickup: document.getElementById('f-pickup') ? document.getElementById('f-pickup').value : '',
         departureDate: document.getElementById('f-departure').value,
         campingType: document.getElementById('f-camping').value,
         tentSize: document.getElementById('f-tent-size') ? document.getElementById('f-tent-size').value : '',
@@ -195,7 +230,7 @@
     });
 
     var html = '<div style="overflow-x:auto"><table class="logistics-table"><thead><tr>';
-    html += '<th>Name</th><th>Arrives</th><th>Departs</th><th>Camping</th><th>Tent Size</th><th>Notes</th>';
+    html += '<th>Name</th><th>Arrives</th><th>Time</th><th>Transport</th><th>Pickup</th><th>Departs</th><th>Camping</th><th>Notes</th>';
     html += '</tr></thead><tbody>';
 
     sorted.forEach(function (m) {
@@ -210,12 +245,14 @@
 
       if (row) {
         html += '<td>' + (row['ArrivalDate'] ? esc(row['ArrivalDate']) : '<span class="not-filled">—</span>') + '</td>';
+        html += '<td>' + (row['ArrivalTime'] ? esc(row['ArrivalTime']) : '<span class="not-filled">—</span>') + '</td>';
+        html += '<td>' + (row['Transport'] ? esc(row['Transport']) : '<span class="not-filled">—</span>') + '</td>';
+        html += '<td>' + (row['NeedsPickup'] ? esc(row['NeedsPickup']) : '<span class="not-filled">—</span>') + '</td>';
         html += '<td>' + (row['DepartureDate'] ? esc(row['DepartureDate']) : '<span class="not-filled">—</span>') + '</td>';
         html += '<td>' + campBadge(row['CampingType']) + '</td>';
-        html += '<td>' + (row['TentSize'] ? esc(row['TentSize']) : '<span class="not-filled">—</span>') + '</td>';
         html += '<td>' + (row['Notes'] ? esc(row['Notes']) : '<span class="not-filled">—</span>') + '</td>';
       } else {
-        html += '<td colspan="5"><span class="not-filled">Not filled in yet</span></td>';
+        html += '<td colspan="7"><span class="not-filled">Not filled in yet</span></td>';
       }
 
       html += '</tr>';

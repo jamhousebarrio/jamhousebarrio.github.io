@@ -33,7 +33,7 @@ function toObjects(values) {
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
-  const { password, action, memberName, arrivalDate, departureDate, campingType, tentSize, notes } = req.body || {};
+  const { password, action, memberName, arrivalDate, arrivalTime, transport, needsPickup, departureDate, campingType, tentSize, notes } = req.body || {};
 
   const isAdmin = password === process.env.ADMIN_WRITE_PASSWORD;
   if (password !== process.env.ADMIN_PASSWORD && !isAdmin) {
@@ -56,8 +56,8 @@ export default async function handler(req, res) {
 
       const sheets = getSheets(true);
       const tabName = 'MemberLogistics';
-      const headers = ['MemberName', 'ArrivalDate', 'DepartureDate', 'CampingType', 'TentSize', 'Notes'];
-      const newRow = [memberName, arrivalDate || '', departureDate || '', campingType || '', tentSize || '', notes || ''];
+      const headers = ['MemberName', 'ArrivalDate', 'ArrivalTime', 'Transport', 'NeedsPickup', 'DepartureDate', 'CampingType', 'TentSize', 'Notes'];
+      const newRow = [memberName, arrivalDate || '', arrivalTime || '', transport || '', needsPickup || '', departureDate || '', campingType || '', tentSize || '', notes || ''];
 
       const existing = await safeGet(sheets, id, tabName);
 

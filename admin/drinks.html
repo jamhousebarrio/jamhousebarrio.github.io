@@ -1,6 +1,6 @@
 ---
 layout: none
-title: Inventory - JamHouse Admin
+title: Drinks & Snacks - JamHouse Admin
 access: general
 ---
 <!DOCTYPE html>
@@ -8,61 +8,60 @@ access: general
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Inventory - JamHouse Admin</title>
+  <title>Drinks & Snacks - JamHouse Admin</title>
   <meta name="access" content="general">
   <link rel="icon" type="image/svg+xml" href="/images/favicon.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/assets/css/admin.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
   <style>
-    .inventory-toolbar { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+    .summary-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-bottom: 20px; }
+    .summary-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; display: flex; flex-direction: column; gap: 4px; }
+    .summary-card .label { font-family: var(--heading); font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); }
+    .summary-card .value { font-family: var(--heading); font-size: 1.5rem; font-weight: 700; color: var(--accent); }
+    .drinks-toolbar { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
     .filter-btns { display: flex; gap: 6px; flex-wrap: wrap; }
     .filter-btn { padding: 0.45rem 0.95rem; background: var(--surface); border: 1px solid var(--border); border-radius: 20px; color: var(--text-muted); font-family: var(--heading); font-size: 0.8rem; cursor: pointer; transition: all 0.15s; }
     .filter-btn:hover { border-color: var(--accent); color: var(--accent); }
     .filter-btn.active { background: var(--accent); border-color: var(--accent); color: var(--bg); font-weight: 600; }
     .add-item-btn { margin-left: auto; padding: 0.45rem 1rem; background: var(--accent); border: none; border-radius: 6px; color: var(--bg); font-family: var(--heading); font-size: 0.85rem; font-weight: 600; cursor: pointer; }
     .add-item-btn:hover { opacity: 0.9; }
-    .inventory-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-    @media (max-width: 1100px) { .inventory-grid { grid-template-columns: repeat(2, 1fr); } }
-    @media (max-width: 680px) { .inventory-grid { grid-template-columns: 1fr; } }
-    .item-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; display: flex; flex-direction: column; transition: border-color 0.15s; }
-    .item-card:hover { border-color: var(--accent); }
-    .item-photo { width: 100%; height: 160px; object-fit: cover; background: var(--bg); display: block; }
-    .item-photo-placeholder { width: 100%; height: 160px; background: var(--bg); display: flex; align-items: center; justify-content: center; font-size: 2.5rem; }
-    .item-body { padding: 14px; flex: 1; display: flex; flex-direction: column; gap: 6px; }
-    .item-name { font-family: var(--heading); font-size: 1rem; font-weight: 600; color: var(--text); margin: 0; }
+    .drinks-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+    .drinks-table th { text-align: left; padding: 8px 10px; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); border-bottom: 1px solid var(--border); font-family: var(--heading); font-weight: 600; }
+    .drinks-table td { padding: 7px 10px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    .drinks-table tr:last-child td { border-bottom: none; }
+    .drinks-table tr:hover td { background: rgba(255,255,255,0.02); }
+    .drinks-table .num-col { text-align: right; font-variant-numeric: tabular-nums; }
+    .drinks-table .total-col { font-weight: 600; color: var(--accent); }
     .item-category { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 0.73rem; font-weight: 600; font-family: var(--heading); text-transform: uppercase; letter-spacing: 0.05em; }
-    .cat-materials { background: rgba(76,175,80,0.15); color: #4caf50; border: 1px solid #4caf50; }
-    .cat-tools { background: rgba(33,150,243,0.15); color: #42a5f5; border: 1px solid #42a5f5; }
-    .cat-instruments { background: rgba(232,168,76,0.12); color: var(--accent); border: 1px solid var(--accent); }
-    .cat-other { background: rgba(156,39,176,0.15); color: #ce93d8; border: 1px solid #ce93d8; }
-    .item-desc { font-size: 0.82rem; color: var(--text-muted); line-height: 1.5; margin: 0; flex: 1; }
-    .item-meta { display: flex; gap: 14px; font-size: 0.8rem; color: var(--text-muted); margin-top: 4px; }
-    .item-meta span strong { color: var(--text); }
-    .item-actions { display: flex; gap: 8px; padding: 10px 14px; border-top: 1px solid var(--border); background: var(--bg); }
-    .btn-edit { flex: 1; padding: 0.38rem 0; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-family: var(--heading); font-size: 0.8rem; cursor: pointer; }
-    .btn-edit:hover { border-color: var(--accent); color: var(--accent); }
-    .btn-delete { flex: 1; padding: 0.38rem 0; background: rgba(244,67,54,0.1); border: 1px solid #f44336; border-radius: 6px; color: #f44336; font-family: var(--heading); font-size: 0.8rem; cursor: pointer; }
-    .btn-delete:hover { background: rgba(244,67,54,0.2); }
-    .empty-state { color: var(--text-muted); font-size: 0.9rem; padding: 40px; text-align: center; grid-column: 1 / -1; }
+    .cat-drinks { background: rgba(33,150,243,0.15); color: #42a5f5; border: 1px solid #42a5f5; }
+    .cat-snacks { background: rgba(156,39,176,0.15); color: #ce93d8; border: 1px solid #ce93d8; }
+    .item-actions { display: flex; gap: 4px; }
+    .btn-icon { background: none; border: none; color: var(--text-muted); font-size: 0.78rem; cursor: pointer; padding: 2px 6px; border-radius: 4px; }
+    .btn-icon:hover { color: var(--accent); background: rgba(232,168,76,0.08); }
+    .btn-icon.danger:hover { color: #f44336; background: rgba(244,67,54,0.08); }
+    .empty-state { color: var(--text-muted); font-size: 0.9rem; padding: 24px; text-align: center; }
     .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 100; justify-content: center; align-items: center; }
     .modal-overlay.active { display: flex; }
-    .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; max-width: 520px; width: 90%; max-height: 90vh; overflow-y: auto; padding: 24px; }
+    .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; max-width: 500px; width: 90%; max-height: 85vh; overflow-y: auto; padding: 24px; }
     .modal h2 { font-family: var(--heading); color: var(--accent); margin: 0 0 16px; display: flex; justify-content: space-between; align-items: center; font-size: 1.1rem; }
     .modal-close { background: none; border: none; color: var(--text-muted); font-size: 1.4rem; cursor: pointer; }
     .modal-close:hover { color: var(--text); }
-    .modal-body { display: flex; flex-direction: column; gap: 12px; }
-    .modal-body label { font-size: 0.78rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 2px; }
+    .modal-body { display: flex; flex-direction: column; gap: 10px; }
+    .modal-body label { font-size: 0.8rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 2px; }
     .modal-body input, .modal-body select, .modal-body textarea { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-family: var(--body); font-size: 0.85rem; padding: 7px 10px; box-sizing: border-box; }
     .modal-body input:focus, .modal-body select:focus, .modal-body textarea:focus { border-color: var(--accent); outline: none; }
     .modal-body textarea { min-height: 70px; resize: vertical; }
-    .modal-body input[disabled] { opacity: 0.5; cursor: not-allowed; }
     .modal-actions { display: flex; gap: 8px; margin-top: 8px; }
     .btn-primary { padding: 0.45rem 1rem; background: var(--accent); border: none; border-radius: 6px; color: var(--bg); font-family: var(--heading); font-size: 0.85rem; font-weight: 600; cursor: pointer; }
     .btn-primary:hover { opacity: 0.9; }
     .btn-secondary { padding: 0.45rem 1rem; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-family: var(--heading); font-size: 0.85rem; cursor: pointer; }
     .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
-    .field-hint { font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; }
+    @media (max-width: 480px) {
+      .drinks-table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+      .summary-cards { grid-template-columns: 1fr 1fr; }
+    }
   </style>
 </head>
 <body>
@@ -85,7 +84,7 @@ access: general
       <span class="icon">&#9835;</span>
       <span class="nav-item-text">Shifts</span>
     </a>
-    <a class="nav-item active" href="/admin/inventory" data-access="general">
+    <a class="nav-item" href="/admin/inventory" data-access="general">
       <span class="icon">&#128722;</span>
       <span class="nav-item-text">Inventory</span>
     </a>
@@ -97,7 +96,7 @@ access: general
       <span class="icon">&#127859;</span>
       <span class="nav-item-text">Meals</span>
     </a>
-    <a class="nav-item" href="/admin/drinks" data-access="general">
+    <a class="nav-item active" href="/admin/drinks" data-access="general">
       <span class="icon">&#127866;</span>
       <span class="nav-item-text">Drinks & Snacks</span>
     </a>
@@ -118,74 +117,93 @@ access: general
 
 <div class="main">
   <div class="page-header">
-    <h1><span class="icon" style="color:var(--accent)">&#128722;</span> Inventory</h1>
-    <div class="subtitle">Materials, tools, and equipment</div>
+    <h1><span class="icon" style="color:var(--accent)">&#127866;</span> Drinks & Snacks</h1>
+    <div class="subtitle">Track daily consumption by headcount</div>
   </div>
 
-  <div class="inventory-toolbar">
+  <div class="summary-cards" id="summary-cards">
+    <div class="summary-card">
+      <span class="label">Items Tracked</span>
+      <span class="value" id="stat-items">0</span>
+    </div>
+    <div class="summary-card">
+      <span class="label">Daily Cost Est.</span>
+      <span class="value" id="stat-daily-cost">&mdash;</span>
+    </div>
+  </div>
+
+  <div class="panel" style="margin-bottom:20px;padding:16px">
+    <div style="height:180px"><canvas id="headcount-chart"></canvas></div>
+  </div>
+
+  <div class="drinks-toolbar">
     <div class="filter-btns">
       <button class="filter-btn active" data-filter="all">All</button>
-      <button class="filter-btn" data-filter="Materials">Materials</button>
-      <button class="filter-btn" data-filter="Tools">Tools</button>
-      <button class="filter-btn" data-filter="Instruments">Instruments</button>
-      <button class="filter-btn" data-filter="Other">Other</button>
+      <button class="filter-btn" data-filter="Drinks">Drinks</button>
+      <button class="filter-btn" data-filter="Snacks">Snacks</button>
     </div>
     <button class="add-item-btn" id="add-item-btn">+ Add Item</button>
   </div>
 
-  <div class="inventory-grid" id="inventory-grid">
-    <div class="empty-state">Loading inventory...</div>
+  <div class="panel" style="padding:0;overflow:hidden">
+    <table class="drinks-table" id="drinks-table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Category</th>
+          <th>Unit</th>
+          <th class="num-col">Per Person/Day</th>
+          <th class="num-col">Daily Total</th>
+          <th class="num-col">Event Total</th>
+          <th style="width:60px"></th>
+        </tr>
+      </thead>
+      <tbody id="drinks-tbody">
+        <tr><td colspan="7" class="empty-state">Loading items...</td></tr>
+      </tbody>
+    </table>
   </div>
 </div>
 
-<!-- Add / Edit Item modal -->
-<div class="modal-overlay" id="item-modal">
+<!-- Add / Edit Item Modal -->
+<div class="modal-overlay" id="drink-modal">
   <div class="modal">
-    <h2 id="modal-title">Add Item <button class="modal-close" id="modal-close">&times;</button></h2>
+    <h2 id="drink-modal-title">Add Item <button class="modal-close" data-close="drink-modal">&times;</button></h2>
     <div class="modal-body">
+      <input id="drink-id" type="hidden">
       <div>
         <label>Name</label>
-        <input id="field-name" placeholder="Display name">
+        <input id="drink-name" placeholder="e.g. Water, Beer, Trail Mix">
       </div>
       <div>
         <label>Category</label>
-        <select id="field-category">
+        <select id="drink-category">
           <option value="">Select category...</option>
-          <option value="Materials">Materials</option>
-          <option value="Tools">Tools</option>
-          <option value="Instruments">Instruments</option>
-          <option value="Other">Other</option>
+          <option value="Drinks">Drinks</option>
+          <option value="Snacks">Snacks</option>
         </select>
       </div>
       <div>
-        <label>Description</label>
-        <textarea id="field-description" placeholder="Brief description of the item"></textarea>
+        <label>Unit</label>
+        <input id="drink-unit" placeholder="e.g. cans, bottles, L, bags">
       </div>
       <div>
-        <label>Photo URL</label>
-        <input id="field-photo" placeholder="https://drive.google.com/... or any image URL">
-      </div>
-      <div>
-        <label>Quantity</label>
-        <input id="field-quantity" placeholder="e.g. 2, 1 set, 3 boxes">
-      </div>
-      <div>
-        <label>Location</label>
-        <input id="field-location" placeholder="e.g. Storage trailer, Tent A">
+        <label>Per Person Per Day</label>
+        <input id="drink-per-person" type="number" step="any" min="0" placeholder="e.g. 2.5">
       </div>
       <div>
         <label>Notes</label>
-        <textarea id="field-notes" placeholder="Any additional notes"></textarea>
+        <textarea id="drink-notes" placeholder="Any additional notes"></textarea>
       </div>
     </div>
-    <div class="modal-actions" style="margin-top:16px">
-      <button class="btn-primary" id="modal-save-btn">Save Item</button>
-      <button class="btn-secondary" id="modal-cancel-btn">Cancel</button>
+    <div class="modal-actions">
+      <button id="drink-save-btn" class="btn-primary">Save Item</button>
+      <button class="btn-secondary" data-close="drink-modal">Cancel</button>
     </div>
   </div>
 </div>
 
 <script src="/assets/js/admin-auth.js"></script>
-<script src="/assets/js/admin-inventory.js"></script>
+<script src="/assets/js/admin-drinks.js"></script>
 </body>
 </html>

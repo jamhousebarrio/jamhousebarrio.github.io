@@ -133,10 +133,6 @@
       ' <button class="modal-close" id="modal-close">&times;</button>';
     document.getElementById('modal-close').addEventListener('click', closeModal);
 
-    var idField = document.getElementById('field-id');
-    idField.value = item ? item.ItemID : '';
-    idField.disabled = !!item;
-
     document.getElementById('field-name').value = item ? item.Name : '';
     document.getElementById('field-category').value = item ? item.Category : '';
     document.getElementById('field-description').value = item ? item.Description : '';
@@ -166,10 +162,9 @@
   });
 
   document.getElementById('modal-save-btn').addEventListener('click', async function () {
-    var itemId = editingId || document.getElementById('field-id').value.trim();
     var name = document.getElementById('field-name').value.trim();
+    var itemId = editingId || name;
 
-    if (!itemId) { alert('Item ID is required.'); return; }
     if (!name) { alert('Name is required.'); return; }
 
     var btn = this;

@@ -66,6 +66,92 @@
     state.logistics = data.logistics || [];
   }
 
+  // ── Headcount chart ──────────────────────────────────────────────────────
+
+  var headcountChart = null;
+
+  function getAllDates() {
+    var dateSet = {};
+    state.logistics.forEach(function (l) {
+      if (!l.ArrivalDate || !l.DepartureDate) return;
+      var d = new Date(l.ArrivalDate + 'T00:00:00');
+      var end = new Date(l.DepartureDate + 'T00:00:00');
+      while (d <= end) {
+        var ds = d.toISOString().slice(0, 10);
+        dateSet[ds] = true;
+        d.setDate(d.getDate() + 1);
+      }
+    });
+    state.meals.forEach(function (m) { if (m.Date) dateSet[m.Date] = true; });
+    return Object.keys(dateSet).sort();
+  }
+
+  function getMealCountByType(dateStr, type) {
+    return state.meals.filter(function (m) {
+      return m.Date === dateStr && (m.MealType || '').toLowerCase() === type;
+    }).length;
+  }
+
+  function renderHeadcountChart() {
+    var dates = getAllDates();
+    if (!dates.length) return;
+
+    var labels = dates.map(function (d) {
+      var parts = d.split('-');
+      var dt = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+      return dt.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short' });
+    });
+    var counts = dates.map(function (d) { return getHeadcount(d); });
+
+    var ctx = document.getElementById('headcount-chart');
+    if (headcountChart) headcountChart.destroy();
+
+    headcountChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'People',
+          data: counts,
+          backgroundColor: '#e8a84c88',
+          borderColor: '#e8a84c',
+          borderWidth: 1,
+          borderRadius: 4,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              afterBody: function (items) {
+                var idx = items[0].dataIndex;
+                var dateStr = dates[idx];
+                var lines = [];
+                var breakfast = getMealCountByType(dateStr, 'breakfast');
+                var lunch = getMealCountByType(dateStr, 'lunch');
+                var dinner = getMealCountByType(dateStr, 'dinner');
+                var snack = getMealCountByType(dateStr, 'snack');
+                if (breakfast) lines.push('Breakfast: ' + breakfast + ' meal(s)');
+                if (lunch) lines.push('Lunch: ' + lunch + ' meal(s)');
+                if (dinner) lines.push('Dinner: ' + dinner + ' meal(s)');
+                if (snack) lines.push('Snack: ' + snack + ' meal(s)');
+                if (!lines.length) lines.push('No meals planned');
+                return lines;
+              }
+            }
+          }
+        },
+        scales: {
+          x: { ticks: { color: '#8a8580', maxRotation: 45, font: { size: 11 } }, grid: { display: false } },
+          y: { ticks: { color: '#8a8580', stepSize: 1 }, grid: { color: '#2a2a2a22' }, beginAtZero: true, title: { display: true, text: 'People', color: '#8a8580', font: { size: 11 } } }
+        }
+      }
+    });
+  }
+
   // ── Render date filter buttons ─────────────────────────────────────────────
 
   function renderDateFilter() {
@@ -277,9 +363,6 @@
   function openMealModal(meal) {
     editingMealId = meal ? meal.MealID : null;
     document.getElementById('meal-modal-title').childNodes[0].textContent = meal ? 'Edit Meal ' : 'Add Meal ';
-    var idInput = document.getElementById('meal-id');
-    idInput.value = meal ? meal.MealID : '';
-    idInput.disabled = !!meal;
     document.getElementById('meal-name').value = meal ? meal.Name : '';
     document.getElementById('meal-date').value = meal ? meal.Date : '';
     document.getElementById('meal-type').value = meal ? (meal.MealType || 'dinner') : 'dinner';
@@ -293,10 +376,10 @@
   });
 
   document.getElementById('meal-save-btn').addEventListener('click', async function () {
-    var mealId = document.getElementById('meal-id').value.trim();
     var name = document.getElementById('meal-name').value.trim();
     var date = document.getElementById('meal-date').value.trim();
-    if (!mealId || !name || !date) { alert('Meal ID, name, and date are required.'); return; }
+    if (!name || !date) { alert('Name and date are required.'); return; }
+    var mealId = editingMealId || (date + '-' + (document.getElementById('meal-type').value || 'dinner'));
     var btn = this;
     btn.textContent = 'Saving...';
     btn.disabled = true;
@@ -325,7 +408,7 @@
 
   function openIngredientModal(ing, mealId) {
     document.getElementById('ingredient-modal-title').childNodes[0].textContent = ing ? 'Edit Ingredient ' : 'Add Ingredient ';
-    document.getElementById('ingredient-id').value = ing ? ing.IngredientID : genId();
+    document.getElementById('ingredient-id').value = ing ? ing.IngredientID : '';
     document.getElementById('ingredient-meal-id').value = mealId || '';
     document.getElementById('ingredient-name').value = ing ? ing.Name : '';
     document.getElementById('ingredient-quantity').value = ing ? ing.Quantity : '';
@@ -334,9 +417,9 @@
   }
 
   document.getElementById('ingredient-save-btn').addEventListener('click', async function () {
-    var ingredientId = document.getElementById('ingredient-id').value.trim();
     var mealId = document.getElementById('ingredient-meal-id').value.trim();
     var name = document.getElementById('ingredient-name').value.trim();
+    var ingredientId = document.getElementById('ingredient-id').value.trim() || (mealId + '-' + name.toLowerCase().replace(/[^a-z0-9]+/g, '-'));
     var quantity = document.getElementById('ingredient-quantity').value.trim();
     var unit = document.getElementById('ingredient-unit').value.trim();
     if (!name) { alert('Ingredient name is required.'); return; }
@@ -363,6 +446,95 @@
     await reload();
   });
 
+  // ── Shopping list ────────────────────────────────────────────────────────
+
+  function renderShoppingList() {
+    var wrap = document.getElementById('shopping-list-content');
+    if (!state.meals.length || !state.ingredients.length) {
+      wrap.innerHTML = '<div class="empty-state">No ingredients to show yet.</div>';
+      return;
+    }
+
+    // Aggregate: for each ingredient, sum qty*headcount across all meals it appears in
+    var agg = {}; // key: name|unit → { name, unit, total, meals: [] }
+    state.meals.forEach(function (meal) {
+      var headcount = getHeadcount(meal.Date);
+      var mealIngredients = state.ingredients.filter(function (i) { return i.MealID === meal.MealID; });
+      mealIngredients.forEach(function (ing) {
+        var key = (ing.Name || '').toLowerCase().trim() + '|' + (ing.Unit || '').toLowerCase().trim();
+        if (!agg[key]) {
+          agg[key] = { name: ing.Name, unit: ing.Unit, total: 0, meals: [] };
+        }
+        var qty = parseFloat(ing.Quantity) || 0;
+        var amount = qty * headcount;
+        agg[key].total += amount;
+        agg[key].meals.push(meal.Name + ' (' + headcount + 'p)');
+      });
+    });
+
+    var items = Object.keys(agg).map(function (k) { return agg[k]; });
+    items.sort(function (a, b) {
+      var ua = (a.unit || '').toLowerCase();
+      var ub = (b.unit || '').toLowerCase();
+      if (ua !== ub) return ua < ub ? -1 : 1;
+      return a.name.toLowerCase() < b.name.toLowerCase() ? -1 : 1;
+    });
+
+    if (!items.length) {
+      wrap.innerHTML = '<div class="empty-state">No ingredients to show yet.</div>';
+      return;
+    }
+
+    // Group by unit
+    var groups = {};
+    items.forEach(function (item) {
+      var unit = item.unit || 'other';
+      if (!groups[unit]) groups[unit] = [];
+      groups[unit].push(item);
+    });
+
+    var html = '<div style="overflow-x:auto"><table class="shopping-table"><thead><tr>';
+    html += '<th>Ingredient</th><th>Total</th><th>Unit</th><th>Used in</th>';
+    html += '</tr></thead><tbody>';
+
+    Object.keys(groups).sort().forEach(function (unit) {
+      html += '<tr class="shopping-cat-header"><td colspan="4">' + esc(unit === 'other' ? 'Other' : unit) + '</td></tr>';
+      groups[unit].forEach(function (item) {
+        var totalStr = item.total === Math.floor(item.total) ? String(item.total) : item.total.toFixed(2).replace(/\.?0+$/, '');
+        html += '<tr>';
+        html += '<td>' + esc(item.name) + '</td>';
+        html += '<td class="total-col">' + esc(totalStr) + '</td>';
+        html += '<td class="unit-col">' + esc(item.unit) + '</td>';
+        html += '<td style="font-size:0.78rem;color:var(--text-muted)">' + esc(item.meals.join(', ')) + '</td>';
+        html += '</tr>';
+      });
+    });
+
+    html += '</tbody></table></div>';
+    wrap.innerHTML = html;
+  }
+
+  // Copy shopping list to clipboard
+  document.getElementById('copy-shopping-list').addEventListener('click', function () {
+    var items = [];
+    document.querySelectorAll('.shopping-table tbody tr:not(.shopping-cat-header)').forEach(function (row) {
+      var cells = row.querySelectorAll('td');
+      if (cells.length >= 3) {
+        var name = cells[0].textContent.trim();
+        var total = cells[1].textContent.trim();
+        var unit = cells[2].textContent.trim();
+        items.push(total + ' ' + unit + ' ' + name);
+      }
+    });
+    if (!items.length) return;
+    var text = 'Shopping List\n' + '='.repeat(30) + '\n' + items.join('\n');
+    navigator.clipboard.writeText(text).then(function () {
+      var btn = document.getElementById('copy-shopping-list');
+      btn.textContent = 'Copied!';
+      setTimeout(function () { btn.textContent = 'Copy to clipboard'; }, 2000);
+    });
+  });
+
   // ── Modal close buttons ───────────────────────────────────────────────────
 
   document.querySelectorAll('.modal-close[data-close], .modal-actions [data-close]').forEach(function (btn) {
@@ -376,7 +548,9 @@
   async function reload() {
     await fetchData();
     renderDateFilter();
+    renderHeadcountChart();
     renderMeals();
+    renderShoppingList();
   }
 
   // ── Init ──────────────────────────────────────────────────────────────────
