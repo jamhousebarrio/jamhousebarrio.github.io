@@ -40,24 +40,35 @@ export default async function handler(req, res) {
 
   const spreadsheetId = process.env.SHEET_ID;
 
-  // No action = fetch all shifts
-  if (!action) {
-    const sheets = getSheets(false);
-    const rows = await getRows(sheets, spreadsheetId);
-    return res.status(200).json({ shifts: parseShifts(rows) });
-  }
-
-  const sheets = getSheets(true);
-
   try {
+    // No action = fetch all shifts
+    if (!action) {
+      const sheets = getSheets(false);
+      const rows = await getRows(sheets, spreadsheetId);
+      return res.status(200).json({ shifts: parseShifts(rows) });
+    }
+
+    const sheets = getSheets(true);
+
     if (action === 'create') {
       if (!isAdmin) return res.status(401).json({ error: 'Admin required' });
       const { shiftId, name, date, startTime, endTime } = payload;
       if (!shiftId || !name || !date) return res.status(400).json({ error: 'shiftId, name, date required' });
-      await sheets.spreadsheets.values.append({
-        spreadsheetId, range: 'Shifts', valueInputOption: 'RAW',
-        requestBody: { values: [[shiftId, name, date, startTime || '', endTime || '', '']] },
-      });
+      const existing = await getRows(sheets, spreadsheetId);
+      if (!existing.length) {
+        await sheets.spreadsheets.values.append({
+          spreadsheetId, range: 'Shifts', valueInputOption: 'RAW',
+          requestBody: { values: [
+            ['ShiftID', 'Name', 'Date', 'StartTime', 'EndTime', 'AssignedTo'],
+            [shiftId, name, date, startTime || '', endTime || '', ''],
+          ] },
+        });
+      } else {
+        await sheets.spreadsheets.values.append({
+          spreadsheetId, range: 'Shifts', valueInputOption: 'RAW',
+          requestBody: { values: [[shiftId, name, date, startTime || '', endTime || '', '']] },
+        });
+      }
       return res.status(200).json({ success: true });
     }
 
