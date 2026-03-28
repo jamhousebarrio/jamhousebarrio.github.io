@@ -7,8 +7,6 @@
   var state = { events: [] };
   var activeFilter = 'all';
 
-  // ── Helpers ───────────────────────────────────────────────────────────────
-
   function esc(str) {
     return (str || '').toString()
       .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -55,47 +53,20 @@
 
   // ── Filter buttons ────────────────────────────────────────────────────────
 
-  function renderFilters() {
-    var wrap = document.getElementById('filter-buttons');
-    if (!wrap) return;
-
-    var filters = ['all', 'planned', 'confirmed', 'completed', 'cancelled'];
-    var labels = { all: 'All', planned: 'Planned', confirmed: 'Confirmed', completed: 'Completed', cancelled: 'Cancelled' };
-
-    // Count events per filter
-    var counts = {};
-    filters.forEach(function (f) {
-      if (f === 'all') {
-        counts[f] = state.events.length;
-      } else {
-        counts[f] = state.events.filter(function (ev) {
-          return (ev.Status || '').toLowerCase() === f;
-        }).length;
-      }
+  document.querySelectorAll('.filter-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      document.querySelectorAll('.filter-btn').forEach(function (b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      activeFilter = btn.dataset.filter;
+      renderEvents();
     });
-
-    wrap.innerHTML = filters.map(function (f) {
-      var cls = 'filter-btn' + (activeFilter === f ? ' active' : '');
-      return '<button class="' + cls + '" data-filter="' + f + '">' +
-        labels[f] + ' <span class="filter-count">' + counts[f] + '</span></button>';
-    }).join('');
-
-    wrap.querySelectorAll('.filter-btn').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        wrap.querySelectorAll('.filter-btn').forEach(function (b) { b.classList.remove('active'); });
-        btn.classList.add('active');
-        activeFilter = btn.dataset.filter;
-        renderEvents();
-      });
-    });
-  }
+  });
 
   // ── Render event cards ────────────────────────────────────────────────────
 
   function renderEvents() {
     var wrap = document.getElementById('events-wrap');
 
-    // Filter
     var filtered;
     if (activeFilter === 'all') {
       filtered = state.events;
@@ -105,7 +76,6 @@
       });
     }
 
-    // Sort by date, then time
     var sorted = sortEvents(filtered);
 
     if (!sorted.length) {
@@ -143,30 +113,25 @@
         html += '<span class="event-status-badge ' + sClass + '">' + esc(ev.Status || 'Planned') + '</span>';
         html += '</div>';
 
-        // Date + time
         var dateTime = '';
         if (ev.Date) dateTime += formatDate(ev.Date);
-        if (ev.Time) dateTime += (dateTime ? ' at ' : '') + esc(ev.Time);
+        if (ev.Time) dateTime += (dateTime ? ' at ' : '') + JH.to24h(ev.Time);
         if (dateTime) {
           html += '<div class="event-datetime">' + dateTime + '</div>';
         }
 
-        // Description
         if (ev.Description) {
           html += '<p class="event-description">' + esc(ev.Description) + '</p>';
         }
 
-        // Responsible
         if (ev.Responsible) {
           html += '<div class="event-responsible"><strong>Lead:</strong> ' + esc(ev.Responsible) + '</div>';
         }
 
-        // Notes
         if (ev.Notes) {
           html += '<p class="event-notes">' + esc(ev.Notes) + '</p>';
         }
 
-        // Admin actions
         if (isAdmin) {
           html += '<div class="event-actions">' +
             '<button class="btn-secondary btn-sm edit-event-btn" data-name="' + esc(ev.Name) + '">Edit</button>' +
@@ -204,7 +169,7 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ password: pass, action: 'delete', name: ev.Name }),
         });
-        if (!r.ok) { alert('Delete failed. Please try again.'); return; }
+        if (!r.ok) { alert('Delete failed.'); return; }
         await reload();
       });
     });
@@ -217,20 +182,24 @@
 
   function openModal(event) {
     editingName = event ? event.Name : null;
-    document.getElementById('modal-title').innerHTML = (event ? 'Edit Event' : 'Add Event') +
-      ' <button class="modal-close" id="modal-close-x">&times;</button>';
-    document.getElementById('modal-close-x').addEventListener('click', closeModal);
+    document.getElementById('event-modal-title').innerHTML = (event ? 'Edit Event' : 'Add Event') +
+      ' <button class="modal-close" data-close="event-modal">&times;</button>';
+    bindCloseButtons();
 
-    document.getElementById('field-name').value = event ? event.Name : '';
-    document.getElementById('field-date').value = event ? event.Date : '';
-    document.getElementById('field-time').value = event ? event.Time : '';
-    document.getElementById('field-description').value = event ? event.Description : '';
-    document.getElementById('field-responsible').value = event ? event.Responsible : '';
-    document.getElementById('field-status').value = event ? event.Status : 'Planned';
-    document.getElementById('field-notes').value = event ? event.Notes : '';
+    document.getElementById('event-name').value = event ? event.Name : '';
+    document.getElementById('event-date').value = event ? event.Date : '';
+    document.getElementById('event-time').value = event ? event.Time : '';
+    document.getElementById('event-description').value = event ? event.Description : '';
+    document.getElementById('event-responsible').value = event ? event.Responsible : '';
+    document.getElementById('event-status').value = event ? event.Status : 'planned';
+    document.getElementById('event-notes').value = event ? event.Notes : '';
+
+    // Init Flatpickr on date/time fields
+    JH.initDate(document.getElementById('event-date'));
+    JH.initTime(document.getElementById('event-time'));
 
     modal.classList.add('active');
-    document.getElementById('field-name').focus();
+    document.getElementById('event-name').focus();
   }
 
   function closeModal() {
@@ -238,13 +207,26 @@
     editingName = null;
   }
 
-  // ── Save ──────────────────────────────────────────────────────────────────
+  function bindCloseButtons() {
+    document.querySelectorAll('[data-close="event-modal"]').forEach(function (btn) {
+      btn.addEventListener('click', function () { closeModal(); });
+    });
+  }
+  bindCloseButtons();
 
-  async function saveEvent() {
-    var name = document.getElementById('field-name').value.trim();
+  modal.addEventListener('click', function (e) {
+    if (e.target === modal) closeModal();
+  });
+
+  document.getElementById('add-event-btn').addEventListener('click', function () {
+    openModal(null);
+  });
+
+  document.getElementById('event-save-btn').addEventListener('click', async function () {
+    var name = document.getElementById('event-name').value.trim();
     if (!name) { alert('Name is required.'); return; }
 
-    var btn = document.getElementById('modal-save-btn');
+    var btn = this;
     btn.textContent = 'Saving...';
     btn.disabled = true;
 
@@ -256,12 +238,12 @@
         action: 'upsert',
         name: name,
         originalName: editingName,
-        date: document.getElementById('field-date').value,
-        time: document.getElementById('field-time').value,
-        description: document.getElementById('field-description').value,
-        responsible: document.getElementById('field-responsible').value,
-        status: document.getElementById('field-status').value,
-        notes: document.getElementById('field-notes').value,
+        date: document.getElementById('event-date').value,
+        time: document.getElementById('event-time').value,
+        description: document.getElementById('event-description').value,
+        responsible: document.getElementById('event-responsible').value,
+        status: document.getElementById('event-status').value,
+        notes: document.getElementById('event-notes').value,
       }),
     });
 
@@ -271,32 +253,18 @@
     if (!r.ok) { var d = await r.json().catch(function () { return {}; }); alert(d.error || 'Save failed.'); return; }
     closeModal();
     await reload();
-  }
+  });
 
   // ── Reload ────────────────────────────────────────────────────────────────
 
   async function reload() {
     await fetchData();
-    renderFilters();
     renderEvents();
   }
 
   // ── Init ──────────────────────────────────────────────────────────────────
 
   if (isAdmin) document.getElementById('add-event-btn').style.display = '';
-
-  document.getElementById('add-event-btn').addEventListener('click', function () {
-    openModal(null);
-  });
-
-  document.getElementById('modal-close').addEventListener('click', closeModal);
-  document.getElementById('modal-cancel-btn').addEventListener('click', closeModal);
-
-  modal.addEventListener('click', function (e) {
-    if (e.target === modal) closeModal();
-  });
-
-  document.getElementById('modal-save-btn').addEventListener('click', saveEvent);
 
   await reload();
 
