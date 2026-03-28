@@ -111,7 +111,7 @@
       html += '<option value="' + esc(opt) + '"' + selected + '>' + label + '</option>';
     });
     html += '</select></div>';
-    var showPickup = row['Transport'] && row['Transport'] !== 'vehicle';
+    var showPickup = row['Transport'] === 'train';
     html += '<div class="form-row pickup-row' + (showPickup ? ' visible' : '') + '" id="pickup-row"><label>Would you like to be picked up?</label><select id="f-pickup">';
     ['', 'yes', 'no'].forEach(function (opt) {
       var selected = (row['NeedsPickup'] || '') === opt ? ' selected' : '';
@@ -121,12 +121,14 @@
     html += '</select></div>';
     html += '<div class="form-row"><label>Departure Date</label><input type="date" id="f-departure" value="' + esc(row['DepartureDate'] || '') + '"></div>';
     html += '<div class="form-row"><label>Camping Type</label><select id="f-camping">';
-    ['', 'tent', 'van', 'in-camp cabin', 'out-of-camp'].forEach(function (opt) {
+    ['', 'tent', 'caravan', 'out-of-camp'].forEach(function (opt) {
       var selected = (row['CampingType'] || '') === opt ? ' selected' : '';
-      html += '<option value="' + esc(opt) + '"' + selected + '>' + (opt ? opt.charAt(0).toUpperCase() + opt.slice(1) : 'Select...') + '</option>';
+      var label = opt === 'caravan' ? 'Caravan' : (opt ? opt.charAt(0).toUpperCase() + opt.slice(1) : 'Select...');
+      html += '<option value="' + esc(opt) + '"' + selected + '>' + label + '</option>';
     });
     html += '</select></div>';
-    html += '<div class="form-row tent-size-row' + (row['CampingType'] === 'tent' ? ' visible' : '') + '" id="tent-size-row"><label>Tent Size</label><input type="text" id="f-tent-size" placeholder="e.g. 2-person, 4x4m" value="' + esc(row['TentSize'] || '') + '"></div>';
+    var showSize = row['CampingType'] === 'tent' || row['CampingType'] === 'caravan';
+    html += '<div class="form-row tent-size-row' + (showSize ? ' visible' : '') + '" id="tent-size-row"><label>Size</label><input type="text" id="f-tent-size" placeholder="e.g. 2-person, 4x4m" value="' + esc(row['TentSize'] || '') + '"></div>';
     html += '<div class="form-row"><label>Notes</label><textarea id="f-notes" placeholder="Anything else the team should know...">' + esc(row['Notes'] || '') + '</textarea></div>';
     html += '<div style="display:flex;align-items:center">';
     html += '<button type="submit" class="btn-primary" id="save-btn">Save</button>';
@@ -138,17 +140,17 @@
 
     // Toggle tent size field
     document.getElementById('f-camping').addEventListener('change', function () {
-      var row = document.getElementById('tent-size-row');
-      if (this.value === 'tent') {
-        row.classList.add('visible');
+      var sizeRow = document.getElementById('tent-size-row');
+      if (this.value === 'tent' || this.value === 'caravan') {
+        sizeRow.classList.add('visible');
       } else {
-        row.classList.remove('visible');
+        sizeRow.classList.remove('visible');
       }
     });
 
     document.getElementById('f-transport').addEventListener('change', function () {
       var pickupRow = document.getElementById('pickup-row');
-      if (this.value && this.value !== 'vehicle') {
+      if (this.value === 'train') {
         pickupRow.classList.add('visible');
       } else {
         pickupRow.classList.remove('visible');
