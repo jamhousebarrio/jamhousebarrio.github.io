@@ -177,7 +177,8 @@ access: general
       </div>
       <div>
         <label>Date</label>
-        <input id="meal-date" type="date">
+        <input id="meal-date" type="text" placeholder="dd/mm/yyyy">
+        <script>document.addEventListener('DOMContentLoaded', function() { JH.initDate(document.getElementById('meal-date')); });</script>
       </div>
       <div>
         <label>Meal Type</label>

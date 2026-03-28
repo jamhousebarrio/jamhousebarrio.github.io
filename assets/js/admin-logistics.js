@@ -102,8 +102,8 @@
       html += '</div>';
     }
     html += '<form id="logistics-form">';
-    html += '<div class="form-row"><label>Arrival Date</label><input type="date" id="f-arrival" value="' + esc(row['ArrivalDate'] || '') + '"></div>';
-    html += '<div class="form-row"><label>Arriving at (time)</label><input type="time" id="f-arrival-time" value="' + esc(row['ArrivalTime'] || '') + '"><div class="form-hint">So we know how many mouths to feed!</div></div>';
+    html += '<div class="form-row"><label>Arrival Date</label><input type="text" id="f-arrival" placeholder="dd/mm/yyyy" value="' + esc(row['ArrivalDate'] || '') + '"></div>';
+    html += '<div class="form-row"><label>Arriving at (time)</label><input type="text" id="f-arrival-time" placeholder="HH:MM" value="' + esc(row['ArrivalTime'] || '') + '"><div class="form-hint">So we know how many mouths to feed!</div></div>';
     html += '<div class="form-row"><label>How are you getting there?</label><select id="f-transport">';
     ['', 'vehicle', 'bus', 'train', 'ride-share', 'other'].forEach(function (opt) {
       var selected = (row['Transport'] || '') === opt ? ' selected' : '';
@@ -119,7 +119,7 @@
       html += '<option value="' + esc(opt) + '"' + selected + '>' + label + '</option>';
     });
     html += '</select></div>';
-    html += '<div class="form-row"><label>Departure Date</label><input type="date" id="f-departure" value="' + esc(row['DepartureDate'] || '') + '"></div>';
+    html += '<div class="form-row"><label>Departure Date</label><input type="text" id="f-departure" placeholder="dd/mm/yyyy" value="' + esc(row['DepartureDate'] || '') + '"></div>';
     html += '<div class="form-row"><label>Camping Type</label><select id="f-camping">';
     ['', 'tent', 'caravan', 'out-of-camp'].forEach(function (opt) {
       var selected = (row['CampingType'] || '') === opt ? ' selected' : '';
@@ -137,6 +137,11 @@
     html += '</form>';
 
     wrap.innerHTML = html;
+
+    // Init Flatpickr for date/time inputs
+    JH.initDate(document.getElementById('f-arrival'));
+    JH.initDate(document.getElementById('f-departure'));
+    JH.initTime(document.getElementById('f-arrival-time'));
 
     // Toggle tent size field
     document.getElementById('f-camping').addEventListener('change', function () {

@@ -1,5 +1,51 @@
 window.JH = window.JH || {};
 
+// Load Flatpickr for date/time inputs (dd/mm/yyyy, 24h)
+(function() {
+  var link = document.createElement('link');
+  link.rel = 'stylesheet';
+  link.href = 'https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css';
+  document.head.appendChild(link);
+  // Dark theme
+  var dark = document.createElement('link');
+  dark.rel = 'stylesheet';
+  dark.href = 'https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.css';
+  document.head.appendChild(dark);
+  var style = document.createElement('style');
+  style.textContent = '.flatpickr-input { cursor: pointer; } .flatpickr-calendar { font-family: Inter, sans-serif; }';
+  document.head.appendChild(style);
+  var script = document.createElement('script');
+  script.src = 'https://cdn.jsdelivr.net/npm/flatpickr';
+  document.head.appendChild(script);
+})();
+
+JH.initDate = function(el, opts) {
+  if (typeof flatpickr === 'undefined') {
+    setTimeout(function() { JH.initDate(el, opts); }, 100);
+    return;
+  }
+  return flatpickr(el, Object.assign({
+    dateFormat: 'Y-m-d',
+    altInput: true,
+    altFormat: 'd/m/Y',
+    allowInput: true
+  }, opts || {}));
+};
+
+JH.initTime = function(el, opts) {
+  if (typeof flatpickr === 'undefined') {
+    setTimeout(function() { JH.initTime(el, opts); }, 100);
+    return;
+  }
+  return flatpickr(el, Object.assign({
+    enableTime: true,
+    noCalendar: true,
+    dateFormat: 'H:i',
+    time_24hr: true,
+    allowInput: true
+  }, opts || {}));
+};
+
 JH.val = function(m, key) { return (m[key] || '').toString().trim(); };
 
 JH.isAdmin = function() { return sessionStorage.getItem('jh_admin') === '1'; };

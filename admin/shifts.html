@@ -124,18 +124,25 @@ access: general
     </div>
     <div class="field">
       <label>Date</label>
-      <input id="shift-date" type="date">
+      <input id="shift-date" type="text" placeholder="dd/mm/yyyy">
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
       <div class="field">
         <label>Start time</label>
-        <input id="shift-start" type="time">
+        <input id="shift-start" type="text" placeholder="HH:MM">
       </div>
       <div class="field">
         <label>End time</label>
-        <input id="shift-end" type="time">
+        <input id="shift-end" type="text" placeholder="HH:MM">
       </div>
     </div>
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        JH.initDate(document.getElementById('shift-date'));
+        JH.initTime(document.getElementById('shift-start'));
+        JH.initTime(document.getElementById('shift-end'));
+      });
+    </script>
     <div class="modal-actions">
       <button id="add-shift-save" class="btn-primary">Save</button>
       <span id="add-msg" class="msg"></span>
