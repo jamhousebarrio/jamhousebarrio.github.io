@@ -244,11 +244,11 @@
       html += '<td><strong>' + esc(name) + (isMe ? ' <span style="color:var(--accent);font-size:0.75rem">(you)</span>' : '') + '</strong></td>';
 
       if (row) {
-        html += '<td>' + (row['ArrivalDate'] ? esc(row['ArrivalDate']) : '<span class="not-filled">—</span>') + '</td>';
+        html += '<td>' + (row['ArrivalDate'] ? JH.formatDate(row['ArrivalDate']) : '<span class="not-filled">—</span>') + '</td>';
         html += '<td>' + (row['ArrivalTime'] ? esc(row['ArrivalTime']) : '<span class="not-filled">—</span>') + '</td>';
         html += '<td>' + (row['Transport'] ? esc(row['Transport']) : '<span class="not-filled">—</span>') + '</td>';
         html += '<td>' + (row['NeedsPickup'] ? esc(row['NeedsPickup']) : '<span class="not-filled">—</span>') + '</td>';
-        html += '<td>' + (row['DepartureDate'] ? esc(row['DepartureDate']) : '<span class="not-filled">—</span>') + '</td>';
+        html += '<td>' + (row['DepartureDate'] ? JH.formatDate(row['DepartureDate']) : '<span class="not-filled">—</span>') + '</td>';
         html += '<td>' + campBadge(row['CampingType']) + '</td>';
         html += '<td>' + (row['Notes'] ? esc(row['Notes']) : '<span class="not-filled">—</span>') + '</td>';
       } else {

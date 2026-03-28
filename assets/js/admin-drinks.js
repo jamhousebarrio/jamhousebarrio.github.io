@@ -83,11 +83,7 @@
     var dates = getAllDates();
     if (!dates.length) return;
 
-    var labels = dates.map(function (d) {
-      var parts = d.split('-');
-      var dt = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
-      return dt.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short' });
-    });
+    var labels = dates.map(function (d) { return JH.formatDateLong(d); });
     var counts = dates.map(function (d) { return getHeadcount(d); });
 
     var ctx = document.getElementById('headcount-chart');

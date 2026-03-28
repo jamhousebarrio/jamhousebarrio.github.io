@@ -16,9 +16,7 @@
   }
 
   function fmt(dateStr) {
-    if (!dateStr) return '';
-    var d = new Date(dateStr + 'T00:00:00');
-    return d.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
+    return JH.formatDateLong(dateStr);
   }
 
   function to24h(t) {
