@@ -239,9 +239,14 @@
 
   JH.mobileColumns(columnDefs, ['Item', 'Total']);
   if (JH.isMobile) {
-    columnDefs.forEach(function(col) { col.editable = false; });
+    columnDefs.forEach(function(col) {
+      col.editable = false;
+      delete col.width;
+      delete col.suppressSizeToFit;
+      if (!col.hide) col.flex = 1;
+    });
     var itemCol = columnDefs.find(function(c) { return c.field === 'Item'; });
-    if (itemCol) itemCol.cellRenderer = JH.NameLinkRenderer;
+    if (itemCol) { itemCol.cellRenderer = JH.NameLinkRenderer; itemCol.flex = 2; }
   }
 
   var gridApi = agGrid.createGrid(document.getElementById('budget-grid'), gridOptions);
