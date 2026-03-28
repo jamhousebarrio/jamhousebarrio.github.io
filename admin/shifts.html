@@ -29,7 +29,7 @@ access: general
     .empty-state { color: var(--text-muted); font-size: 0.9rem; padding: 32px; text-align: center; }
     .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 100; justify-content: center; align-items: center; }
     .modal-overlay.active { display: flex; }
-    .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; max-width: 440px; width: 90%; padding: 24px; display: flex; flex-direction: column; gap: 12px; }
+    .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; max-width: 440px; width: 90%; padding: 24px; display: flex; flex-direction: column; gap: 12px; overflow: visible; }
     .modal h2 { font-family: var(--heading); color: var(--accent); margin: 0; font-size: 1.1rem; display: flex; justify-content: space-between; align-items: center; }
     .modal-close { background: none; border: none; color: var(--text-muted); font-size: 1.4rem; cursor: pointer; }
     .modal-close:hover { color: var(--text); }

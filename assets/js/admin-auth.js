@@ -12,7 +12,7 @@ window.JH = window.JH || {};
   dark.href = 'https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.css';
   document.head.appendChild(dark);
   var style = document.createElement('style');
-  style.textContent = '.flatpickr-input { cursor: pointer; } .flatpickr-calendar { font-family: Inter, sans-serif; z-index: 999999 !important; }';
+  style.textContent = '.flatpickr-input { cursor: pointer; } .flatpickr-calendar { font-family: Inter, sans-serif; z-index: 999999 !important; } .flatpickr-wrapper { width: 100%; }';
   document.head.appendChild(style);
   var script = document.createElement('script');
   script.src = 'https://cdn.jsdelivr.net/npm/flatpickr';
@@ -28,7 +28,9 @@ JH.initDate = function(el, opts) {
     dateFormat: 'Y-m-d',
     altInput: true,
     altFormat: 'd/m/Y',
-    allowInput: true
+    allowInput: true,
+    static: true,
+    appendTo: el.closest('.modal') || undefined
   }, opts || {}));
 };
 
@@ -42,7 +44,9 @@ JH.initTime = function(el, opts) {
     noCalendar: true,
     dateFormat: 'H:i',
     time_24hr: true,
-    allowInput: true
+    allowInput: true,
+    static: true,
+    appendTo: el.closest('.modal') || undefined
   }, opts || {}));
 };
 
