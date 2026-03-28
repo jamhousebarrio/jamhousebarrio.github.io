@@ -12,7 +12,7 @@ window.JH = window.JH || {};
   dark.href = 'https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.css';
   document.head.appendChild(dark);
   var style = document.createElement('style');
-  style.textContent = '.flatpickr-input { cursor: pointer; } .flatpickr-calendar { font-family: Inter, sans-serif; z-index: 999999 !important; } .flatpickr-wrapper { width: 100%; }';
+  style.textContent = '.flatpickr-input { cursor: pointer; } .flatpickr-calendar { font-family: Inter, sans-serif; z-index: 999999 !important; } .flatpickr-wrapper { width: 100%; max-width: 100%; box-sizing: border-box; } .flatpickr-wrapper input { width: 100%; box-sizing: border-box; }';
   document.head.appendChild(style);
   var script = document.createElement('script');
   script.src = 'https://cdn.jsdelivr.net/npm/flatpickr';
