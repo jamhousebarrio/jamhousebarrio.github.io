@@ -1,7 +1,15 @@
 {
   "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node dev-server.mjs"
+  },
   "dependencies": {
     "@googleapis/sheets": "^13.0.1",
     "google-auth-library": "^10.6.2"
+  },
+  "devDependencies": {
+    "dotenv": "^17.3.1",
+    "express": "^5.2.1"
   }
 }
