@@ -22,7 +22,7 @@
     if (subtitle) subtitle.innerHTML = 'Budget tracking by category &nbsp;·&nbsp; <a href="' + data.sheetUrl + '" target="_blank" rel="noopener" style="color:var(--accent);font-size:0.85rem;">Open spreadsheet ↗</a>';
   }
 
-  function eur(n) { return '\u20AC' + n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+  function eur(n) { return '\u20AC' + (Number(n) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 
   // Calculate stats
   function calcStats() {
