@@ -43,9 +43,9 @@
     budgetedEl.textContent = eur(s.budgeted);
     budgetedEl.style.color = s.budgeted > s.eventBudget ? '#f44336' : '#4caf50';
     document.getElementById('stat-spent').textContent = eur(s.spent);
-    // Committed = total fees paid (updated after fee table renders)
+    // Committed = total fees paid
     var committedEl = document.getElementById('stat-committed');
-    if (committedEl) committedEl.textContent = eur(feePaid);
+    if (committedEl) committedEl.textContent = eur(typeof feePaid !== 'undefined' ? feePaid : fees.paid);
     var remainingEl = document.getElementById('stat-remaining');
     var remaining = s.eventBudget - s.spent;
     remainingEl.textContent = eur(remaining);
