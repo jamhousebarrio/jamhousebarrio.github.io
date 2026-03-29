@@ -36,6 +36,7 @@
     wrap.innerHTML = '<div id="name-display" style="margin-bottom:16px"><span style="font-size:0.8rem;color:var(--text-muted)">Signed in as <strong style="color:var(--accent)">' + esc(state.myName) + '</strong> \u2014 <a href="#" id="change-name-link" style="color:var(--text-muted);font-size:0.78rem">change</a></span></div>';
     document.getElementById('change-name-link').addEventListener('click', function (e) {
       e.preventDefault();
+      populateNameSelect();
       nameModal.classList.add('active');
     });
   }
