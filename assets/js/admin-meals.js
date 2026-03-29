@@ -194,9 +194,23 @@
         return ai - bi;
       });
 
+      // Check which meal slots are covered
+      var slots = ['breakfast', 'lunch', 'dinner'];
+      var slotLabels = { breakfast: 'B', lunch: 'L', dinner: 'D' };
+      var covered = {};
+      slots.forEach(function (s) {
+        covered[s] = dayMeals.some(function (m) { return (m.MealType || '').toLowerCase() === s; });
+      });
+
       html += '<div class="meals-date-group">';
       html += '<div class="meals-date-heading">' + esc(formatDate(dateStr)) +
-        '<span class="headcount-note">' + headcount + ' people on this date</span>';
+        '<span class="headcount-note">' + headcount + ' people</span>';
+      html += '<span class="meal-slots">';
+      slots.forEach(function (s) {
+        var cls = covered[s] ? 'slot-ok' : 'slot-missing';
+        html += '<span class="meal-slot ' + cls + '" title="' + s.charAt(0).toUpperCase() + s.slice(1) + (covered[s] ? ' - planned' : ' - not planned') + '">' + slotLabels[s] + '</span>';
+      });
+      html += '</span>';
       html += '</div>';
       html += '<div class="meal-cards">';
 
