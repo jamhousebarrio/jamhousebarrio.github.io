@@ -134,10 +134,11 @@ body { font-family: var(--body); background: var(--bg); color: var(--text); font
   .sidebar { position: fixed; bottom: 0; top: auto; left: 0; width: 100%; height: auto;
     flex-direction: row; border-right: none; border-top: 1px solid var(--border); }
   .sidebar-brand { display: none; }
-  .sidebar-nav { display: flex; flex-direction: row; justify-content: space-around; padding: 0; overflow: visible; }
-  .nav-item { flex-direction: column; gap: 2px; padding: 10px 2px; margin: 0; font-size: 0.7rem; min-width: 0; flex: 1; align-items: center; text-align: center; }
+  .sidebar-nav { display: flex; flex-direction: row; padding: 0; overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; gap: 0; }
+  .sidebar-nav::-webkit-scrollbar { display: none; }
+  .nav-item { flex: 0 0 auto; flex-direction: column; gap: 2px; padding: 10px 8px; margin: 0; font-size: 0.7rem; min-width: 52px; align-items: center; text-align: center; }
   .nav-item .icon { font-size: 1.15rem; }
-  .nav-item-text { display: block !important; font-size: 0.6rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+  .nav-item-text { display: block !important; font-size: 0.58rem; white-space: nowrap; }
   .sidebar-footer { display: none; }
   .main { margin-left: 0; padding: 12px 10px 80px; }
   .stats-row { grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 16px; }
