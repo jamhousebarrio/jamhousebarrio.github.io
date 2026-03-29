@@ -1,15 +1,6 @@
 import { sheets as sheetsApi } from '@googleapis/sheets';
 import { GoogleAuth } from 'google-auth-library';
-
-function colToLetter(col) {
-  var letter = '';
-  var c = col;
-  while (c >= 0) {
-    letter = String.fromCharCode(65 + (c % 26)) + letter;
-    c = Math.floor(c / 26) - 1;
-  }
-  return letter;
-}
+import { colToLetter } from './_lib/sheets.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -198,12 +189,12 @@ export default async function handler(req, res) {
         var col = headers.indexOf(key);
         if (col === -1) continue;
         if (key === 'Total Actual') continue;
-        var colLetter = colToLetter(col);
+        var cl = colToLetter(col);
         var val = data[key];
         if (key === 'Paid') {
           val = val === true || val === 'true' || val === 'TRUE';
         }
-        updates.push({ range: 'Budget!' + colLetter + row, values: [[val]] });
+        updates.push({ range: 'Budget!' + cl + row, values: [[val]] });
       }
       if (updates.length === 0) {
         return res.status(400).json({ error: 'No valid fields to update' });

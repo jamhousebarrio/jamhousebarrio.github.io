@@ -21,12 +21,6 @@
     return m['Playa Name'] || m['Name'] || '';
   }).filter(Boolean).sort();
 
-  function esc(str) {
-    return (str || '').toString()
-      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;');
-  }
-
   // ── Data fetching ─────────────────────────────────────────────────────────
 
   async function fetchData() {
@@ -122,7 +116,7 @@
     html += '</tr><tr>';
     dates.forEach(function () {
       periods.forEach(function (p) {
-        html += '<th class="period-header">' + esc(p) + '</th>';
+        html += '<th class="period-header">' + JH.esc(p) + '</th>';
       });
     });
     html += '</tr></thead><tbody>';
@@ -131,7 +125,7 @@
     people.forEach(function (person) {
       var arrival = getArrivalDate(person);
       html += '<tr>';
-      html += '<td class="name-cell">' + esc(person);
+      html += '<td class="name-cell">' + JH.esc(person);
       if (arrival) html += '<span class="arrival-badge">arr: ' + JH.formatDate(arrival) + '</span>';
       html += '</td>';
 
@@ -141,11 +135,11 @@
           var available = isAvailable(person, date);
 
           if (isAdmin && available) {
-            html += '<td class="task-cell" data-person="' + esc(person) + '" data-date="' + esc(date) + '" data-period="' + esc(period) + '">' + esc(task) + '</td>';
+            html += '<td class="task-cell" data-person="' + JH.esc(person) + '" data-date="' + JH.esc(date) + '" data-period="' + JH.esc(period) + '">' + JH.esc(task) + '</td>';
           } else if (!available) {
-            html += '<td class="task-cell unavailable" title="Not arrived yet">' + esc(task) + '</td>';
+            html += '<td class="task-cell unavailable" title="Not arrived yet">' + JH.esc(task) + '</td>';
           } else {
-            html += '<td>' + esc(task) + '</td>';
+            html += '<td>' + JH.esc(task) + '</td>';
           }
         });
       });
@@ -171,7 +165,7 @@
       html += '</div>';
       html += '<div class="task-panel-body' + (taskPanelOpen ? '' : ' collapsed') + '" id="task-panel-body">';
       state.tasks.forEach(function (task, idx) {
-        html += '<span class="task-chip" draggable="true" data-task="' + esc(task) + '" data-idx="' + idx + '">' + esc(task) + '</span>';
+        html += '<span class="task-chip" draggable="true" data-task="' + JH.esc(task) + '" data-idx="' + idx + '">' + JH.esc(task) + '</span>';
       });
       html += '</div>';
       html += '<div class="task-panel-add" id="task-add-row"' + (taskPanelOpen ? '' : ' style="display:none"') + '>';

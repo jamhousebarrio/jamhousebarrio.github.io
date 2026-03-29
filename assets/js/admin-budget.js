@@ -19,7 +19,7 @@
 
   if (data.sheetUrl) {
     var subtitle = document.querySelector('.subtitle');
-    if (subtitle) subtitle.innerHTML = 'Budget tracking by category &nbsp;·&nbsp; <a href="' + data.sheetUrl + '" target="_blank" rel="noopener" style="color:var(--accent);font-size:0.85rem;">Open spreadsheet ↗</a>';
+    if (subtitle) subtitle.innerHTML = 'Budget tracking by category &nbsp;·&nbsp; <a href="' + JH.esc(data.sheetUrl) + '" target="_blank" rel="noopener" style="color:var(--accent);font-size:0.85rem;">Open spreadsheet ↗</a>';
   }
 
   function eur(n) { return '\u20AC' + (Number(n) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
@@ -608,7 +608,12 @@
     }
   });
 
-  // ── Barrio Fee Payments ─────────────────────────────────────────────────
+  // ── Barrio Fee Payments (admin only) ────────────────────────────────────
+
+  if (isAdmin) {
+    var feesPanel = document.getElementById('fees-panel');
+    if (feesPanel) feesPanel.style.display = '';
+  }
 
   // Build fee lookup from Barrio Fee tab by member name
   var feeMap = {};

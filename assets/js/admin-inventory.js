@@ -7,12 +7,6 @@
 
   // ── Helpers ───────────────────────────────────────────────────────────────
 
-  function esc(str) {
-    return (str || '').toString()
-      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;');
-  }
-
   function categoryClass(cat) {
     var map = { Materials: 'cat-materials', Tools: 'cat-tools', Instruments: 'cat-instruments', Other: 'cat-other' };
     return map[cat] || 'cat-other';
@@ -57,30 +51,30 @@
         photoSrc = 'https://drive.google.com/thumbnail?id=' + driveMatch[1] + '&sz=w400';
       }
       var photoHtml = photoSrc
-        ? '<a href="' + esc(item.PhotoURL) + '" target="_blank"><img class="item-photo" src="' + esc(photoSrc) + '" alt="' + esc(item.Name) + '" onerror="this.parentNode.outerHTML=\'<div class=\\\"item-photo-placeholder\\\">&#128230;</div>\'"></a>'
+        ? '<a href="' + JH.esc(item.PhotoURL) + '" target="_blank"><img class="item-photo" src="' + JH.esc(photoSrc) + '" alt="' + JH.esc(item.Name) + '" onerror="this.parentNode.outerHTML=\'<div class=\\\"item-photo-placeholder\\\">&#128230;</div>\'"></a>'
         : '<div class="item-photo-placeholder">&#128230;</div>';
 
       var catClass = categoryClass(item.Category);
       var catLabel = item.Category || 'Other';
 
       var metaHtml = '';
-      if (item.Quantity) metaHtml += '<span><strong>Qty:</strong> ' + esc(item.Quantity) + '</span>';
-      if (item.Location) metaHtml += '<span><strong>Loc:</strong> ' + esc(item.Location) + '</span>';
+      if (item.Quantity) metaHtml += '<span><strong>Qty:</strong> ' + JH.esc(item.Quantity) + '</span>';
+      if (item.Location) metaHtml += '<span><strong>Loc:</strong> ' + JH.esc(item.Location) + '</span>';
 
-      return '<div class="item-card" data-item-id="' + esc(item.ItemID) + '">' +
+      return '<div class="item-card" data-item-id="' + JH.esc(item.ItemID) + '">' +
         photoHtml +
         '<div class="item-body">' +
         '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">' +
-        '<p class="item-name">' + esc(item.Name) + '</p>' +
-        '<span class="item-category ' + catClass + '">' + esc(catLabel) + '</span>' +
+        '<p class="item-name">' + JH.esc(item.Name) + '</p>' +
+        '<span class="item-category ' + catClass + '">' + JH.esc(catLabel) + '</span>' +
         '</div>' +
-        (item.Description ? '<p class="item-desc">' + esc(item.Description) + '</p>' : '') +
+        (item.Description ? '<p class="item-desc">' + JH.esc(item.Description) + '</p>' : '') +
         (metaHtml ? '<div class="item-meta">' + metaHtml + '</div>' : '') +
-        (item.Notes ? '<p style="font-size:0.78rem;color:var(--text-muted);margin:2px 0 0;font-style:italic">' + esc(item.Notes) + '</p>' : '') +
+        (item.Notes ? '<p style="font-size:0.78rem;color:var(--text-muted);margin:2px 0 0;font-style:italic">' + JH.esc(item.Notes) + '</p>' : '') +
         '</div>' +
         '<div class="item-actions">' +
-        '<button class="btn-edit" data-edit="' + esc(item.ItemID) + '">Edit</button>' +
-        '<button class="btn-delete" data-delete="' + esc(item.ItemID) + '">Delete</button>' +
+        '<button class="btn-edit" data-edit="' + JH.esc(item.ItemID) + '">Edit</button>' +
+        '<button class="btn-delete" data-delete="' + JH.esc(item.ItemID) + '">Delete</button>' +
         '</div>' +
         '</div>';
     }).join('');

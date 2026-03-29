@@ -1,15 +1,6 @@
 import { sheets as sheetsApi } from '@googleapis/sheets';
 import { GoogleAuth } from 'google-auth-library';
-
-function colToLetter(col) {
-  var letter = '';
-  var c = col;
-  while (c >= 0) {
-    letter = String.fromCharCode(65 + (c % 26)) + letter;
-    c = Math.floor(c / 26) - 1;
-  }
-  return letter;
-}
+import { colToLetter } from './_lib/sheets.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
