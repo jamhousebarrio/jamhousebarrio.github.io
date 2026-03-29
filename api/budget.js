@@ -74,10 +74,19 @@ export default async function handler(req, res) {
         range: "'Barrio Fee'",
       });
       const feeRows = feeRes.data.values || [];
+      const feeHeaders = feeRows[0] || [];
       let totalExpected = 0, totalPaid = 0;
-      feeRows.slice(1).forEach(r => {
-        totalExpected += parseFloat(r[2]) || 0;
-        totalPaid += parseFloat(r[3]) || 0;
+      const feeMembers = [];
+      feeRows.slice(1).forEach((r, i) => {
+        const expected = parseFloat(r[2]) || 0;
+        const paid = parseFloat(r[3]) || 0;
+        totalExpected += expected;
+        totalPaid += paid;
+        const obj = { _row: i + 2 };
+        feeHeaders.forEach((h, j) => { obj[h] = r[j] || ''; });
+        obj._expected = expected;
+        obj._paid = paid;
+        feeMembers.push(obj);
       });
 
       let shoppingRequests = [];
@@ -103,7 +112,7 @@ export default async function handler(req, res) {
       return res.status(200).json({
         items,
         headers,
-        fees: { expected: totalExpected, paid: totalPaid },
+        fees: { expected: totalExpected, paid: totalPaid, members: feeMembers, feeHeaders: feeHeaders },
         sheetUrl,
         shoppingRequests,
       });
@@ -244,6 +253,19 @@ export default async function handler(req, res) {
         range: `ShoppingRequests!${cl}${rowIdx + 1}`,
         valueInputOption: 'RAW',
         requestBody: { values: [[action === 'approve-request' ? 'approved' : 'rejected']] },
+      });
+      return res.status(200).json({ success: true });
+    }
+
+    if (action === 'update-fee') {
+      const { row, amount } = payload;
+      if (!row) return res.status(400).json({ error: 'row required' });
+      // Update the paid column (index 3 = column D) in Barrio Fee tab
+      await sheets.spreadsheets.values.update({
+        spreadsheetId,
+        range: "'Barrio Fee'!D" + row,
+        valueInputOption: 'USER_ENTERED',
+        requestBody: { values: [[amount != null ? amount : '']] },
       });
       return res.status(200).json({ success: true });
     }

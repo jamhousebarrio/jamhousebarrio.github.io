@@ -148,6 +148,10 @@ access: general
       <div class="stat-number" id="stat-spent" style="color:#4caf50;">-</div>
     </div>
     <div class="stat-card">
+      <div class="stat-label">Committed (Fees Paid)</div>
+      <div class="stat-number" id="stat-committed" style="color:#42a5f5;">-</div>
+    </div>
+    <div class="stat-card">
       <div class="stat-label">Remaining</div>
       <div class="stat-number" id="stat-remaining" style="color:#ff9800;">-</div>
     </div>
@@ -238,6 +242,18 @@ access: general
     </div>
   </div>
 </div>
+
+  <!-- Barrio Fees section -->
+  <div class="panel" id="fees-panel" style="margin-top:20px">
+    <div class="panel-header">
+      <h2>&#128176; Barrio Fee Payments</h2>
+    </div>
+    <p style="color:var(--text-muted);font-size:0.82rem;margin:0 0 4px;padding:0 2px">Each member contributes a barrio fee to fund the camp. Track payments and installments below.</p>
+    <div class="fees-progress" id="fees-progress" style="margin:12px 0"></div>
+    <div id="fees-table-wrap">
+      <div style="color:var(--text-muted);font-size:0.9rem;padding:12px 0">Loading...</div>
+    </div>
+  </div>
 
 <div class="budget-detail-overlay" id="budget-detail-overlay">
   <div class="budget-detail-modal">
