@@ -36,3 +36,5 @@ We're looking for people who want to be part of JamHouse for 2026. Musicians and
 
 **[Apply for Membership](apply)**
 
+**[Build Instructions](build)** — how to build our camp structures
+
