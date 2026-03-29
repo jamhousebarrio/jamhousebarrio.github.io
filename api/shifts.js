@@ -1,16 +1,4 @@
-import { sheets as sheetsApi } from '@googleapis/sheets';
-import { GoogleAuth } from 'google-auth-library';
-
-function getSheets(write = false) {
-  const creds = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY);
-  const auth = new GoogleAuth({
-    credentials: creds,
-    scopes: [write
-      ? 'https://www.googleapis.com/auth/spreadsheets'
-      : 'https://www.googleapis.com/auth/spreadsheets.readonly'],
-  });
-  return sheetsApi({ version: 'v4', auth });
-}
+import { getSheets } from './_lib/sheets.js';
 
 async function getRows(sheets, spreadsheetId) {
   try {

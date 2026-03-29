@@ -9,12 +9,6 @@
   var viewYear = 2026;
   var viewMonth = 6; // July (0-indexed)
 
-  function esc(str) {
-    return (str || '').toString()
-      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;');
-  }
-
   function statusClass(status) {
     var s = (status || '').toLowerCase();
     if (s === 'confirmed') return 'status-confirmed';
@@ -90,10 +84,10 @@
           if (ev.EndTime) timeStr += ' - ' + JH.to24h(ev.EndTime);
         }
 
-        html += '<div class="cal-event ' + sClass + '" data-name="' + esc(ev.Name) + '">';
-        html += '<div class="cal-event-name">' + esc(ev.Name) + '</div>';
-        if (timeStr) html += '<div class="cal-event-time">' + esc(timeStr) + '</div>';
-        if (ev.Responsible) html += '<div class="cal-event-lead">' + esc(ev.Responsible) + '</div>';
+        html += '<div class="cal-event ' + sClass + '" data-name="' + JH.esc(ev.Name) + '">';
+        html += '<div class="cal-event-name">' + JH.esc(ev.Name) + '</div>';
+        if (timeStr) html += '<div class="cal-event-time">' + JH.esc(timeStr) + '</div>';
+        if (ev.Responsible) html += '<div class="cal-event-lead">' + JH.esc(ev.Responsible) + '</div>';
         html += '</div>';
       });
 

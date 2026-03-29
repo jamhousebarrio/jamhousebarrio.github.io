@@ -11,16 +11,10 @@
 
   // ── Helpers ───────────────────────────────────────────────────────────────
 
-  function esc(str) {
-    return (str || '').toString()
-      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;');
-  }
-
   function campBadge(type) {
     if (!type) return '<span class="not-filled">—</span>';
     var cls = 'camp-badge camp-' + type.toLowerCase().replace(/\s+/g, '-');
-    return '<span class="' + cls + '">' + esc(type) + '</span>';
+    return '<span class="' + cls + '">' + JH.esc(type) + '</span>';
   }
 
   // ── Name selector ─────────────────────────────────────────────────────────
@@ -33,7 +27,7 @@
 
   function renderNameDisplay() {
     var wrap = document.getElementById('name-display-wrap');
-    wrap.innerHTML = '<div id="name-display" style="margin-bottom:16px"><span style="font-size:0.8rem;color:var(--text-muted)">Signed in as <strong style="color:var(--accent)">' + esc(state.myName) + '</strong> \u2014 <a href="#" id="change-name-link" style="color:var(--text-muted);font-size:0.78rem">change</a></span></div>';
+    wrap.innerHTML = '<div id="name-display" style="margin-bottom:16px"><span style="font-size:0.8rem;color:var(--text-muted)">Signed in as <strong style="color:var(--accent)">' + JH.esc(state.myName) + '</strong> \u2014 <a href="#" id="change-name-link" style="color:var(--text-muted);font-size:0.78rem">change</a></span></div>';
     document.getElementById('change-name-link').addEventListener('click', function (e) {
       e.preventDefault();
       populateNameSelect();
@@ -99,17 +93,17 @@
     var html = '';
     if (!hasData) {
       html += '<div style="background:rgba(232,168,76,0.1);border:1px solid var(--accent);border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:0.85rem;color:var(--text)">';
-      html += '<strong style="color:var(--accent)">Hey ' + esc(state.myName) + '!</strong> We don\'t have your arrival info yet. Please fill in the form below so we can plan meals and pickups.';
+      html += '<strong style="color:var(--accent)">Hey ' + JH.esc(state.myName) + '!</strong> We don\'t have your arrival info yet. Please fill in the form below so we can plan meals and pickups.';
       html += '</div>';
     }
     html += '<form id="logistics-form">';
-    html += '<div class="form-row"><label>Arrival Date</label><input type="text" id="f-arrival" placeholder="dd/mm/yyyy" value="' + esc(row['ArrivalDate'] || '') + '"></div>';
-    html += '<div class="form-row"><label>Arriving at (time)</label><input type="text" id="f-arrival-time" placeholder="HH:MM" value="' + esc(row['ArrivalTime'] || '') + '"><div class="form-hint">So we know how many mouths to feed!</div></div>';
+    html += '<div class="form-row"><label>Arrival Date</label><input type="text" id="f-arrival" placeholder="dd/mm/yyyy" value="' + JH.esc(row['ArrivalDate'] || '') + '"></div>';
+    html += '<div class="form-row"><label>Arriving at (time)</label><input type="text" id="f-arrival-time" placeholder="HH:MM" value="' + JH.esc(row['ArrivalTime'] || '') + '"><div class="form-hint">So we know how many mouths to feed!</div></div>';
     html += '<div class="form-row"><label>How are you getting there?</label><select id="f-transport">';
     ['', 'vehicle', 'bus', 'train', 'ride-share', 'other'].forEach(function (opt) {
       var selected = (row['Transport'] || '') === opt ? ' selected' : '';
       var label = opt ? opt.charAt(0).toUpperCase() + opt.slice(1) : 'Select...';
-      html += '<option value="' + esc(opt) + '"' + selected + '>' + label + '</option>';
+      html += '<option value="' + JH.esc(opt) + '"' + selected + '>' + label + '</option>';
     });
     html += '</select></div>';
     var showPickup = row['Transport'] === 'train';
@@ -117,20 +111,20 @@
     ['', 'yes', 'no'].forEach(function (opt) {
       var selected = (row['NeedsPickup'] || '') === opt ? ' selected' : '';
       var label = opt === 'yes' ? 'Yes please!' : opt === 'no' ? 'No, I\'ll manage' : 'Select...';
-      html += '<option value="' + esc(opt) + '"' + selected + '>' + label + '</option>';
+      html += '<option value="' + JH.esc(opt) + '"' + selected + '>' + label + '</option>';
     });
     html += '</select></div>';
-    html += '<div class="form-row"><label>Departure Date</label><input type="text" id="f-departure" placeholder="dd/mm/yyyy" value="' + esc(row['DepartureDate'] || '') + '"></div>';
+    html += '<div class="form-row"><label>Departure Date</label><input type="text" id="f-departure" placeholder="dd/mm/yyyy" value="' + JH.esc(row['DepartureDate'] || '') + '"></div>';
     html += '<div class="form-row"><label>Camping Type</label><select id="f-camping">';
     ['', 'tent', 'caravan', 'out-of-camp'].forEach(function (opt) {
       var selected = (row['CampingType'] || '') === opt ? ' selected' : '';
       var label = opt === 'caravan' ? 'Caravan' : (opt ? opt.charAt(0).toUpperCase() + opt.slice(1) : 'Select...');
-      html += '<option value="' + esc(opt) + '"' + selected + '>' + label + '</option>';
+      html += '<option value="' + JH.esc(opt) + '"' + selected + '>' + label + '</option>';
     });
     html += '</select></div>';
     var showSize = row['CampingType'] === 'tent' || row['CampingType'] === 'caravan';
-    html += '<div class="form-row tent-size-row' + (showSize ? ' visible' : '') + '" id="tent-size-row"><label>Size</label><input type="text" id="f-tent-size" placeholder="e.g. 2-person, 4x4m" value="' + esc(row['TentSize'] || '') + '"></div>';
-    html += '<div class="form-row"><label>Notes</label><textarea id="f-notes" placeholder="Anything else the team should know...">' + esc(row['Notes'] || '') + '</textarea></div>';
+    html += '<div class="form-row tent-size-row' + (showSize ? ' visible' : '') + '" id="tent-size-row"><label>Size</label><input type="text" id="f-tent-size" placeholder="e.g. 2-person, 4x4m" value="' + JH.esc(row['TentSize'] || '') + '"></div>';
+    html += '<div class="form-row"><label>Notes</label><textarea id="f-notes" placeholder="Anything else the team should know...">' + JH.esc(row['Notes'] || '') + '</textarea></div>';
     html += '<div style="display:flex;align-items:center">';
     html += '<button type="submit" class="btn-primary" id="save-btn">Save</button>';
     html += '<span class="save-feedback" id="save-feedback">Saved!</span>';
@@ -249,16 +243,16 @@
       var rowClass = isMe ? ' class="my-row"' : '';
 
       html += '<tr' + rowClass + '>';
-      html += '<td><strong>' + esc(name) + (isMe ? ' <span style="color:var(--accent);font-size:0.75rem">(you)</span>' : '') + '</strong></td>';
+      html += '<td><strong>' + JH.esc(name) + (isMe ? ' <span style="color:var(--accent);font-size:0.75rem">(you)</span>' : '') + '</strong></td>';
 
       if (row) {
         html += '<td>' + (row['ArrivalDate'] ? JH.formatDate(row['ArrivalDate']) : '<span class="not-filled">—</span>') + '</td>';
-        html += '<td>' + (row['ArrivalTime'] ? esc(row['ArrivalTime']) : '<span class="not-filled">—</span>') + '</td>';
-        html += '<td>' + (row['Transport'] ? esc(row['Transport']) : '<span class="not-filled">—</span>') + '</td>';
-        html += '<td>' + (row['NeedsPickup'] ? esc(row['NeedsPickup']) : '<span class="not-filled">—</span>') + '</td>';
+        html += '<td>' + (row['ArrivalTime'] ? JH.esc(row['ArrivalTime']) : '<span class="not-filled">—</span>') + '</td>';
+        html += '<td>' + (row['Transport'] ? JH.esc(row['Transport']) : '<span class="not-filled">—</span>') + '</td>';
+        html += '<td>' + (row['NeedsPickup'] ? JH.esc(row['NeedsPickup']) : '<span class="not-filled">—</span>') + '</td>';
         html += '<td>' + (row['DepartureDate'] ? JH.formatDate(row['DepartureDate']) : '<span class="not-filled">—</span>') + '</td>';
         html += '<td>' + campBadge(row['CampingType']) + '</td>';
-        html += '<td>' + (row['Notes'] ? esc(row['Notes']) : '<span class="not-filled">—</span>') + '</td>';
+        html += '<td>' + (row['Notes'] ? JH.esc(row['Notes']) : '<span class="not-filled">—</span>') + '</td>';
       } else {
         html += '<td colspan="7"><span class="not-filled">Not filled in yet</span></td>';
       }

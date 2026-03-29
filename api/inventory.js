@@ -1,101 +1,4 @@
-import { sheets as sheetsApi } from '@googleapis/sheets';
-import { GoogleAuth } from 'google-auth-library';
-
-function getSheets(write) {
-  const creds = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY);
-  const auth = new GoogleAuth({
-    credentials: creds,
-    scopes: [write
-      ? 'https://www.googleapis.com/auth/spreadsheets'
-      : 'https://www.googleapis.com/auth/spreadsheets.readonly'],
-  });
-  return sheetsApi({ version: 'v4', auth });
-}
-
-async function safeGet(sheets, spreadsheetId, range) {
-  try {
-    const res = await sheets.spreadsheets.values.get({ spreadsheetId, range });
-    return res.data.values || [];
-  } catch (e) {
-    return [];
-  }
-}
-
-function toObjects(values) {
-  if (!values || values.length < 2) return [];
-  const headers = values[0];
-  return values.slice(1).map(row => {
-    const obj = {};
-    headers.forEach((h, i) => { obj[h] = row[i] || ''; });
-    return obj;
-  });
-}
-
-async function getSheetId(sheets, spreadsheetId, name) {
-  const meta = await sheets.spreadsheets.get({ spreadsheetId, fields: 'sheets.properties' });
-  const sheet = meta.data.sheets.find(s => s.properties.title === name);
-  return sheet ? sheet.properties.sheetId : null;
-}
-
-async function getRows(sheets, spreadsheetId, tab) {
-  try {
-    const res = await sheets.spreadsheets.values.get({ spreadsheetId, range: tab });
-    return res.data.values || [];
-  } catch (e) { return []; }
-}
-
-async function deleteRowById(sheets, spreadsheetId, tab, idColName, idValue) {
-  const rows = await getRows(sheets, spreadsheetId, tab);
-  if (!rows.length) return false;
-  const headers = rows[0];
-  const idCol = headers.indexOf(idColName);
-  const rowIdx = rows.findIndex((r, i) => i > 0 && r[idCol] === idValue);
-  if (rowIdx === -1) return false;
-  const sheetId = await getSheetId(sheets, spreadsheetId, tab);
-  if (sheetId === null) return false;
-  await sheets.spreadsheets.batchUpdate({
-    spreadsheetId,
-    requestBody: {
-      requests: [{ deleteDimension: { range: { sheetId, dimension: 'ROWS', startIndex: rowIdx, endIndex: rowIdx + 1 } } }]
-    }
-  });
-  return true;
-}
-
-async function ensureTab(sheets, spreadsheetId, tab) {
-  try {
-    await sheets.spreadsheets.batchUpdate({
-      spreadsheetId,
-      requestBody: { requests: [{ addSheet: { properties: { title: tab } } }] },
-    });
-  } catch (e) { /* tab already exists */ }
-}
-
-async function upsertRow(sheets, spreadsheetId, tab, idColName, idValue, rowValues) {
-  const rows = await getRows(sheets, spreadsheetId, tab);
-  if (!rows.length) {
-    await ensureTab(sheets, spreadsheetId, tab);
-    await sheets.spreadsheets.values.update({
-      spreadsheetId, range: tab + '!A1', valueInputOption: 'RAW',
-      requestBody: { values: [['ItemID', 'Name', 'Category', 'Description', 'PhotoURL', 'Quantity', 'Location', 'Notes'], rowValues] }
-    });
-    return;
-  }
-  const headers = rows[0];
-  const idCol = headers.indexOf(idColName);
-  const existingIdx = rows.findIndex((r, i) => i > 0 && r[idCol] === idValue);
-  if (existingIdx === -1) {
-    await sheets.spreadsheets.values.append({
-      spreadsheetId, range: tab, valueInputOption: 'RAW',
-      requestBody: { values: [rowValues] }
-    });
-  } else {
-    await sheets.spreadsheets.values.update({
-      spreadsheetId, range: `${tab}!A${existingIdx + 1}`, valueInputOption: 'RAW',
-      requestBody: { values: [rowValues] }
-    });
-  }
-}
+import { getSheets, safeGet, toObjects, deleteRowById, upsertRow } from './_lib/sheets.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -107,6 +10,7 @@ export default async function handler(req, res) {
   }
 
   const spreadsheetId = process.env.SHEET_ID;
+  const HEADERS = ['ItemID', 'Name', 'Category', 'Description', 'PhotoURL', 'Quantity', 'Location', 'Notes'];
 
   try {
     // ── Fetch (default) ───────────────────────────────────────────────────
@@ -122,7 +26,7 @@ export default async function handler(req, res) {
       case 'upsert': {
         const { itemId, name, category, description, photoUrl, quantity, location, notes } = payload;
         if (!itemId || !name) return res.status(400).json({ error: 'itemId and name required' });
-        await upsertRow(sheets, spreadsheetId, 'Inventory', 'ItemID', itemId,
+        await upsertRow(sheets, spreadsheetId, 'Inventory', 'ItemID', itemId, HEADERS,
           [itemId, name, category || '', description || '', photoUrl || '', quantity || '', location || '', notes || '']);
         break;
       }

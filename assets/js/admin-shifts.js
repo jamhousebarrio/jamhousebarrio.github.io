@@ -11,23 +11,8 @@
 
   var shifts = [];
 
-  function esc(s) {
-    return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-  }
-
   function fmt(dateStr) {
     return JH.formatDateLong(dateStr);
-  }
-
-  function to24h(t) {
-    if (!t) return '';
-    var m = t.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
-    if (!m) return t;
-    var h = parseInt(m[1], 10);
-    var ampm = m[3].toUpperCase();
-    if (ampm === 'AM' && h === 12) h = 0;
-    else if (ampm === 'PM' && h !== 12) h += 12;
-    return (h < 10 ? '0' : '') + h + ':' + m[2];
   }
 
   async function fetchShifts() {
@@ -57,26 +42,26 @@
       + '</tr></thead><tbody>';
 
     shifts.forEach(function (s) {
-      var time = s.StartTime && s.EndTime ? to24h(s.StartTime) + ' \u2013 ' + to24h(s.EndTime)
-               : s.StartTime ? to24h(s.StartTime) : '';
+      var time = s.StartTime && s.EndTime ? JH.to24h(s.StartTime) + ' \u2013 ' + JH.to24h(s.EndTime)
+               : s.StartTime ? JH.to24h(s.StartTime) : '';
       var assignedHtml = s.AssignedTo
-        ? '<span class="assigned-chip">' + esc(s.AssignedTo) + '</span>'
+        ? '<span class="assigned-chip">' + JH.esc(s.AssignedTo) + '</span>'
         : '<span class="open-badge">Open</span>';
 
       var actions = '';
       if (!s.AssignedTo) {
-        actions += '<button class="btn-sm assign-btn" data-id="' + esc(s.ShiftID) + '">Assign</button>';
+        actions += '<button class="btn-sm assign-btn" data-id="' + JH.esc(s.ShiftID) + '">Assign</button>';
       } else if (isAdmin) {
-        actions += '<button class="btn-danger-sm unassign-btn" data-id="' + esc(s.ShiftID) + '">Unassign</button>';
+        actions += '<button class="btn-danger-sm unassign-btn" data-id="' + JH.esc(s.ShiftID) + '">Unassign</button>';
       }
       if (isAdmin) {
-        actions += ' <button class="btn-danger-sm delete-btn" data-id="' + esc(s.ShiftID) + '">Delete</button>';
+        actions += ' <button class="btn-danger-sm delete-btn" data-id="' + JH.esc(s.ShiftID) + '">Delete</button>';
       }
 
       html += '<tr>'
-        + '<td><strong>' + esc(s.Name) + '</strong></td>'
-        + '<td>' + esc(fmt(s.Date)) + '</td>'
-        + '<td class="shift-time">' + esc(time) + '</td>'
+        + '<td><strong>' + JH.esc(s.Name) + '</strong></td>'
+        + '<td>' + JH.esc(fmt(s.Date)) + '</td>'
+        + '<td class="shift-time">' + JH.esc(time) + '</td>'
         + '<td>' + assignedHtml + '</td>'
         + '<td style="white-space:nowrap">' + actions + '</td>'
         + '</tr>';

@@ -7,31 +7,12 @@
   var state = { items: [], logistics: [] };
   var activeFilter = 'all';
 
-  function esc(str) {
-    return (str || '').toString()
-      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;');
-  }
-
   function getHeadcount(dateStr) {
-    return state.logistics.filter(function (l) {
-      if (!l.ArrivalDate || !l.DepartureDate) return false;
-      return l.ArrivalDate <= dateStr && l.DepartureDate >= dateStr;
-    }).length;
+    return JH.getHeadcount(state.logistics, dateStr);
   }
 
   function getAllDates() {
-    var dateSet = {};
-    state.logistics.forEach(function (l) {
-      if (!l.ArrivalDate || !l.DepartureDate) return;
-      var d = new Date(l.ArrivalDate + 'T00:00:00');
-      var end = new Date(l.DepartureDate + 'T00:00:00');
-      while (d <= end) {
-        dateSet[d.toISOString().slice(0, 10)] = true;
-        d.setDate(d.getDate() + 1);
-      }
-    });
-    return Object.keys(dateSet).sort();
+    return JH.getAllDates(state.logistics);
   }
 
   function getPeakHeadcount() {
@@ -146,18 +127,18 @@
       dates.forEach(function (d) { eventTotal += getHeadcount(d) * rate; });
 
       html += '<tr>';
-      html += '<td><strong>' + esc(item.Name) + '</strong>';
-      if (item.Notes) html += '<br><span style="font-size:0.78rem;color:var(--text-muted);font-style:italic">' + esc(item.Notes) + '</span>';
+      html += '<td><strong>' + JH.esc(item.Name) + '</strong>';
+      if (item.Notes) html += '<br><span style="font-size:0.78rem;color:var(--text-muted);font-style:italic">' + JH.esc(item.Notes) + '</span>';
       html += '</td>';
-      html += '<td><span class="item-category ' + categoryClass(item.Category) + '">' + esc(item.Category || 'Other') + '</span></td>';
-      html += '<td>' + esc(item.Unit) + '</td>';
+      html += '<td><span class="item-category ' + categoryClass(item.Category) + '">' + JH.esc(item.Category || 'Other') + '</span></td>';
+      html += '<td>' + JH.esc(item.Unit) + '</td>';
       html += '<td class="num-col">' + formatNum(rate) + '</td>';
       html += '<td class="num-col"><strong>' + formatNum(peakDaily) + '</strong></td>';
       html += '<td class="num-col"><strong>' + formatNum(eventTotal) + '</strong></td>';
       if (isAdmin) {
         html += '<td><div style="display:flex;gap:4px">' +
-          '<button class="btn-secondary btn-sm edit-item-btn" data-name="' + esc(item.Name) + '">Edit</button>' +
-          '<button class="btn-danger btn-sm delete-item-btn" data-name="' + esc(item.Name) + '">Delete</button>' +
+          '<button class="btn-secondary btn-sm edit-item-btn" data-name="' + JH.esc(item.Name) + '">Edit</button>' +
+          '<button class="btn-danger btn-sm delete-item-btn" data-name="' + JH.esc(item.Name) + '">Delete</button>' +
           '</div></td>';
       } else {
         html += '<td></td>';

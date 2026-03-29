@@ -1,85 +1,4 @@
-import { sheets as sheetsApi } from '@googleapis/sheets';
-import { GoogleAuth } from 'google-auth-library';
-
-function getSheets(write) {
-  const creds = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY);
-  const auth = new GoogleAuth({
-    credentials: creds,
-    scopes: [write
-      ? 'https://www.googleapis.com/auth/spreadsheets'
-      : 'https://www.googleapis.com/auth/spreadsheets.readonly'],
-  });
-  return sheetsApi({ version: 'v4', auth });
-}
-
-async function safeGet(sheets, spreadsheetId, range) {
-  try {
-    const res = await sheets.spreadsheets.values.get({ spreadsheetId, range });
-    return res.data.values || [];
-  } catch (e) {
-    return [];
-  }
-}
-
-function toObjects(values) {
-  if (!values || values.length < 2) return [];
-  const headers = values[0];
-  return values.slice(1).map(row => {
-    const obj = {};
-    headers.forEach((h, i) => { obj[h] = row[i] || ''; });
-    return obj;
-  });
-}
-
-async function getSheetId(sheets, spreadsheetId, name) {
-  const meta = await sheets.spreadsheets.get({ spreadsheetId, fields: 'sheets.properties' });
-  const sheet = meta.data.sheets.find(s => s.properties.title === name);
-  return sheet ? sheet.properties.sheetId : null;
-}
-
-async function getRows(sheets, spreadsheetId, tab) {
-  try {
-    const res = await sheets.spreadsheets.values.get({ spreadsheetId, range: tab });
-    return res.data.values || [];
-  } catch (e) { return []; }
-}
-
-async function deleteRowById(sheets, spreadsheetId, tab, idColName, idValue) {
-  const rows = await getRows(sheets, spreadsheetId, tab);
-  if (!rows.length) return false;
-  const headers = rows[0];
-  const idCol = headers.indexOf(idColName);
-  const rowIdx = rows.findIndex((r, i) => i > 0 && r[idCol] === idValue);
-  if (rowIdx === -1) return false;
-  const sheetId = await getSheetId(sheets, spreadsheetId, tab);
-  if (sheetId === null) return false;
-  await sheets.spreadsheets.batchUpdate({
-    spreadsheetId,
-    requestBody: {
-      requests: [{ deleteDimension: { range: { sheetId, dimension: 'ROWS', startIndex: rowIdx, endIndex: rowIdx + 1 } } }]
-    }
-  });
-  return true;
-}
-
-async function upsertRow(sheets, spreadsheetId, tab, idColName, idValue, rowValues) {
-  const rows = await getRows(sheets, spreadsheetId, tab);
-  if (!rows.length) return;
-  const headers = rows[0];
-  const idCol = headers.indexOf(idColName);
-  const existingIdx = rows.findIndex((r, i) => i > 0 && r[idCol] === idValue);
-  if (existingIdx === -1) {
-    await sheets.spreadsheets.values.append({
-      spreadsheetId, range: tab, valueInputOption: 'RAW',
-      requestBody: { values: [rowValues] }
-    });
-  } else {
-    await sheets.spreadsheets.values.update({
-      spreadsheetId, range: `${tab}!A${existingIdx + 1}`, valueInputOption: 'RAW',
-      requestBody: { values: [rowValues] }
-    });
-  }
-}
+import { getSheets, safeGet, toObjects, getRows, getSheetId, deleteRowById, upsertRow } from './_lib/sheets.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -91,6 +10,8 @@ export default async function handler(req, res) {
   }
 
   const spreadsheetId = process.env.SHEET_ID;
+  const MEAL_HEADERS = ['MealID', 'Name', 'Date', 'MealType', 'Description', 'Instructions'];
+  const INGREDIENT_HEADERS = ['IngredientID', 'MealID', 'Name', 'Quantity', 'Unit'];
 
   try {
     // ── Fetch (default) ───────────────────────────────────────────────────
@@ -119,7 +40,7 @@ export default async function handler(req, res) {
       case 'upsert-meal': {
         const { mealId, name, date, mealType, description, instructions } = payload;
         if (!mealId || !name || !date) return res.status(400).json({ error: 'mealId, name, date required' });
-        await upsertRow(sheets, spreadsheetId, 'Meals', 'MealID', mealId,
+        await upsertRow(sheets, spreadsheetId, 'Meals', 'MealID', mealId, MEAL_HEADERS,
           [mealId, name, date, mealType || '', description || '', instructions || '']);
         break;
       }
@@ -153,7 +74,7 @@ export default async function handler(req, res) {
       case 'upsert-ingredient': {
         const { ingredientId, mealId, name, quantity, unit } = payload;
         if (!ingredientId || !mealId || !name) return res.status(400).json({ error: 'ingredientId, mealId, name required' });
-        await upsertRow(sheets, spreadsheetId, 'MealIngredients', 'IngredientID', ingredientId,
+        await upsertRow(sheets, spreadsheetId, 'MealIngredients', 'IngredientID', ingredientId, INGREDIENT_HEADERS,
           [ingredientId, mealId, name, quantity != null ? String(quantity) : '', unit || '']);
         break;
       }

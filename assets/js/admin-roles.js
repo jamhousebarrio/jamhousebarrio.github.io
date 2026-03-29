@@ -13,12 +13,6 @@
 
   // ── Helpers ───────────────────────────────────────────────────────────────
 
-  function esc(str) {
-    return (str || '').toString()
-      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;');
-  }
-
   function statusClass(status) {
     var s = (status || '').toLowerCase();
     if (s === 'filled') return 'status-filled';
@@ -94,32 +88,32 @@
 
       html += '<div class="role-card">';
       html += '<div class="role-card-header">';
-      html += '<h3 class="role-card-title">' + esc(role.Name) + '</h3>';
-      html += '<span class="status-badge ' + sClass + '">' + esc(statusLabel(role.Status)) + '</span>';
+      html += '<h3 class="role-card-title">' + JH.esc(role.Name) + '</h3>';
+      html += '<span class="status-badge ' + sClass + '">' + JH.esc(statusLabel(role.Status)) + '</span>';
       html += '</div>';
 
       if (role.Description) {
-        html += '<div class="role-card-desc">' + esc(role.Description) + '</div>';
+        html += '<div class="role-card-desc">' + JH.esc(role.Description) + '</div>';
       }
 
       if (assigned) {
         var people = assigned.split(',').map(function (s) { return s.trim(); }).filter(Boolean);
         html += '<div class="role-card-assigned filled">' + people.map(function (p) {
-          return '<span class="assigned-chip">' + esc(p) + '</span>';
+          return '<span class="assigned-chip">' + JH.esc(p) + '</span>';
         }).join(' ') + '</div>';
       } else {
         html += '<div class="role-card-assigned unassigned">Unassigned</div>';
       }
 
       if (role.Notes) {
-        html += '<div class="role-card-notes">' + esc(role.Notes) + '</div>';
+        html += '<div class="role-card-notes">' + JH.esc(role.Notes) + '</div>';
       }
 
       if (isAdmin) {
         html += '<div class="role-card-footer">';
         html += '<div class="role-card-actions">';
-        html += '<button class="btn-secondary btn-sm edit-role-btn" data-name="' + esc(role.Name) + '">Edit</button>';
-        html += '<button class="btn-danger btn-sm delete-role-btn" data-name="' + esc(role.Name) + '">Delete</button>';
+        html += '<button class="btn-secondary btn-sm edit-role-btn" data-name="' + JH.esc(role.Name) + '">Edit</button>';
+        html += '<button class="btn-danger btn-sm delete-role-btn" data-name="' + JH.esc(role.Name) + '">Delete</button>';
         html += '</div>';
         html += '</div>';
       }

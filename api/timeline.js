@@ -1,42 +1,4 @@
-import { sheets as sheetsApi } from '@googleapis/sheets';
-import { GoogleAuth } from 'google-auth-library';
-
-function getSheets(write) {
-  const creds = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY);
-  const auth = new GoogleAuth({
-    credentials: creds,
-    scopes: [write
-      ? 'https://www.googleapis.com/auth/spreadsheets'
-      : 'https://www.googleapis.com/auth/spreadsheets.readonly'],
-  });
-  return sheetsApi({ version: 'v4', auth });
-}
-
-async function ensureTab(sheets, spreadsheetId, tab) {
-  try {
-    await sheets.spreadsheets.batchUpdate({
-      spreadsheetId,
-      requestBody: { requests: [{ addSheet: { properties: { title: tab } } }] },
-    });
-  } catch (e) { /* tab already exists */ }
-}
-
-async function safeGet(sheets, spreadsheetId, range) {
-  try {
-    const res = await sheets.spreadsheets.values.get({ spreadsheetId, range });
-    return res.data.values || [];
-  } catch (e) { return []; }
-}
-
-function toObjects(values) {
-  if (!values || values.length < 2) return [];
-  const headers = values[0];
-  return values.slice(1).map(row => {
-    const obj = {};
-    headers.forEach((h, i) => { obj[h] = row[i] || ''; });
-    return obj;
-  });
-}
+import { getSheets, safeGet, toObjects, ensureTab } from './_lib/sheets.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });

@@ -11,17 +11,8 @@
 
   // ── Helpers ───────────────────────────────────────────────────────────────
 
-  function esc(str) {
-    return (str || '').toString()
-      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;');
-  }
-
   function getHeadcount(dateStr) {
-    return state.logistics.filter(function (l) {
-      if (!l.ArrivalDate || !l.DepartureDate) return false;
-      return l.ArrivalDate <= dateStr && l.DepartureDate >= dateStr;
-    }).length;
+    return JH.getHeadcount(state.logistics, dateStr);
   }
 
   function uniqueSortedDates() {
@@ -67,16 +58,7 @@
 
   function getAllDates() {
     var dateSet = {};
-    state.logistics.forEach(function (l) {
-      if (!l.ArrivalDate || !l.DepartureDate) return;
-      var d = new Date(l.ArrivalDate + 'T00:00:00');
-      var end = new Date(l.DepartureDate + 'T00:00:00');
-      while (d <= end) {
-        var ds = d.toISOString().slice(0, 10);
-        dateSet[ds] = true;
-        d.setDate(d.getDate() + 1);
-      }
-    });
+    JH.getAllDates(state.logistics).forEach(function (d) { dateSet[d] = true; });
     state.meals.forEach(function (m) { if (m.Date) dateSet[m.Date] = true; });
     return Object.keys(dateSet).sort();
   }
@@ -150,7 +132,7 @@
     var wrap = document.getElementById('date-filter');
     var html = '<button class="date-btn' + (activeFilter === 'all' ? ' active' : '') + '" data-date="all">All</button>';
     dates.forEach(function (d) {
-      html += '<button class="date-btn' + (activeFilter === d ? ' active' : '') + '" data-date="' + esc(d) + '">' + esc(formatDate(d)) + '</button>';
+      html += '<button class="date-btn' + (activeFilter === d ? ' active' : '') + '" data-date="' + JH.esc(d) + '">' + JH.esc(formatDate(d)) + '</button>';
     });
     wrap.innerHTML = html;
     wrap.querySelectorAll('.date-btn').forEach(function (btn) {
@@ -203,7 +185,7 @@
       });
 
       html += '<div class="meals-date-group">';
-      html += '<div class="meals-date-heading">' + esc(formatDate(dateStr)) +
+      html += '<div class="meals-date-heading">' + JH.esc(formatDate(dateStr)) +
         '<span class="headcount-note">' + headcount + ' people</span>';
       html += '<span class="meal-slots">';
       slots.forEach(function (s) {
@@ -218,33 +200,33 @@
         var mealIngredients = state.ingredients.filter(function (i) { return i.MealID === meal.MealID; });
         var badgeClass = mealTypeBadgeClass(meal.MealType);
 
-        html += '<div class="meal-card" data-meal-id="' + esc(meal.MealID) + '">';
+        html += '<div class="meal-card" data-meal-id="' + JH.esc(meal.MealID) + '">';
         html += '<div class="meal-card-header">';
         html += '<div class="meal-card-title">';
-        html += '<h3>' + esc(meal.Name) + '</h3>';
-        html += '<span class="meal-type-badge ' + badgeClass + '">' + esc(meal.MealType || 'other') + '</span>';
+        html += '<h3>' + JH.esc(meal.Name) + '</h3>';
+        html += '<span class="meal-type-badge ' + badgeClass + '">' + JH.esc(meal.MealType || 'other') + '</span>';
         html += '</div>';
         if (isAdmin) {
           html += '<div class="meal-card-actions">';
-          html += '<button class="btn-secondary btn-sm edit-meal-btn" data-meal-id="' + esc(meal.MealID) + '">Edit</button>';
-          html += '<button class="btn-danger btn-sm delete-meal-btn" data-meal-id="' + esc(meal.MealID) + '">Delete</button>';
+          html += '<button class="btn-secondary btn-sm edit-meal-btn" data-meal-id="' + JH.esc(meal.MealID) + '">Edit</button>';
+          html += '<button class="btn-danger btn-sm delete-meal-btn" data-meal-id="' + JH.esc(meal.MealID) + '">Delete</button>';
           html += '</div>';
         }
         html += '</div>';
 
         if (meal.Description) {
-          html += '<p class="meal-desc">' + esc(meal.Description) + '</p>';
+          html += '<p class="meal-desc">' + JH.esc(meal.Description) + '</p>';
         }
 
         if (meal.Instructions) {
-          html += '<button class="instructions-toggle" data-meal-id="' + esc(meal.MealID) + '">Show instructions</button>';
-          html += '<div class="instructions-text" id="instructions-' + esc(meal.MealID) + '" style="display:none">' + esc(meal.Instructions) + '</div>';
+          html += '<button class="instructions-toggle" data-meal-id="' + JH.esc(meal.MealID) + '">Show instructions</button>';
+          html += '<div class="instructions-text" id="instructions-' + JH.esc(meal.MealID) + '" style="display:none">' + JH.esc(meal.Instructions) + '</div>';
         }
 
         html += '<div class="ingredients-section">';
         html += '<div class="ingredients-header"><span>Ingredients</span>';
         if (isAdmin) {
-          html += '<button class="btn-secondary btn-sm add-ingredient-btn" data-meal-id="' + esc(meal.MealID) + '">+ Add Ingredient</button>';
+          html += '<button class="btn-secondary btn-sm add-ingredient-btn" data-meal-id="' + JH.esc(meal.MealID) + '">+ Add Ingredient</button>';
         }
         html += '</div>';
 
@@ -260,14 +242,14 @@
             // Round to reasonable precision
             var totalStr = total === Math.floor(total) ? String(total) : total.toFixed(2).replace(/\.?0+$/, '');
             html += '<tr>';
-            html += '<td>' + esc(ing.Name) + '</td>';
-            html += '<td>' + esc(ing.Quantity) + '</td>';
-            html += '<td><strong>' + esc(totalStr) + '</strong></td>';
-            html += '<td>' + esc(ing.Unit) + '</td>';
+            html += '<td>' + JH.esc(ing.Name) + '</td>';
+            html += '<td>' + JH.esc(ing.Quantity) + '</td>';
+            html += '<td><strong>' + JH.esc(totalStr) + '</strong></td>';
+            html += '<td>' + JH.esc(ing.Unit) + '</td>';
             if (isAdmin) {
               html += '<td><div class="ing-actions">' +
-                '<button class="btn-icon edit-ingredient-btn" data-ingredient-id="' + esc(ing.IngredientID) + '" data-meal-id="' + esc(ing.MealID) + '" title="Edit">&#9998;</button>' +
-                '<button class="btn-icon danger delete-ingredient-btn" data-ingredient-id="' + esc(ing.IngredientID) + '" title="Delete">&#10005;</button>' +
+                '<button class="btn-icon edit-ingredient-btn" data-ingredient-id="' + JH.esc(ing.IngredientID) + '" data-meal-id="' + JH.esc(ing.MealID) + '" title="Edit">&#9998;</button>' +
+                '<button class="btn-icon danger delete-ingredient-btn" data-ingredient-id="' + JH.esc(ing.IngredientID) + '" title="Delete">&#10005;</button>' +
                 '</div></td>';
             }
             html += '</tr>';
@@ -496,9 +478,9 @@
       var totalStr = item.total === Math.floor(item.total) ? String(item.total) : item.total.toFixed(2).replace(/\.?0+$/, '');
       var totalDisplay = totalStr + (item.unit ? ' ' + item.unit : '');
       html += '<tr>';
-      html += '<td>' + esc(item.name) + '</td>';
-      html += '<td class="total-col">' + esc(totalDisplay) + '</td>';
-      html += '<td style="font-size:0.78rem;color:var(--text-muted)">' + esc(item.meals.join(', ')) + '</td>';
+      html += '<td>' + JH.esc(item.name) + '</td>';
+      html += '<td class="total-col">' + JH.esc(totalDisplay) + '</td>';
+      html += '<td style="font-size:0.78rem;color:var(--text-muted)">' + JH.esc(item.meals.join(', ')) + '</td>';
       html += '</tr>';
     });
 
@@ -565,12 +547,12 @@
 
       html += '<div class="print-meal-page">';
       html += '<div class="print-header"><h1>JamHouse 2026</h1></div>';
-      html += '<h2 class="print-meal-title">' + esc(meal.Name) + '</h2>';
-      html += '<div class="print-meal-meta">' + esc(dateLabel) + ' &middot; ' + esc(typeLabel) + '</div>';
+      html += '<h2 class="print-meal-title">' + JH.esc(meal.Name) + '</h2>';
+      html += '<div class="print-meal-meta">' + JH.esc(dateLabel) + ' &middot; ' + JH.esc(typeLabel) + '</div>';
       html += '<div class="print-headcount">' + headcount + ' people</div>';
 
       if (meal.Description) {
-        html += '<p class="print-meal-desc">' + esc(meal.Description) + '</p>';
+        html += '<p class="print-meal-desc">' + JH.esc(meal.Description) + '</p>';
       }
 
       if (mealIngredients.length) {
@@ -586,10 +568,10 @@
           var qtyStr = qty === Math.floor(qty) ? String(qty) : qty.toFixed(3).replace(/\.?0+$/, '');
 
           html += '<tr>';
-          html += '<td>' + esc(ing.Name) + '</td>';
-          html += '<td class="num">' + esc(qtyStr) + '</td>';
-          html += '<td class="num" style="font-size:14px">' + esc(totalStr) + '</td>';
-          html += '<td>' + esc(ing.Unit) + '</td>';
+          html += '<td>' + JH.esc(ing.Name) + '</td>';
+          html += '<td class="num">' + JH.esc(qtyStr) + '</td>';
+          html += '<td class="num" style="font-size:14px">' + JH.esc(totalStr) + '</td>';
+          html += '<td>' + JH.esc(ing.Unit) + '</td>';
           html += '</tr>';
         });
 
@@ -598,7 +580,7 @@
 
       if (meal.Instructions) {
         html += '<div class="print-section-title">Instructions</div>';
-        html += '<div class="print-instructions">' + esc(meal.Instructions) + '</div>';
+        html += '<div class="print-instructions">' + JH.esc(meal.Instructions) + '</div>';
       }
 
       html += '</div>';

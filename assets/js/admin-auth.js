@@ -1,6 +1,14 @@
 window.JH = window.JH || {};
 
+// Event date constants
+JH.EVENT_START = '2026-07-01';
+JH.EVENT_END = '2026-07-12';
+JH.EVENT_WEEK_START = '2026-07-07';
+JH.EVENT_WEEK_END = '2026-07-12';
+
 // Load Flatpickr for date/time inputs (dd/mm/yyyy, 24h)
+var fpReady = false;
+var fpQueue = [];
 (function() {
   var link = document.createElement('link');
   link.rel = 'stylesheet';
@@ -16,14 +24,12 @@ window.JH = window.JH || {};
   document.head.appendChild(style);
   var script = document.createElement('script');
   script.src = 'https://cdn.jsdelivr.net/npm/flatpickr';
+  script.onload = function() { fpReady = true; fpQueue.forEach(function(fn) { fn(); }); fpQueue = []; };
   document.head.appendChild(script);
 })();
 
 JH.initDate = function(el, opts) {
-  if (typeof flatpickr === 'undefined') {
-    setTimeout(function() { JH.initDate(el, opts); }, 100);
-    return;
-  }
+  if (!fpReady) { fpQueue.push(function() { JH.initDate(el, opts); }); return; }
   // Destroy existing instance to avoid duplicates
   if (el._flatpickr) el._flatpickr.destroy();
   var modal = el.closest('.modal');
@@ -43,10 +49,7 @@ JH.initDate = function(el, opts) {
 };
 
 JH.initTime = function(el, opts) {
-  if (typeof flatpickr === 'undefined') {
-    setTimeout(function() { JH.initTime(el, opts); }, 100);
-    return;
-  }
+  if (!fpReady) { fpQueue.push(function() { JH.initTime(el, opts); }); return; }
   if (el._flatpickr) el._flatpickr.destroy();
   var modal = el.closest('.modal');
   return flatpickr(el, Object.assign({
@@ -198,16 +201,41 @@ JH.formatDateLong = function(dateStr) {
   return days[d.getDay()] + ' ' + day + '/' + mon;
 };
 
+JH.getHeadcount = function(logistics, dateStr) {
+  return logistics.filter(function (l) {
+    if (!l.ArrivalDate || !l.DepartureDate) return false;
+    return l.ArrivalDate <= dateStr && l.DepartureDate >= dateStr;
+  }).length;
+};
+
+JH.getAllDates = function(logistics) {
+  var dateSet = {};
+  logistics.forEach(function (l) {
+    if (!l.ArrivalDate || !l.DepartureDate) return;
+    var d = new Date(l.ArrivalDate + 'T00:00:00');
+    var end = new Date(l.DepartureDate + 'T00:00:00');
+    while (d <= end) {
+      dateSet[d.toISOString().slice(0, 10)] = true;
+      d.setDate(d.getDate() + 1);
+    }
+  });
+  return Object.keys(dateSet).sort();
+};
+
 JH.checkLogisticsPrompt = async function() {
   // Don't show on the logistics page itself
   if (window.location.pathname.indexOf('/admin/logistics') !== -1) return;
   var myName = sessionStorage.getItem('jh_member_name');
   if (!myName) return;
+  // Cache: skip API call if checked less than 10 minutes ago
+  var lastChecked = sessionStorage.getItem('jh_logistics_checked');
+  if (lastChecked && (Date.now() - parseInt(lastChecked, 10)) < 600000) return;
   var pass = sessionStorage.getItem('jh_pass');
   try {
     var res = await fetch('/api/logistics', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: pass }) });
     if (!res.ok) return;
     var data = await res.json();
+    sessionStorage.setItem('jh_logistics_checked', Date.now());
     var row = (data.logistics || []).find(function(r) { return r['MemberName'] === myName; });
     if (row && (row['ArrivalDate'] || row['DepartureDate'])) return;
     var banner = document.createElement('div');

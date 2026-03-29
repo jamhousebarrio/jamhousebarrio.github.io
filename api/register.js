@@ -1,6 +1,12 @@
 import { sheets as sheetsApi } from '@googleapis/sheets';
 import { GoogleAuth } from 'google-auth-library';
 
+// Sanitize user input to prevent formula injection in spreadsheets
+function sanitize(val) {
+  if (typeof val !== 'string') return val;
+  return val.replace(/^[=+\-@]+/, '');
+}
+
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
@@ -25,39 +31,39 @@ export default async function handler(req, res) {
 
     const row = [
       new Date().toISOString(),
-      b.name || "",
-      b.playaName || "",
-      b.email || "",
-      b.phone || "",
-      b.contactMethods || "",
-      b.contactOther || "",
-      b.location || "",
-      b.nationality || "",
-      b.gender || "",
-      b.age || "",
-      b.language || "",
-      b.otherLanguages || "",
-      b.firstBurn || "",
-      b.firstElsewhere || "",
-      b.knowCoreTeam || "",
-      b.leaveNoTrace || "",
-      b.consent || "",
-      b.whyElsewhere || "",
-      b.background || "",
-      b.artProject || "",
-      b.skills || "",
-      b.liftKg || "",
-      b.deepestSecrets || "",
-      b.talents || "",
-      b.hasTicket || "",
-      b.canBuild || "",
-      b.hasCar || "",
-      b.movingCar || "",
-      b.otherCamp || "",
-      b.volunteer || "",
-      b.howHeard || "",
-      b.specialNeeds || "",
-      b.needsDescription || "",
+      sanitize(b.name || ""),
+      sanitize(b.playaName || ""),
+      sanitize(b.email || ""),
+      sanitize(b.phone || ""),
+      sanitize(b.contactMethods || ""),
+      sanitize(b.contactOther || ""),
+      sanitize(b.location || ""),
+      sanitize(b.nationality || ""),
+      sanitize(b.gender || ""),
+      sanitize(b.age || ""),
+      sanitize(b.language || ""),
+      sanitize(b.otherLanguages || ""),
+      sanitize(b.firstBurn || ""),
+      sanitize(b.firstElsewhere || ""),
+      sanitize(b.knowCoreTeam || ""),
+      sanitize(b.leaveNoTrace || ""),
+      sanitize(b.consent || ""),
+      sanitize(b.whyElsewhere || ""),
+      sanitize(b.background || ""),
+      sanitize(b.artProject || ""),
+      sanitize(b.skills || ""),
+      sanitize(b.liftKg || ""),
+      sanitize(b.deepestSecrets || ""),
+      sanitize(b.talents || ""),
+      sanitize(b.hasTicket || ""),
+      sanitize(b.canBuild || ""),
+      sanitize(b.hasCar || ""),
+      sanitize(b.movingCar || ""),
+      sanitize(b.otherCamp || ""),
+      sanitize(b.volunteer || ""),
+      sanitize(b.howHeard || ""),
+      sanitize(b.specialNeeds || ""),
+      sanitize(b.needsDescription || ""),
       "Pending",
     ];
 
