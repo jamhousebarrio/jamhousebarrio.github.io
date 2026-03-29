@@ -24,14 +24,16 @@ JH.initDate = function(el, opts) {
     setTimeout(function() { JH.initDate(el, opts); }, 100);
     return;
   }
-  // Default to July 1, 2026 when opening calendar if field is empty
+  // Destroy existing instance to avoid duplicates
+  if (el._flatpickr) el._flatpickr.destroy();
+  var modal = el.closest('.modal');
   var defaults = {
     dateFormat: 'Y-m-d',
     altInput: true,
     altFormat: 'd/m/Y',
     allowInput: true,
-    static: true,
-    appendTo: el.closest('.modal') || undefined,
+    static: !!modal,
+    appendTo: modal || undefined,
     defaultDate: el.value || undefined,
     onReady: function(selectedDates, dateStr, instance) {
       if (!dateStr) instance.jumpToDate('2026-07-01');
@@ -45,14 +47,16 @@ JH.initTime = function(el, opts) {
     setTimeout(function() { JH.initTime(el, opts); }, 100);
     return;
   }
+  if (el._flatpickr) el._flatpickr.destroy();
+  var modal = el.closest('.modal');
   return flatpickr(el, Object.assign({
     enableTime: true,
     noCalendar: true,
     dateFormat: 'H:i',
     time_24hr: true,
     allowInput: true,
-    static: true,
-    appendTo: el.closest('.modal') || undefined
+    static: !!modal,
+    appendTo: modal || undefined
   }, opts || {}));
 };
 
