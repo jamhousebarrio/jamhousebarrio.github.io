@@ -2,6 +2,7 @@
   var session = await JH.authenticate();
   if (!session) return;
 
+  var isAdmin = JH.isAdmin();
   var pass = sessionStorage.getItem('jh_pass');
   var state = { items: [], filter: 'all' };
 
@@ -72,10 +73,10 @@
         (metaHtml ? '<div class="item-meta">' + metaHtml + '</div>' : '') +
         (item.Notes ? '<p style="font-size:0.78rem;color:var(--text-muted);margin:2px 0 0;font-style:italic">' + JH.esc(item.Notes) + '</p>' : '') +
         '</div>' +
-        '<div class="item-actions">' +
+        (isAdmin ? '<div class="item-actions">' +
         '<button class="btn-edit" data-edit="' + JH.esc(item.ItemID) + '">Edit</button>' +
         '<button class="btn-delete" data-delete="' + JH.esc(item.ItemID) + '">Delete</button>' +
-        '</div>' +
+        '</div>' : '') +
         '</div>';
     }).join('');
 
@@ -197,6 +198,8 @@
   });
 
   // ── Init ──────────────────────────────────────────────────────────────────
+
+  if (isAdmin) document.getElementById('add-item-btn').style.display = '';
 
   await fetchItems();
   renderGrid();
