@@ -43,8 +43,9 @@
     budgetedEl.textContent = eur(s.budgeted);
     budgetedEl.style.color = s.budgeted > s.eventBudget ? '#f44336' : '#4caf50';
     document.getElementById('stat-spent').textContent = eur(s.spent);
-    // Committed = total fees paid
-    document.getElementById('stat-committed').textContent = eur(fees.paid);
+    // Committed = total fees paid (updated after fee table renders)
+    var committedEl = document.getElementById('stat-committed');
+    if (committedEl) committedEl.textContent = eur(feePaid);
     var remainingEl = document.getElementById('stat-remaining');
     var remaining = s.eventBudget - s.spent;
     remainingEl.textContent = eur(remaining);
@@ -609,13 +610,20 @@
 
   // ── Barrio Fee Payments ─────────────────────────────────────────────────
 
-  var feeMembers = fees.members || [];
+  var feeMembers = (fees.members || []).filter(function (fm) {
+    var name = (fm.Name || '').trim();
+    return name && !name.match(/^Member\s*(X|xxx|XXX)/i);
+  });
+
+  // Recalculate totals from filtered members only
+  var feeExpected = 0, feePaid = 0;
+  feeMembers.forEach(function (fm) { feeExpected += fm._expected; feePaid += fm._paid; });
 
   function renderFeeProgress() {
     var el = document.getElementById('fees-progress');
-    var pct = fees.expected > 0 ? Math.min(100, Math.round(fees.paid / fees.expected * 100)) : 0;
+    var pct = feeExpected > 0 ? Math.min(100, Math.round(feePaid / feeExpected * 100)) : 0;
     el.innerHTML = '<div style="display:flex;justify-content:space-between;font-size:0.82rem;margin-bottom:4px">' +
-      '<span style="color:var(--text-muted)">' + eur(fees.paid) + ' of ' + eur(fees.expected) + ' collected</span>' +
+      '<span style="color:var(--text-muted)">' + eur(feePaid) + ' of ' + eur(feeExpected) + ' collected</span>' +
       '<span style="color:var(--accent);font-weight:600">' + pct + '%</span></div>' +
       '<div style="height:8px;background:var(--bg);border-radius:4px;overflow:hidden">' +
       '<div style="height:100%;width:' + pct + '%;background:var(--accent);border-radius:4px;transition:width 0.3s"></div></div>';
@@ -638,11 +646,7 @@
     html += '</tr></thead><tbody>';
 
     feeMembers.forEach(function (fm) {
-      var name = fm[fees.feeHeaders ? fees.feeHeaders[0] : 'Name'] || fm.Name || fm[Object.keys(fm)[0]] || '';
-      // Use first non-internal key as name if headers are numeric
-      if (!name || name.startsWith('_')) {
-        for (var k in fm) { if (!k.startsWith('_') && k !== '_row') { name = fm[k]; break; } }
-      }
+      var name = (fm.Name || '').trim();
       var expected = fm._expected || 0;
       var paid = fm._paid || 0;
       var remaining = expected - paid;
@@ -700,7 +704,7 @@
         if (fm) {
           var diff = amount - fm._paid;
           fm._paid = amount;
-          fees.paid += diff;
+          feePaid += diff;
         }
         btn.textContent = 'Saved!';
         setTimeout(function () { btn.textContent = 'Save'; }, 1500);
