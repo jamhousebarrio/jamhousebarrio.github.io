@@ -50,8 +50,14 @@
     }
 
     grid.innerHTML = items.map(function (item) {
-      var photoHtml = item.PhotoURL
-        ? '<a href="' + esc(item.PhotoURL) + '" target="_blank"><img class="item-photo" src="' + esc(item.PhotoURL) + '" alt="' + esc(item.Name) + '" onerror="this.parentNode.outerHTML=\'<div class=\\\"item-photo-placeholder\\\">&#128230;</div>\'"></a>'
+      var photoSrc = item.PhotoURL || '';
+      // Convert Google Drive links to direct thumbnail URLs
+      var driveMatch = photoSrc.match(/drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?id=)([a-zA-Z0-9_-]+)/);
+      if (driveMatch) {
+        photoSrc = 'https://drive.google.com/thumbnail?id=' + driveMatch[1] + '&sz=w400';
+      }
+      var photoHtml = photoSrc
+        ? '<a href="' + esc(item.PhotoURL) + '" target="_blank"><img class="item-photo" src="' + esc(photoSrc) + '" alt="' + esc(item.Name) + '" onerror="this.parentNode.outerHTML=\'<div class=\\\"item-photo-placeholder\\\">&#128230;</div>\'"></a>'
         : '<div class="item-photo-placeholder">&#128230;</div>';
 
       var catClass = categoryClass(item.Category);
