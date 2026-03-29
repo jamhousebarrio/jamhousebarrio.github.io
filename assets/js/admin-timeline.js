@@ -4,7 +4,16 @@
 
   var isAdmin = JH.isAdmin();
   var pass = sessionStorage.getItem('jh_pass');
-  var state = { entries: [] };
+  var state = { entries: [], logistics: [], tasks: [] };
+  var taskPanelOpen = true;
+
+  // Default tasks that need allocating
+  var DEFAULT_TASKS = [
+    'Noorg Volunteer', 'Water cube', 'Private shade', 'Tent shade', 'Public space',
+    'Kitchen build', 'Sewage trench', 'Shower (structure)', 'Shower (water)',
+    'Build branch su-chef', 'Private space decor', 'Public space decor',
+    'Unloading container', 'Setting tent', 'Electricity', 'City Shopping'
+  ];
 
   var approvedMembers = members.filter(function (m) {
     return (m['Status'] || '').toLowerCase() === 'approved';
@@ -29,18 +38,58 @@
     if (!res.ok) { console.error('timeline fetch failed'); return; }
     var data = await res.json();
     state.entries = data.entries || [];
+    state.logistics = data.logistics || [];
+    loadTasks();
   }
 
-  // ── Build grid data ───────────────────────────────────────────────────────
+  function loadTasks() {
+    try {
+      var saved = JSON.parse(localStorage.getItem('jh_timeline_tasks'));
+      if (saved && saved.length) { state.tasks = saved; return; }
+    } catch (e) {}
+    state.tasks = DEFAULT_TASKS.slice();
+    saveTasks();
+  }
 
-  function getUniqueDates() {
+  function saveTasks() {
+    localStorage.setItem('jh_timeline_tasks', JSON.stringify(state.tasks));
+  }
+
+  // ── Logistics helpers ─────────────────────────────────────────────────────
+
+  function getArrivalDate(person) {
+    var row = state.logistics.find(function (l) { return l.MemberName === person; });
+    return row ? row.ArrivalDate : '';
+  }
+
+  function isAvailable(person, date) {
+    var arrival = getArrivalDate(person);
+    if (!arrival) return true; // no logistics info = assume available
+    // Available the day AFTER arrival
+    var arrDate = new Date(arrival + 'T00:00:00');
+    arrDate.setDate(arrDate.getDate() + 1);
+    var cellDate = new Date(date + 'T00:00:00');
+    return cellDate >= arrDate;
+  }
+
+  // ── Grid dates ────────────────────────────────────────────────────────────
+
+  function getGridDates() {
+    // Always start from July 1, include any dates from entries
     var set = {};
+    // Default: July 1–12
+    for (var i = 1; i <= 12; i++) {
+      set['2026-07-' + String(i).padStart(2, '0')] = true;
+    }
     state.entries.forEach(function (e) { if (e.Date) set[e.Date] = true; });
     return Object.keys(set).sort();
   }
 
-  function getUniquePeople() {
+  function getGridPeople() {
     var set = {};
+    // All approved members
+    approvedMembers.forEach(function (m) { set[m] = true; });
+    // Plus anyone in entries
     state.entries.forEach(function (e) { if (e.Person) set[e.Person] = true; });
     var result = [];
     approvedMembers.forEach(function (m) { if (set[m]) { result.push(m); delete set[m]; } });
@@ -59,22 +108,8 @@
 
   function renderTimeline() {
     var wrap = document.getElementById('timeline-wrap');
-    var dates = getUniqueDates();
-    var people = getUniquePeople();
-
-    if (!dates.length && !people.length && !isAdmin) {
-      wrap.innerHTML = '<div class="empty-state">No timeline data yet.</div>';
-      return;
-    }
-
-    // If admin and no data, show empty grid with approved members
-    if (!dates.length) dates = ['2026-07-25', '2026-07-26', '2026-07-27', '2026-07-28', '2026-07-29', '2026-07-30'];
-    if (!people.length) people = approvedMembers.length ? approvedMembers : ['(add people below)'];
-
-    renderGrid(wrap, dates, people);
-  }
-
-  function renderGrid(wrap, dates, people) {
+    var dates = getGridDates();
+    var people = getGridPeople();
     var periods = ['Morning', 'Evening'];
 
     var html = '<div class="timeline-grid"><table class="timeline-table">';
@@ -84,27 +119,31 @@
     dates.forEach(function (d) {
       html += '<th class="date-header" colspan="2">' + JH.formatDateLong(d) + '</th>';
     });
-    html += '</tr>';
-
-    // Period header row
-    html += '<tr>';
+    html += '</tr><tr>';
     dates.forEach(function () {
       periods.forEach(function (p) {
         html += '<th class="period-header">' + esc(p) + '</th>';
       });
     });
-    html += '</tr></thead>';
+    html += '</tr></thead><tbody>';
 
     // People rows
-    html += '<tbody>';
     people.forEach(function (person) {
+      var arrival = getArrivalDate(person);
       html += '<tr>';
-      html += '<td class="name-cell">' + esc(person) + '</td>';
+      html += '<td class="name-cell">' + esc(person);
+      if (arrival) html += '<span class="arrival-badge">arr: ' + JH.formatDate(arrival) + '</span>';
+      html += '</td>';
+
       dates.forEach(function (date) {
         periods.forEach(function (period) {
           var task = getTask(person, date, period);
-          if (isAdmin) {
+          var available = isAvailable(person, date);
+
+          if (isAdmin && available) {
             html += '<td class="task-cell" data-person="' + esc(person) + '" data-date="' + esc(date) + '" data-period="' + esc(period) + '">' + esc(task) + '</td>';
+          } else if (!available) {
+            html += '<td class="task-cell unavailable" title="Not arrived yet">' + esc(task) + '</td>';
           } else {
             html += '<td>' + esc(task) + '</td>';
           }
@@ -115,12 +154,30 @@
 
     html += '</tbody></table></div>';
 
+    // Admin: add day/person controls
     if (isAdmin) {
       html += '<div style="margin-top:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">';
       html += '<input type="text" id="add-date-input" placeholder="dd/mm/yyyy" style="background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:0.85rem;padding:7px 10px;width:140px;">';
       html += '<button id="add-date-btn" class="btn-primary" style="padding:0.4rem 1rem;font-size:0.82rem;">+ Add Day</button>';
       html += '<input type="text" id="add-person-input" placeholder="Person name" style="background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:0.85rem;padding:7px 10px;width:140px;margin-left:16px;">';
       html += '<button id="add-person-btn" class="btn-primary" style="padding:0.4rem 1rem;font-size:0.82rem;">+ Add Person</button>';
+      html += '</div>';
+
+      // Task panel
+      html += '<div class="task-panel">';
+      html += '<div class="task-panel-header" id="task-panel-toggle">';
+      html += '<h2>Tasks to Allocate</h2>';
+      html += '<button class="task-panel-toggle">' + (taskPanelOpen ? '&#9650;' : '&#9660;') + '</button>';
+      html += '</div>';
+      html += '<div class="task-panel-body' + (taskPanelOpen ? '' : ' collapsed') + '" id="task-panel-body">';
+      state.tasks.forEach(function (task, idx) {
+        html += '<span class="task-chip" draggable="true" data-task="' + esc(task) + '" data-idx="' + idx + '">' + esc(task) + '</span>';
+      });
+      html += '</div>';
+      html += '<div class="task-panel-add" id="task-add-row"' + (taskPanelOpen ? '' : ' style="display:none"') + '>';
+      html += '<input type="text" id="new-task-input" placeholder="New task name...">';
+      html += '<button id="add-task-btn">+ Add Task</button>';
+      html += '</div>';
       html += '</div>';
     }
 
@@ -129,14 +186,16 @@
     if (isAdmin) {
       JH.initDate(document.getElementById('add-date-input'));
       bindCellEditing();
+      bindDragDrop();
       bindAddButtons(dates, people);
+      bindTaskPanel();
     }
   }
 
   // ── Inline cell editing ───────────────────────────────────────────────────
 
   function bindCellEditing() {
-    document.querySelectorAll('.task-cell').forEach(function (td) {
+    document.querySelectorAll('.task-cell:not(.unavailable)').forEach(function (td) {
       td.addEventListener('click', function () {
         if (td.classList.contains('editing')) return;
 
@@ -154,49 +213,69 @@
           td.textContent = newVal;
 
           if (newVal !== currentVal) {
-            fetch('/api/timeline', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                password: pass,
-                action: 'upsert',
-                person: td.dataset.person,
-                date: td.dataset.date,
-                period: td.dataset.period,
-                task: newVal,
-              }),
-            }).then(function (r) {
-              if (!r.ok) {
-                td.textContent = currentVal;
-                alert('Save failed.');
-              } else {
-                var entry = state.entries.find(function (e) {
-                  return e.Person === td.dataset.person && e.Date === td.dataset.date && e.Period === td.dataset.period;
-                });
-                if (newVal) {
-                  if (entry) { entry.Task = newVal; }
-                  else { state.entries.push({ Person: td.dataset.person, Date: td.dataset.date, Period: td.dataset.period, Task: newVal }); }
-                } else if (entry) {
-                  state.entries = state.entries.filter(function (e) { return e !== entry; });
-                }
-              }
-            }).catch(function () {
-              td.textContent = currentVal;
-            });
+            saveCell(td.dataset.person, td.dataset.date, td.dataset.period, newVal, currentVal, td);
           }
         }
 
         textarea.addEventListener('blur', save);
         textarea.addEventListener('keydown', function (e) {
-          if (e.key === 'Escape') {
-            td.classList.remove('editing');
-            td.textContent = currentVal;
-          }
-          if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            save();
-          }
+          if (e.key === 'Escape') { td.classList.remove('editing'); td.textContent = currentVal; }
+          if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); save(); }
         });
+      });
+    });
+  }
+
+  function saveCell(person, date, period, newVal, oldVal, td) {
+    fetch('/api/timeline', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: pass, action: 'upsert', person: person, date: date, period: period, task: newVal }),
+    }).then(function (r) {
+      if (!r.ok) { if (td) td.textContent = oldVal; alert('Save failed.'); return; }
+      var entry = state.entries.find(function (e) {
+        return e.Person === person && e.Date === date && e.Period === period;
+      });
+      if (newVal) {
+        if (entry) entry.Task = newVal;
+        else state.entries.push({ Person: person, Date: date, Period: period, Task: newVal });
+      } else if (entry) {
+        state.entries = state.entries.filter(function (e) { return e !== entry; });
+      }
+    }).catch(function () { if (td) td.textContent = oldVal; });
+  }
+
+  // ── Drag and drop tasks ───────────────────────────────────────────────────
+
+  function bindDragDrop() {
+    document.querySelectorAll('.task-chip').forEach(function (chip) {
+      chip.addEventListener('dragstart', function (e) {
+        e.dataTransfer.setData('text/plain', chip.dataset.task);
+        chip.classList.add('dragging');
+      });
+      chip.addEventListener('dragend', function () {
+        chip.classList.remove('dragging');
+      });
+    });
+
+    document.querySelectorAll('.task-cell:not(.unavailable)').forEach(function (td) {
+      td.addEventListener('dragover', function (e) {
+        e.preventDefault();
+        td.classList.add('drag-over');
+      });
+      td.addEventListener('dragleave', function () {
+        td.classList.remove('drag-over');
+      });
+      td.addEventListener('drop', function (e) {
+        e.preventDefault();
+        td.classList.remove('drag-over');
+        var taskName = e.dataTransfer.getData('text/plain');
+        if (!taskName) return;
+
+        var existing = td.textContent.trim();
+        var newVal = existing ? existing + '\n' + taskName : taskName;
+        td.textContent = newVal;
+        saveCell(td.dataset.person, td.dataset.date, td.dataset.period, newVal, existing, td);
       });
     });
   }
@@ -217,6 +296,30 @@
       if (!val) return;
       if (people.indexOf(val) !== -1) { alert('Person already in timeline.'); return; }
       state.entries.push({ Person: val, Date: dates[0] || '', Period: 'Morning', Task: '' });
+      renderTimeline();
+    });
+  }
+
+  // ── Task panel ────────────────────────────────────────────────────────────
+
+  function bindTaskPanel() {
+    document.getElementById('task-panel-toggle').addEventListener('click', function () {
+      taskPanelOpen = !taskPanelOpen;
+      var body = document.getElementById('task-panel-body');
+      var addRow = document.getElementById('task-add-row');
+      body.classList.toggle('collapsed');
+      if (addRow) addRow.style.display = taskPanelOpen ? '' : 'none';
+      this.querySelector('.task-panel-toggle').innerHTML = taskPanelOpen ? '&#9650;' : '&#9660;';
+    });
+
+    document.getElementById('add-task-btn').addEventListener('click', function () {
+      var input = document.getElementById('new-task-input');
+      var val = input.value.trim();
+      if (!val) return;
+      if (state.tasks.indexOf(val) !== -1) { alert('Task already exists.'); return; }
+      state.tasks.push(val);
+      saveTasks();
+      input.value = '';
       renderTimeline();
     });
   }

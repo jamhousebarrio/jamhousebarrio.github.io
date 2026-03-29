@@ -28,8 +28,24 @@ access: general
     .timeline-table td.task-cell.editing textarea { width: 100%; min-height: 50px; background: var(--bg); color: var(--text); border: 2px solid var(--accent); font-family: var(--body); font-size: 0.78rem; padding: 4px 6px; resize: vertical; box-sizing: border-box; outline: none; }
     .timeline-table tr.resource-row td { background: rgba(232,168,76,0.05); font-size: 0.75rem; color: var(--text-muted); }
     .timeline-table tr.resource-row td.name-cell { font-weight: 700; color: var(--accent); }
+    .timeline-table td.task-cell.unavailable { background: rgba(255,255,255,0.02); cursor: not-allowed; }
+    .timeline-table td.task-cell.unavailable:hover { background: rgba(255,255,255,0.02); }
     .empty-state { color: var(--text-muted); font-size: 0.9rem; padding: 24px; text-align: center; }
     .timeline-legend { font-size: 0.78rem; color: var(--text-muted); margin-bottom: 12px; }
+    .task-panel { margin-top: 20px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+    .task-panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; cursor: pointer; }
+    .task-panel-header h2 { font-family: var(--heading); font-size: 0.95rem; color: var(--accent); margin: 0; }
+    .task-panel-toggle { background: none; border: none; color: var(--text-muted); font-size: 1.2rem; cursor: pointer; }
+    .task-panel-body { display: flex; flex-wrap: wrap; gap: 8px; }
+    .task-panel-body.collapsed { display: none; }
+    .task-chip { display: inline-block; padding: 5px 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 16px; font-size: 0.78rem; color: var(--text); cursor: grab; user-select: none; transition: all 0.15s; font-family: var(--heading); }
+    .task-chip:hover { border-color: var(--accent); color: var(--accent); }
+    .task-chip.dragging { opacity: 0.5; }
+    .task-cell.drag-over { background: rgba(232,168,76,0.15) !important; outline: 2px solid var(--accent); }
+    .task-panel-add { display: flex; gap: 8px; margin-top: 10px; }
+    .task-panel-add input { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 0.82rem; padding: 6px 10px; flex: 1; }
+    .task-panel-add button { padding: 6px 14px; background: var(--accent); border: none; border-radius: 6px; color: var(--bg); font-family: var(--heading); font-size: 0.8rem; font-weight: 600; cursor: pointer; }
+    .arrival-badge { font-size: 0.65rem; color: var(--text-muted); display: block; }
   </style>
 </head>
 <body>

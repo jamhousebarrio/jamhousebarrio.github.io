@@ -54,8 +54,11 @@ export default async function handler(req, res) {
     // Fetch all entries
     if (!action) {
       const sheets = getSheets(false);
-      const rows = await safeGet(sheets, spreadsheetId, tab);
-      return res.status(200).json({ entries: toObjects(rows) });
+      const [rows, logRows] = await Promise.all([
+        safeGet(sheets, spreadsheetId, tab),
+        safeGet(sheets, spreadsheetId, 'MemberLogistics'),
+      ]);
+      return res.status(200).json({ entries: toObjects(rows), logistics: toObjects(logRows) });
     }
 
     if (!isAdmin) return res.status(401).json({ error: 'Admin required' });
