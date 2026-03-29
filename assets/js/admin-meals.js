@@ -520,6 +520,80 @@
     });
   });
 
+  // ── PDF Export ──────────────────────────────────────────────────────────
+
+  document.getElementById('btn-export-pdf').addEventListener('click', function () {
+    var container = document.getElementById('print-container');
+    var dates = uniqueSortedDates();
+    var mealOrder = ['breakfast', 'lunch', 'dinner', 'snack'];
+
+    // Sort all meals by date then type
+    var allMeals = state.meals.slice().sort(function (a, b) {
+      if (a.Date !== b.Date) return (a.Date || '') < (b.Date || '') ? -1 : 1;
+      var ai = mealOrder.indexOf((a.MealType || '').toLowerCase());
+      var bi = mealOrder.indexOf((b.MealType || '').toLowerCase());
+      if (ai === -1) ai = 99;
+      if (bi === -1) bi = 99;
+      return ai - bi;
+    });
+
+    if (!allMeals.length) {
+      alert('No meals to export.');
+      return;
+    }
+
+    var html = '';
+    allMeals.forEach(function (meal) {
+      var headcount = getHeadcount(meal.Date);
+      var mealIngredients = state.ingredients.filter(function (i) { return i.MealID === meal.MealID; });
+      var dateLabel = formatDate(meal.Date);
+      var typeLabel = (meal.MealType || 'Meal').charAt(0).toUpperCase() + (meal.MealType || 'meal').slice(1);
+
+      html += '<div class="print-meal-page">';
+      html += '<div class="print-header"><h1>JamHouse 2026</h1></div>';
+      html += '<h2 class="print-meal-title">' + esc(meal.Name) + '</h2>';
+      html += '<div class="print-meal-meta">' + esc(dateLabel) + ' &middot; ' + esc(typeLabel) + '</div>';
+      html += '<div class="print-headcount">' + headcount + ' people</div>';
+
+      if (meal.Description) {
+        html += '<p class="print-meal-desc">' + esc(meal.Description) + '</p>';
+      }
+
+      if (mealIngredients.length) {
+        html += '<div class="print-section-title">Ingredients</div>';
+        html += '<table class="print-ing-table"><thead><tr>';
+        html += '<th>Ingredient</th><th>Per person</th><th>Total (' + headcount + 'p)</th><th>Unit</th>';
+        html += '</tr></thead><tbody>';
+
+        mealIngredients.forEach(function (ing) {
+          var qty = parseFloat(ing.Quantity) || 0;
+          var total = qty * headcount;
+          var totalStr = total === Math.floor(total) ? String(total) : total.toFixed(2).replace(/\.?0+$/, '');
+          var qtyStr = qty === Math.floor(qty) ? String(qty) : qty.toFixed(3).replace(/\.?0+$/, '');
+
+          html += '<tr>';
+          html += '<td>' + esc(ing.Name) + '</td>';
+          html += '<td class="num">' + esc(qtyStr) + '</td>';
+          html += '<td class="num" style="font-size:14px">' + esc(totalStr) + '</td>';
+          html += '<td>' + esc(ing.Unit) + '</td>';
+          html += '</tr>';
+        });
+
+        html += '</tbody></table>';
+      }
+
+      if (meal.Instructions) {
+        html += '<div class="print-section-title">Instructions</div>';
+        html += '<div class="print-instructions">' + esc(meal.Instructions) + '</div>';
+      }
+
+      html += '</div>';
+    });
+
+    container.innerHTML = html;
+    window.print();
+  });
+
   // ── Reload and render ─────────────────────────────────────────────────────
 
   async function reload() {
