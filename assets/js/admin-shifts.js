@@ -44,19 +44,20 @@
 
   function renderStats() {
     var types = getShiftTypes();
-    var filled = 0, open = 0;
+    var totalSlots = 0, filledPeople = 0;
     types.forEach(function (t) {
       EVENT_DATES.forEach(function (d) {
         var s = t.shifts[d];
         if (s) {
-          if (s.AssignedTo) filled++;
-          else open++;
+          totalSlots++;
+          var people = (s.AssignedTo || '').split(',').filter(function (p) { return p.trim(); });
+          filledPeople += people.length;
         }
       });
     });
     document.getElementById('stat-types').textContent = types.length;
-    document.getElementById('stat-filled').textContent = filled;
-    document.getElementById('stat-open').textContent = open;
+    document.getElementById('stat-filled').textContent = filledPeople;
+    document.getElementById('stat-open').textContent = totalSlots - (shifts.filter(function (s) { return s.AssignedTo; }).length);
   }
 
   function renderGrid() {
@@ -87,16 +88,17 @@
         html += '<td><div class="shift-cell">';
 
         if (!s) {
-          // No shift exists for this date
           html += '<span class="no-shift">&mdash;</span>';
-        } else if (s.AssignedTo) {
-          // Filled
-          html += '<span class="shift-chip filled">' + JH.esc(s.AssignedTo) + '</span>';
-          if (isAdmin) {
-            html += '<button class="remove-btn unassign-btn" data-id="' + JH.esc(s.ShiftID) + '" title="Remove assignment">&times;</button>';
-          }
         } else {
-          // Open — sign up button
+          var people = (s.AssignedTo || '').split(',').map(function (p) { return p.trim(); }).filter(Boolean);
+          people.forEach(function (person) {
+            html += '<span class="shift-chip filled">' + JH.esc(person);
+            if (isAdmin) {
+              html += ' <button class="remove-btn remove-person-btn" data-id="' + JH.esc(s.ShiftID) + '" data-person="' + JH.esc(person) + '" title="Remove ' + JH.esc(person) + '">&times;</button>';
+            }
+            html += '</span>';
+          });
+          // Always show sign up button (can add more people)
           html += '<button class="signup-btn assign-btn" data-id="' + JH.esc(s.ShiftID) + '" data-name="' + JH.esc(type.name) + '" data-date="' + JH.esc(date) + '">+ Sign Up</button>';
         }
 
@@ -118,13 +120,25 @@
       });
     });
 
-    document.querySelectorAll('.unassign-btn').forEach(function (btn) {
-      btn.addEventListener('click', async function () {
-        if (!confirm('Remove this assignment?')) return;
+    document.querySelectorAll('.remove-person-btn').forEach(function (btn) {
+      btn.addEventListener('click', async function (e) {
+        e.stopPropagation();
+        var person = btn.dataset.person;
+        var shiftId = btn.dataset.id;
+        if (!confirm('Remove ' + person + ' from this shift?')) return;
+        // Find the shift and remove just this person
+        var s = shifts.find(function (sh) { return sh.ShiftID === shiftId; });
+        if (!s) return;
+        var people = (s.AssignedTo || '').split(',').map(function (p) { return p.trim(); }).filter(Boolean);
+        var updated = people.filter(function (p) { return p !== person; }).join(', ');
+        // Use assign action to set the new list (or unassign if empty)
+        var action = updated ? 'assign' : 'unassign';
+        var body = { password: pass, action: action, shiftId: shiftId };
+        if (updated) body.memberName = updated;
         var r = await fetch('/api/shifts', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ password: pass, action: 'unassign', shiftId: btn.dataset.id }),
+          body: JSON.stringify(body),
         });
         if (!r.ok) { alert('Failed.'); return; }
         await reload();
@@ -239,10 +253,17 @@
     if (!name) { msg.textContent = 'Pick a name'; msg.style.color = '#f44336'; return; }
     msg.textContent = 'Saving...'; msg.style.color = '#888';
 
+    // Append to existing assignees
+    var s = shifts.find(function (sh) { return sh.ShiftID === assignShiftId; });
+    var existing = s ? (s.AssignedTo || '').split(',').map(function (p) { return p.trim(); }).filter(Boolean) : [];
+    if (existing.indexOf(name) !== -1) { msg.textContent = 'Already assigned'; msg.style.color = '#ff9800'; return; }
+    existing.push(name);
+    var combined = existing.join(', ');
+
     var r = await fetch('/api/shifts', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password: pass, action: 'assign', shiftId: assignShiftId, memberName: name }),
+      body: JSON.stringify({ password: pass, action: 'assign', shiftId: assignShiftId, memberName: combined }),
     });
     if (!r.ok) { msg.textContent = 'Failed.'; msg.style.color = '#f44336'; return; }
 
