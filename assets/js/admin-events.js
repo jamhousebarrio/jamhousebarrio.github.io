@@ -59,40 +59,28 @@
   function renderCalendar() {
     var wrap = document.getElementById('events-wrap');
     var filtered = getFilteredEvents();
-    var dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    var monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    // Event week: July 7-12, 2026
+    var eventDates = [
+      '2026-07-07', '2026-07-08', '2026-07-09',
+      '2026-07-10', '2026-07-11', '2026-07-12'
+    ];
 
-    // Month nav
     var html = '<div class="cal-nav">';
-    html += '<button class="cal-nav-btn" id="cal-prev">&lsaquo;</button>';
-    html += '<span class="cal-month-label">' + monthNames[viewMonth] + ' ' + viewYear + '</span>';
-    html += '<button class="cal-nav-btn" id="cal-next">&rsaquo;</button>';
+    html += '<span class="cal-month-label">Event Week: 07/07 - 12/07/2026</span>';
     html += '</div>';
 
-    // Day headers
-    html += '<div class="cal-grid">';
-    dayNames.forEach(function (d) {
-      html += '<div class="cal-header">' + d + '</div>';
+    html += '<div class="cal-grid" style="grid-template-columns:repeat(6,1fr)">';
+    eventDates.forEach(function (dateStr) {
+      html += '<div class="cal-header">' + JH.formatDateLong(dateStr) + '</div>';
     });
 
-    // First day of month (0=Sun, adjust to Mon=0)
-    var firstDay = new Date(viewYear, viewMonth, 1).getDay();
-    var startOffset = (firstDay === 0) ? 6 : firstDay - 1; // Monday-based
-    var daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
-
-    // Empty cells before first day
-    for (var e = 0; e < startOffset; e++) {
-      html += '<div class="cal-day empty"></div>';
-    }
-
-    // Day cells
-    for (var day = 1; day <= daysInMonth; day++) {
-      var dateStr = viewYear + '-' + String(viewMonth + 1).padStart(2, '0') + '-' + String(day).padStart(2, '0');
+    eventDates.forEach(function (dateStr) {
       var dayEvents = filtered.filter(function (ev) { return ev.Date === dateStr; });
       var hasEvents = dayEvents.length > 0;
+      var day = parseInt(dateStr.split('-')[2]);
 
       html += '<div class="cal-day' + (hasEvents ? ' has-events' : '') + '">';
-      html += '<div class="cal-day-num">' + day + '</div>';
+      html += '<div class="cal-day-num">Day ' + (day - 6) + '</div>';
 
       dayEvents.forEach(function (ev) {
         var sClass = statusClass(ev.Status);
@@ -110,22 +98,10 @@
       });
 
       html += '</div>';
-    }
+    });
 
     html += '</div>';
     wrap.innerHTML = html;
-
-    // Bind nav
-    document.getElementById('cal-prev').addEventListener('click', function () {
-      viewMonth--;
-      if (viewMonth < 0) { viewMonth = 11; viewYear--; }
-      renderCalendar();
-    });
-    document.getElementById('cal-next').addEventListener('click', function () {
-      viewMonth++;
-      if (viewMonth > 11) { viewMonth = 0; viewYear++; }
-      renderCalendar();
-    });
 
     // Bind event clicks
     if (isAdmin) {
