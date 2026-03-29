@@ -46,17 +46,19 @@ body { font-family: var(--body); background: var(--bg); color: var(--text); font
 }
 .sidebar-brand {
   padding: 20px 16px; border-bottom: 1px solid var(--border);
-  font-family: var(--heading); font-size: 1.2rem; font-weight: 700; color: var(--accent);
+  font-family: var(--heading); font-size: 1.3rem; font-weight: 700; color: var(--accent);
+  background: linear-gradient(135deg, rgba(232,168,76,0.08) 0%, transparent 100%);
+  letter-spacing: -0.02em;
 }
 .sidebar-brand span { font-size: 0.7rem; color: var(--text-muted); display: block; font-weight: 400; letter-spacing: 0.1em; text-transform: uppercase; margin-top: 2px; }
 .sidebar-nav { flex: 1; padding: 12px 0; overflow-y: auto; }
 .nav-item {
   display: flex; align-items: center; gap: 10px; padding: 10px 16px; margin: 2px 8px;
   border-radius: 6px; color: var(--text-muted); font-size: 0.85rem; cursor: pointer;
-  transition: all 0.15s; text-decoration: none;
+  transition: all 0.15s; text-decoration: none; border-left: 3px solid transparent;
 }
-.nav-item:hover { background: var(--surface2); color: var(--text); }
-.nav-item.active { background: var(--accent-glow); color: var(--accent); font-weight: 600; }
+.nav-item:hover { background: rgba(232,168,76,0.05); color: var(--text); border-left-color: var(--accent); }
+.nav-item.active { background: rgba(232,168,76,0.1); color: var(--accent); font-weight: 600; border-left-color: var(--accent); }
 .nav-item .icon { font-size: 1.1rem; width: 22px; text-align: center; }
 .sidebar-footer { padding: 12px 16px; border-top: 1px solid var(--border); }
 .sidebar-footer a {
@@ -68,25 +70,26 @@ body { font-family: var(--body); background: var(--bg); color: var(--text); font
 /* MAIN */
 .main { margin-left: var(--sidebar-w); padding: 28px 32px; }
 .page-header { margin-bottom: 24px; }
-.page-header h1 { font-family: var(--heading); font-size: 1.5rem; font-weight: 700; color: var(--text); display: flex; align-items: center; gap: 10px; }
+.page-header h1 { font-family: var(--heading); font-size: 1.5rem; font-weight: 700; color: var(--text); display: inline-flex; align-items: center; gap: 10px; padding-bottom: 8px; border-bottom: 2px solid var(--accent); }
 .page-header h1 .icon { color: var(--accent); }
-.page-header .subtitle { color: var(--text-muted); font-size: 0.85rem; margin-top: 2px; }
+.page-header .subtitle { color: var(--text-muted); font-size: 0.85rem; margin-top: 6px; }
 
 /* STAT CARDS */
 .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; margin-bottom: 28px; }
 .stat-card {
   background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
-  padding: 18px 20px; position: relative; overflow: hidden;
+  padding: 18px 20px; position: relative; overflow: hidden; transition: all 0.2s;
 }
+.stat-card:hover { border-color: var(--accent); box-shadow: 0 0 20px rgba(232,168,76,0.1); }
 .stat-card .stat-label { font-size: 0.75rem; color: var(--accent); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
 .stat-card .stat-number { font-family: var(--heading); font-size: 2rem; font-weight: 700; color: var(--text); }
 
 /* PANELS */
 .panel {
-  background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
   padding: 20px 24px; margin-bottom: 20px;
 }
-.panel h2 { font-family: var(--heading); font-size: 1rem; font-weight: 600; color: var(--text); margin-bottom: 16px; }
+.panel h2 { font-family: var(--heading); font-size: 1rem; font-weight: 600; color: var(--accent); margin-bottom: 16px; }
 
 /* TABLE */
 .roster-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
@@ -108,6 +111,13 @@ body { font-family: var(--body); background: var(--bg); color: var(--text); font
 .status-approved { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 500; background: rgba(76,175,80,0.15); color: #4caf50; border: 1px solid #4caf50; }
 .status-pending { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 500; background: rgba(255,152,0,0.15); color: #ff9800; border: 1px solid #ff9800; }
 .status-rejected { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 500; background: rgba(244,67,54,0.15); color: #f44336; border: 1px solid #f44336; }
+
+/* TABLE ZEBRA STRIPING */
+table tbody tr:nth-child(even) td { background: rgba(255,255,255,0.015); }
+
+/* DANGER BUTTONS — low prominence destructive actions */
+.btn-danger, .btn-danger-sm { background: none !important; border: none !important; color: #c62828; font-size: 0.78rem; cursor: pointer; padding: 2px 6px; font-family: var(--heading); }
+.btn-danger:hover, .btn-danger-sm:hover { text-decoration: underline; color: #e53935; }
 
 /* RESPONSIVE */
 @media (max-width: 900px) {
@@ -136,7 +146,8 @@ body { font-family: var(--body); background: var(--bg); color: var(--text); font
   .sidebar-brand { display: none; }
   .sidebar-nav { display: flex; flex-direction: row; padding: 0; overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; gap: 0; }
   .sidebar-nav::-webkit-scrollbar { display: none; }
-  .nav-item { flex: 0 0 auto; flex-direction: column; gap: 2px; padding: 10px 4px; margin: 0; font-size: 0.7rem; width: 56px; align-items: center; text-align: center; }
+  .nav-item { flex: 0 0 auto; flex-direction: column; gap: 2px; padding: 10px 4px; margin: 0; font-size: 0.7rem; width: 56px; align-items: center; text-align: center; border-left: none; border-bottom: 3px solid transparent; }
+  .nav-item:hover, .nav-item.active { border-left-color: transparent; border-bottom-color: var(--accent); }
   .nav-item .icon { font-size: 1.1rem; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; }
   .nav-item-text { display: block !important; font-size: 0.55rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
   .sidebar-footer { display: none; }
