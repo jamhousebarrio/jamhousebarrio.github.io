@@ -710,11 +710,11 @@
     if (isAdmin) bindFeeActions();
   }
 
-  function saveFee(row, name, amount, paidInFull) {
+  function saveFee(row, name, amount, paidInFull, expected) {
     return fetch('/api/budget', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password: pass, action: 'update-fee', row: row, amount: amount, paidInFull: paidInFull }),
+      body: JSON.stringify({ password: pass, action: 'update-fee', row: row || 0, name: name, amount: amount, paidInFull: paidInFull, expectedFee: expected || defaultFee }),
     });
   }
 
@@ -729,21 +729,21 @@
         var currentPaid = fm ? fm._paid : 0;
         var newPaid = cb.checked ? expected : currentPaid;
 
-        if (!row) {
-          alert('This member has no entry in the Barrio Fee sheet yet. Add a contribution first.');
-          cb.checked = false;
-          return;
-        }
-
-        var r = await saveFee(row, name, newPaid, cb.checked);
+        var r = await saveFee(row, name, newPaid, cb.checked, expected);
         if (!r.ok) { alert('Save failed.'); cb.checked = !cb.checked; return; }
 
-        if (fm) {
-          var diff = newPaid - fm._paid;
-          fm._paid = newPaid;
-          fm['Paid in full'] = cb.checked ? 'TRUE' : 'FALSE';
-          feePaid += diff;
+        var result = await r.json();
+        // If a new row was created, update the feeMap
+        if (!fm) {
+          fm = { _row: result.row, Name: name, _expected: expected, _paid: 0, 'Paid in full': 'FALSE' };
+          feeMap[name] = fm;
         }
+        if (result.row) fm._row = result.row;
+
+        var diff = newPaid - fm._paid;
+        fm._paid = newPaid;
+        fm['Paid in full'] = cb.checked ? 'TRUE' : 'FALSE';
+        feePaid += diff;
         renderFeeProgress();
         renderFeesTable();
         updateStats();
@@ -764,29 +764,28 @@
         btn.textContent = '...';
         btn.disabled = true;
 
-        if (!row) {
-          alert('This member has no entry in the Barrio Fee sheet. Please add them manually.');
-          btn.textContent = 'Add';
-          btn.disabled = false;
-          return;
-        }
-
         var fm = feeMap[name];
         var expected = fm ? fm._expected : defaultFee;
         var fullyPaid = newTotal >= expected;
 
-        var r = await saveFee(row, name, newTotal, fullyPaid);
+        var r = await saveFee(row, name, newTotal, fullyPaid, expected);
         btn.textContent = 'Add';
         btn.disabled = false;
 
         if (!r.ok) { alert('Save failed.'); return; }
 
-        if (fm) {
-          var diff = newTotal - fm._paid;
-          fm._paid = newTotal;
-          if (fullyPaid) fm['Paid in full'] = 'TRUE';
-          feePaid += diff;
+        var result = await r.json();
+        if (!fm) {
+          fm = { _row: result.row, Name: name, _expected: expected, _paid: 0, 'Paid in full': 'FALSE' };
+          feeMap[name] = fm;
         }
+        if (result.row) fm._row = result.row;
+
+        var diff = newTotal - fm._paid;
+        fm._paid = newTotal;
+        if (fullyPaid) fm['Paid in full'] = 'TRUE';
+        feePaid += diff;
+
         renderFeeProgress();
         renderFeesTable();
         updateStats();

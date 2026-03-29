@@ -258,16 +258,38 @@ export default async function handler(req, res) {
     }
 
     if (action === 'update-fee') {
-      const { row, amount, paidInFull } = payload;
-      if (!row) return res.status(400).json({ error: 'row required' });
-      // Update Paid (col D) and Paid in full (col E) in Barrio Fee tab
-      await sheets.spreadsheets.values.update({
+      const { row, amount, paidInFull, name, expectedFee } = payload;
+
+      if (row) {
+        // Update existing row: Paid (col D) and Paid in full (col E)
+        await sheets.spreadsheets.values.update({
+          spreadsheetId,
+          range: "'Barrio Fee'!D" + row + ":E" + row,
+          valueInputOption: 'USER_ENTERED',
+          requestBody: { values: [[amount != null ? amount : '', paidInFull ? 'TRUE' : 'FALSE']] },
+        });
+        return res.status(200).json({ success: true, row: row });
+      }
+
+      // No row — create new entry for this member
+      if (!name) return res.status(400).json({ error: 'name required for new fee entry' });
+
+      // Read existing to find next number
+      const feeRes = await sheets.spreadsheets.values.get({ spreadsheetId, range: "'Barrio Fee'" });
+      const feeRows = feeRes.data.values || [];
+      const nextNum = feeRows.length; // row count = next number (header is row 1)
+
+      const appendRes = await sheets.spreadsheets.values.append({
         spreadsheetId,
-        range: "'Barrio Fee'!D" + row + ":E" + row,
+        range: "'Barrio Fee'",
         valueInputOption: 'USER_ENTERED',
-        requestBody: { values: [[amount != null ? amount : '', paidInFull ? 'TRUE' : 'FALSE']] },
+        requestBody: { values: [[nextNum, name, expectedFee || 250, amount != null ? amount : '', paidInFull ? 'TRUE' : 'FALSE']] },
       });
-      return res.status(200).json({ success: true });
+
+      // Extract the row number that was added
+      const updatedRange = appendRes.data.updates.updatedRange;
+      const newRow = parseInt(updatedRange.match(/\d+$/)[0]);
+      return res.status(200).json({ success: true, row: newRow });
     }
 
     return res.status(400).json({ error: 'Invalid action' });
