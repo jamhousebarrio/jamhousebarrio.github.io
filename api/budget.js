@@ -258,14 +258,14 @@ export default async function handler(req, res) {
     }
 
     if (action === 'update-fee') {
-      const { row, amount } = payload;
+      const { row, amount, paidInFull } = payload;
       if (!row) return res.status(400).json({ error: 'row required' });
-      // Update the paid column (index 3 = column D) in Barrio Fee tab
+      // Update Paid (col D) and Paid in full (col E) in Barrio Fee tab
       await sheets.spreadsheets.values.update({
         spreadsheetId,
-        range: "'Barrio Fee'!D" + row,
+        range: "'Barrio Fee'!D" + row + ":E" + row,
         valueInputOption: 'USER_ENTERED',
-        requestBody: { values: [[amount != null ? amount : '']] },
+        requestBody: { values: [[amount != null ? amount : '', paidInFull ? 'TRUE' : 'FALSE']] },
       });
       return res.status(200).json({ success: true });
     }
