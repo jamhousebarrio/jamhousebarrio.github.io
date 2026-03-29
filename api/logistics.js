@@ -56,22 +56,61 @@ export default async function handler(req, res) {
 
       const sheets = getSheets(true);
       const tabName = 'MemberLogistics';
-      const headers = ['MemberName', 'ArrivalDate', 'ArrivalTime', 'Transport', 'NeedsPickup', 'DepartureDate', 'CampingType', 'TentSize', 'Notes'];
-      const newRow = [memberName, arrivalDate || '', arrivalTime || '', transport || '', needsPickup || '', departureDate || '', campingType || '', tentSize || '', notes || ''];
+      const allHeaders = ['MemberName', 'ArrivalDate', 'ArrivalTime', 'Transport', 'NeedsPickup', 'DepartureDate', 'CampingType', 'TentSize', 'Notes'];
+      const fieldMap = {
+        MemberName: memberName,
+        ArrivalDate: arrivalDate || '',
+        ArrivalTime: arrivalTime || '',
+        Transport: transport || '',
+        NeedsPickup: needsPickup || '',
+        DepartureDate: departureDate || '',
+        CampingType: campingType || '',
+        TentSize: tentSize || '',
+        Notes: notes || '',
+      };
 
       const existing = await safeGet(sheets, id, tabName);
 
       if (!existing.length) {
+        // Tab empty or missing — create with full headers
+        try {
+          await sheets.spreadsheets.batchUpdate({
+            spreadsheetId: id,
+            requestBody: { requests: [{ addSheet: { properties: { title: tabName } } }] },
+          });
+        } catch (e) { /* tab exists */ }
+        const newRow = allHeaders.map(h => fieldMap[h] || '');
         await sheets.spreadsheets.values.update({
           spreadsheetId: id,
           range: `${tabName}!A1`,
           valueInputOption: 'RAW',
-          requestBody: { values: [headers, newRow] },
+          requestBody: { values: [allHeaders, newRow] },
         });
         return res.status(200).json({ ok: true });
       }
 
-      const existingHeaders = existing[0];
+      let existingHeaders = existing[0];
+
+      // Add any missing headers to the sheet
+      const missingHeaders = allHeaders.filter(h => existingHeaders.indexOf(h) === -1);
+      if (missingHeaders.length) {
+        const startCol = existingHeaders.length;
+        existingHeaders = existingHeaders.concat(missingHeaders);
+        // Write new headers
+        let colLetter = '';
+        let c = startCol;
+        while (c >= 0) { colLetter = String.fromCharCode(65 + (c % 26)) + colLetter; c = Math.floor(c / 26) - 1; }
+        await sheets.spreadsheets.values.update({
+          spreadsheetId: id,
+          range: `${tabName}!${colLetter}1`,
+          valueInputOption: 'RAW',
+          requestBody: { values: [missingHeaders] },
+        });
+      }
+
+      // Build row matching existing header order
+      const newRow = existingHeaders.map(h => fieldMap[h] !== undefined ? fieldMap[h] : '');
+
       const nameCol = existingHeaders.indexOf('MemberName');
       let foundRowIndex = -1;
       for (let i = 1; i < existing.length; i++) {
