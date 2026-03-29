@@ -610,63 +610,94 @@
 
   // ── Barrio Fee Payments ─────────────────────────────────────────────────
 
-  var feeMembers = (fees.members || []).filter(function (fm) {
+  // Build fee lookup from Barrio Fee tab by member name
+  var feeMap = {};
+  (fees.members || []).forEach(function (fm) {
     var name = (fm.Name || '').trim();
-    return name && !name.match(/^Member\s*(X|xxx|XXX)/i);
+    if (name && !name.match(/^Member\s*(X|xxx|XXX)/i)) {
+      feeMap[name] = fm;
+    }
   });
 
-  // Recalculate totals from filtered members only
-  var feeExpected = 0, feePaid = 0;
-  feeMembers.forEach(function (fm) { feeExpected += fm._expected; feePaid += fm._paid; });
+  // Use approved members as the source of truth
+  var approvedForFees = members.filter(function (m) {
+    return (JH.val(m, 'Status') || '').toLowerCase() === 'approved';
+  });
+
+  var defaultFee = 250;
+  var feePaid = 0;
+  var feeExpected = approvedForFees.length * defaultFee;
+  approvedForFees.forEach(function (m) {
+    var name = JH.val(m, 'Playa Name') || JH.val(m, 'Name');
+    var fm = feeMap[name];
+    if (fm) feePaid += fm._paid || 0;
+  });
 
   function renderFeeProgress() {
     var el = document.getElementById('fees-progress');
     var pct = feeExpected > 0 ? Math.min(100, Math.round(feePaid / feeExpected * 100)) : 0;
     el.innerHTML = '<div style="display:flex;justify-content:space-between;font-size:0.82rem;margin-bottom:4px">' +
-      '<span style="color:var(--text-muted)">' + eur(feePaid) + ' of ' + eur(feeExpected) + ' collected</span>' +
+      '<span style="color:var(--text-muted)">' + eur(feePaid) + ' of ' + eur(feeExpected) + ' collected (' + approvedForFees.length + ' members)</span>' +
       '<span style="color:var(--accent);font-weight:600">' + pct + '%</span></div>' +
       '<div style="height:8px;background:var(--bg);border-radius:4px;overflow:hidden">' +
       '<div style="height:100%;width:' + pct + '%;background:var(--accent);border-radius:4px;transition:width 0.3s"></div></div>';
   }
 
+  var thStyle = 'padding:8px 10px;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-muted);border-bottom:1px solid var(--border);font-family:var(--heading);font-weight:600;';
+
   function renderFeesTable() {
     var wrap = document.getElementById('fees-table-wrap');
-    if (!feeMembers.length) {
-      wrap.innerHTML = '<div style="color:var(--text-muted);font-size:0.85rem;padding:8px 0">No fee data found in "Barrio Fee" tab.</div>';
+    if (!approvedForFees.length) {
+      wrap.innerHTML = '<div style="color:var(--text-muted);font-size:0.85rem;padding:8px 0">No approved members found.</div>';
       return;
     }
 
     var html = '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:0.85rem;">';
     html += '<thead><tr>';
-    html += '<th style="text-align:left;padding:8px 10px;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-muted);border-bottom:1px solid var(--border);font-family:var(--heading);font-weight:600;">Member</th>';
-    html += '<th style="text-align:right;padding:8px 10px;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-muted);border-bottom:1px solid var(--border);font-family:var(--heading);font-weight:600;">Expected</th>';
-    html += '<th style="text-align:right;padding:8px 10px;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-muted);border-bottom:1px solid var(--border);font-family:var(--heading);font-weight:600;">Paid</th>';
-    html += '<th style="text-align:center;padding:8px 10px;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-muted);border-bottom:1px solid var(--border);font-family:var(--heading);font-weight:600;">Status</th>';
-    if (isAdmin) html += '<th style="padding:8px 10px;border-bottom:1px solid var(--border);width:140px;"></th>';
+    html += '<th style="text-align:left;' + thStyle + '">Member</th>';
+    html += '<th style="text-align:right;' + thStyle + '">Fee</th>';
+    html += '<th style="text-align:right;' + thStyle + '">Contributed</th>';
+    html += '<th style="text-align:center;' + thStyle + '">Paid in Full</th>';
+    html += '<th style="text-align:center;' + thStyle + '">Status</th>';
+    if (isAdmin) html += '<th style="' + thStyle + 'width:200px;">Actions</th>';
     html += '</tr></thead><tbody>';
 
-    feeMembers.forEach(function (fm) {
-      var name = (fm.Name || '').trim();
-      var expected = fm._expected || 0;
-      var paid = fm._paid || 0;
+    approvedForFees.forEach(function (m) {
+      var name = JH.val(m, 'Playa Name') || JH.val(m, 'Name');
+      var fm = feeMap[name];
+      var expected = fm ? (fm._expected || defaultFee) : defaultFee;
+      var paid = fm ? (fm._paid || 0) : 0;
+      var paidInFull = fm && (fm['Paid in full'] === 'TRUE' || fm['Paid in full'] === true);
+      var row = fm ? fm._row : 0;
       var remaining = expected - paid;
-      var fullyPaid = remaining <= 0 && expected > 0;
-      var statusHtml = fullyPaid
-        ? '<span style="color:#4caf50;font-weight:600;font-size:0.8rem;">Paid</span>'
-        : paid > 0
-          ? '<span style="color:#ff9800;font-size:0.8rem;">' + eur(remaining) + ' left</span>'
-          : '<span style="color:#f44336;font-size:0.8rem;">Unpaid</span>';
+
+      var statusHtml;
+      if (paidInFull || (remaining <= 0 && expected > 0)) {
+        statusHtml = '<span style="color:#4caf50;font-weight:600;font-size:0.8rem;">Paid</span>';
+      } else if (paid > 0) {
+        statusHtml = '<span style="color:#ff9800;font-size:0.8rem;">' + eur(remaining) + ' left</span>';
+      } else {
+        statusHtml = '<span style="color:#f44336;font-size:0.8rem;">Unpaid</span>';
+      }
 
       html += '<tr style="border-bottom:1px solid var(--border)">';
       html += '<td style="padding:8px 10px;font-weight:600">' + esc(name) + '</td>';
       html += '<td style="padding:8px 10px;text-align:right">' + eur(expected) + '</td>';
-      html += '<td style="padding:8px 10px;text-align:right;color:' + (fullyPaid ? '#4caf50' : paid > 0 ? '#ff9800' : 'var(--text-muted)') + '">' + eur(paid) + '</td>';
+      html += '<td style="padding:8px 10px;text-align:right;color:' + (paid > 0 ? '#4caf50' : 'var(--text-muted)') + '">' + eur(paid) + '</td>';
+      html += '<td style="padding:8px 10px;text-align:center">';
+      if (isAdmin) {
+        html += '<input type="checkbox" class="fee-paid-check" data-name="' + esc(name) + '" data-row="' + row + '" data-expected="' + expected + '"' + (paidInFull ? ' checked' : '') + ' style="accent-color:var(--accent);width:18px;height:18px;cursor:pointer;">';
+      } else {
+        html += paidInFull ? '<span style="color:#4caf50;">&#10003;</span>' : '';
+      }
+      html += '</td>';
       html += '<td style="padding:8px 10px;text-align:center">' + statusHtml + '</td>';
 
       if (isAdmin) {
         html += '<td style="padding:6px 10px"><div style="display:flex;gap:4px;align-items:center">';
-        html += '<input type="number" step="0.01" class="fee-input" data-row="' + fm._row + '" value="' + paid + '" style="width:80px;background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:0.82rem;padding:4px 6px;text-align:right;">';
-        html += '<button class="fee-save-btn" data-row="' + fm._row + '" style="padding:4px 10px;background:var(--accent);border:none;border-radius:4px;color:var(--bg);font-size:0.75rem;font-weight:600;cursor:pointer;font-family:var(--heading);">Save</button>';
+        html += '<span style="font-size:0.78rem;color:var(--text-muted)">+</span>';
+        html += '<input type="number" step="0.01" min="0" class="fee-add-input" data-name="' + esc(name) + '" data-row="' + row + '" placeholder="0.00" style="width:70px;background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:0.82rem;padding:4px 6px;text-align:right;">';
+        html += '<button class="fee-add-btn" data-name="' + esc(name) + '" data-row="' + row + '" data-current="' + paid + '" style="padding:4px 10px;background:var(--accent);border:none;border-radius:4px;color:var(--bg);font-size:0.75rem;font-weight:600;cursor:pointer;font-family:var(--heading);white-space:nowrap;">Add</button>';
         html += '</div></td>';
       }
 
@@ -676,39 +707,88 @@
     html += '</tbody></table></div>';
     wrap.innerHTML = html;
 
-    if (isAdmin) bindFeeSaveButtons();
+    if (isAdmin) bindFeeActions();
   }
 
-  function bindFeeSaveButtons() {
-    document.querySelectorAll('.fee-save-btn').forEach(function (btn) {
+  function saveFee(row, name, amount, paidInFull) {
+    return fetch('/api/budget', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: pass, action: 'update-fee', row: row, amount: amount, paidInFull: paidInFull }),
+    });
+  }
+
+  function bindFeeActions() {
+    // Paid in full checkbox
+    document.querySelectorAll('.fee-paid-check').forEach(function (cb) {
+      cb.addEventListener('change', async function () {
+        var name = cb.dataset.name;
+        var row = parseInt(cb.dataset.row);
+        var expected = parseFloat(cb.dataset.expected) || defaultFee;
+        var fm = feeMap[name];
+        var currentPaid = fm ? fm._paid : 0;
+        var newPaid = cb.checked ? expected : currentPaid;
+
+        if (!row) {
+          alert('This member has no entry in the Barrio Fee sheet yet. Add a contribution first.');
+          cb.checked = false;
+          return;
+        }
+
+        var r = await saveFee(row, name, newPaid, cb.checked);
+        if (!r.ok) { alert('Save failed.'); cb.checked = !cb.checked; return; }
+
+        if (fm) {
+          var diff = newPaid - fm._paid;
+          fm._paid = newPaid;
+          fm['Paid in full'] = cb.checked ? 'TRUE' : 'FALSE';
+          feePaid += diff;
+        }
+        renderFeeProgress();
+        renderFeesTable();
+        updateStats();
+      });
+    });
+
+    // Add contribution button
+    document.querySelectorAll('.fee-add-btn').forEach(function (btn) {
       btn.addEventListener('click', async function () {
+        var name = btn.dataset.name;
         var row = parseInt(btn.dataset.row);
-        var input = document.querySelector('.fee-input[data-row="' + row + '"]');
-        var amount = parseFloat(input.value) || 0;
+        var currentPaid = parseFloat(btn.dataset.current) || 0;
+        var input = document.querySelector('.fee-add-input[data-name="' + CSS.escape(name) + '"]');
+        var addAmount = parseFloat(input.value) || 0;
+        if (addAmount <= 0) { alert('Enter an amount to add.'); return; }
+
+        var newTotal = currentPaid + addAmount;
         btn.textContent = '...';
         btn.disabled = true;
 
-        var r = await fetch('/api/budget', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ password: pass, action: 'update-fee', row: row, amount: amount }),
-        });
+        if (!row) {
+          alert('This member has no entry in the Barrio Fee sheet. Please add them manually.');
+          btn.textContent = 'Add';
+          btn.disabled = false;
+          return;
+        }
 
-        btn.textContent = 'Save';
+        var fm = feeMap[name];
+        var expected = fm ? fm._expected : defaultFee;
+        var fullyPaid = newTotal >= expected;
+
+        var r = await saveFee(row, name, newTotal, fullyPaid);
+        btn.textContent = 'Add';
         btn.disabled = false;
 
-        if (!r.ok) { alert('Failed to save.'); return; }
+        if (!r.ok) { alert('Save failed.'); return; }
 
-        // Update local state
-        var fm = feeMembers.find(function (f) { return f._row === row; });
         if (fm) {
-          var diff = amount - fm._paid;
-          fm._paid = amount;
+          var diff = newTotal - fm._paid;
+          fm._paid = newTotal;
+          if (fullyPaid) fm['Paid in full'] = 'TRUE';
           feePaid += diff;
         }
-        btn.textContent = 'Saved!';
-        setTimeout(function () { btn.textContent = 'Save'; }, 1500);
         renderFeeProgress();
+        renderFeesTable();
         updateStats();
       });
     });
