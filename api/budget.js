@@ -16,7 +16,7 @@ export default async function handler(req, res) {
 
   try {
     const credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY);
-    const writeActions = ['add', 'update', 'delete', 'approve-request', 'reject-request', 'shopping-request'];
+    const writeActions = ['add', 'update', 'delete', 'approve-request', 'reject-request', 'shopping-request', 'update-fee'];
     const needsWrite = writeActions.includes(action);
     const auth = new GoogleAuth({
       credentials,
