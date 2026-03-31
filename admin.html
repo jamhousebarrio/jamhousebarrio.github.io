@@ -26,7 +26,10 @@ permalink: /admin
     <!-- Login form -->
     <form id="login-form">
       <input type="email" id="email" placeholder="Email" required>
-      <input type="password" id="password" placeholder="Password" required>
+      <div style="position:relative;">
+        <input type="password" id="password" placeholder="Password" required style="padding-right:40px;">
+        <button type="button" id="toggle-pw" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:1.1rem;padding:4px;" tabindex="-1">&#128065;</button>
+      </div>
       <button type="submit">Log In</button>
     </form>
     <p class="login-error" id="login-error"></p>
@@ -48,6 +51,14 @@ permalink: /admin
 </div>
 <script>
   var sb = JH.supabase;
+
+  // Toggle password visibility
+  document.getElementById('toggle-pw').addEventListener('click', function() {
+    var pw = document.getElementById('password');
+    var isHidden = pw.type === 'password';
+    pw.type = isHidden ? 'text' : 'password';
+    this.style.opacity = isHidden ? '1' : '0.5';
+  });
 
   // Toggle between login and magic link forms
   document.getElementById('forgot-link').addEventListener('click', function(e) {
