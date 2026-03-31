@@ -1,20 +1,18 @@
 import { getSheets, safeGet, toObjects } from './_lib/sheets.js';
+import { authenticateRequest } from './_lib/auth.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
-  const { password, action, memberName, arrivalDate, arrivalTime, transport, needsPickup, departureDate, campingType, tentSize, notes } = req.body || {};
-
-  const isAdmin = password === process.env.ADMIN_WRITE_PASSWORD;
-  if (password !== process.env.ADMIN_PASSWORD && !isAdmin) {
-    return res.status(401).json({ error: 'Wrong password' });
-  }
-
-  const id = process.env.SHEET_ID;
 
   try {
+    const auth = await authenticateRequest(req);
+    const { action, memberName, arrivalDate, arrivalTime, transport, needsPickup, departureDate, campingType, tentSize, notes } = req.body || {};
+
+    const id = auth.spreadsheetId;
+    const sheets = auth.sheets;
+
     // ── Fetch (default) ───────────────────────────────────────────────────
     if (!action) {
-      const sheets = getSheets(false);
       const rows = await safeGet(sheets, id, 'MemberLogistics');
       return res.status(200).json({ logistics: toObjects(rows) });
     }
@@ -23,7 +21,6 @@ export default async function handler(req, res) {
     if (action === 'upsert') {
       if (!memberName) return res.status(400).json({ error: 'memberName required' });
 
-      const sheets = getSheets(true);
       const tabName = 'MemberLogistics';
       const allHeaders = ['MemberName', 'ArrivalDate', 'ArrivalTime', 'Transport', 'NeedsPickup', 'DepartureDate', 'CampingType', 'TentSize', 'Notes'];
       const fieldMap = {
@@ -110,6 +107,7 @@ export default async function handler(req, res) {
 
     return res.status(400).json({ error: 'Unknown action' });
   } catch (e) {
+    if (e.status) return res.status(e.status).json({ error: e.message });
     console.error('Logistics API error:', e);
     return res.status(500).json({ error: 'Failed' });
   }

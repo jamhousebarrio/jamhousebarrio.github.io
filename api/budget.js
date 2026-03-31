@@ -1,30 +1,22 @@
-import { sheets as sheetsApi } from '@googleapis/sheets';
-import { GoogleAuth } from 'google-auth-library';
-import { colToLetter } from './_lib/sheets.js';
+import { getSheets, colToLetter } from './_lib/sheets.js';
+import { verifyToken, getMemberByEmail, isAdmin as checkAdmin } from './_lib/auth.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
-  const { password, action, ...payload } = req.body || {};
-
-  const isWrite = password === process.env.ADMIN_WRITE_PASSWORD;
-  const isRead = isWrite || password === process.env.ADMIN_PASSWORD;
-  if (!isRead) {
-    return res.status(401).json({ error: 'Wrong password' });
-  }
 
   try {
-    const credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY);
-    const writeActions = ['add', 'update', 'delete', 'approve-request', 'reject-request', 'shopping-request', 'update-fee'];
-    const needsWrite = writeActions.includes(action);
-    const auth = new GoogleAuth({
-      credentials,
-      scopes: [needsWrite
-        ? 'https://www.googleapis.com/auth/spreadsheets'
-        : 'https://www.googleapis.com/auth/spreadsheets.readonly'],
-    });
-    const sheets = sheetsApi({ version: 'v4', auth });
+    const user = verifyToken(req);
+    const memberSheets = getSheets(true);
+    const memberResult = await getMemberByEmail(memberSheets, process.env.SHEET_ID, user.email);
+    if (!memberResult) {
+      return res.status(403).json({ error: 'Member not found or not approved' });
+    }
+    const isWrite = checkAdmin(memberResult.member);
+
+    const { action, ...payload } = req.body || {};
+    const sheets = getSheets(true);
     const spreadsheetId = process.env.BUDGET_SHEET_ID;
 
     // ── Fetch budget totals (default) ─────────────────────────────────────
@@ -109,7 +101,7 @@ export default async function handler(req, res) {
       });
     }
 
-    // ── Shopping request (read or write auth) ─────────────────────────────
+    // ── Shopping request (available to ALL authenticated users) ───────────
     if (action === 'shopping-request') {
       const { requestId, item, description, link, price, submittedBy } = payload;
       if (!requestId || !item || !submittedBy) {
@@ -124,9 +116,9 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true });
     }
 
-    // ── Write actions below require write password ────────────────────────
+    // ── Write actions below require admin ─────────────────────────────────
     if (!isWrite) {
-      return res.status(401).json({ error: 'Unauthorized' });
+      return res.status(401).json({ error: 'Admin required' });
     }
 
     // Read headers for add/update/delete
@@ -285,6 +277,7 @@ export default async function handler(req, res) {
 
     return res.status(400).json({ error: 'Invalid action' });
   } catch (e) {
+    if (e.status) return res.status(e.status).json({ error: e.message });
     console.error('Budget API error:', e);
     return res.status(500).json({ error: 'Failed' });
   }
