@@ -3,7 +3,6 @@
   if (!session) return;
 
   var isAdmin = JH.isAdmin();
-  var pass = sessionStorage.getItem('jh_pass');
   var state = { items: [], filter: 'all' };
 
   // ── Helpers ───────────────────────────────────────────────────────────────
@@ -16,11 +15,7 @@
   // ── Data fetching ─────────────────────────────────────────────────────────
 
   async function fetchItems() {
-    var res = await fetch('/api/inventory', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password: pass }),
-    });
+    var res = await JH.apiFetch('/api/inventory', {});
     if (!res.ok) { console.error('inventory fetch failed'); return; }
     var data = await res.json();
     state.items = data.items || [];
@@ -96,11 +91,7 @@
         var item = state.items.find(function (i) { return i.ItemID === btn.dataset.delete; });
         if (!item) return;
         if (!confirm('Delete "' + item.Name + '"? This cannot be undone.')) return;
-        var r = await fetch('/api/inventory', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ password: pass, action: 'delete', itemId: item.ItemID }),
-        });
+        var r = await JH.apiFetch('/api/inventory', { action: 'delete', itemId: item.ItemID });
         if (!r.ok) { var d = await r.json().catch(function () { return {}; }); alert(d.error || 'Delete failed.'); return; }
         await reload();
       });
@@ -172,21 +163,16 @@
     btn.textContent = 'Saving...';
     btn.disabled = true;
 
-    var r = await fetch('/api/inventory', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        password: pass,
-        action: 'upsert',
-        itemId: itemId,
-        name: name,
-        category: document.getElementById('field-category').value,
-        description: document.getElementById('field-description').value,
-        photoUrl: document.getElementById('field-photo').value,
-        quantity: document.getElementById('field-quantity').value,
-        location: document.getElementById('field-location').value,
-        notes: document.getElementById('field-notes').value,
-      }),
+    var r = await JH.apiFetch('/api/inventory', {
+      action: 'upsert',
+      itemId: itemId,
+      name: name,
+      category: document.getElementById('field-category').value,
+      description: document.getElementById('field-description').value,
+      photoUrl: document.getElementById('field-photo').value,
+      quantity: document.getElementById('field-quantity').value,
+      location: document.getElementById('field-location').value,
+      notes: document.getElementById('field-notes').value,
     });
 
     btn.textContent = 'Save Item';

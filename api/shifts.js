@@ -1,4 +1,5 @@
 import { getSheets } from './_lib/sheets.js';
+import { authenticateRequest } from './_lib/auth.js';
 
 async function getRows(sheets, spreadsheetId) {
   try {
@@ -19,27 +20,22 @@ function parseShifts(rows) {
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
-  const { password, action, ...payload } = req.body || {};
-
-  const isRead = password === process.env.ADMIN_PASSWORD || password === process.env.ADMIN_WRITE_PASSWORD;
-  const isAdmin = password === process.env.ADMIN_WRITE_PASSWORD;
-
-  if (!isRead) return res.status(401).json({ error: 'Unauthorized' });
-
-  const spreadsheetId = process.env.SHEET_ID;
 
   try {
+    const auth = await authenticateRequest(req);
+    const { action, ...payload } = req.body || {};
+
+    const spreadsheetId = auth.spreadsheetId;
+    const sheets = auth.sheets;
+
     // No action = fetch all shifts
     if (!action) {
-      const sheets = getSheets(false);
       const rows = await getRows(sheets, spreadsheetId);
       return res.status(200).json({ shifts: parseShifts(rows) });
     }
 
-    const sheets = getSheets(true);
-
     if (action === 'create') {
-      if (!isAdmin) return res.status(401).json({ error: 'Admin required' });
+      if (!auth.admin) return res.status(401).json({ error: 'Admin required' });
       const { shiftId, name, date, startTime, endTime } = payload;
       if (!shiftId || !name || !date) return res.status(400).json({ error: 'shiftId, name, date required' });
       const existing = await getRows(sheets, spreadsheetId);
@@ -88,7 +84,7 @@ export default async function handler(req, res) {
     }
 
     if (action === 'unassign') {
-      if (!isAdmin) return res.status(401).json({ error: 'Admin required' });
+      if (!auth.admin) return res.status(401).json({ error: 'Admin required' });
       const { shiftId } = payload;
       if (!shiftId) return res.status(400).json({ error: 'shiftId required' });
       const rows = await getRows(sheets, spreadsheetId);
@@ -107,7 +103,7 @@ export default async function handler(req, res) {
     }
 
     if (action === 'delete') {
-      if (!isAdmin) return res.status(401).json({ error: 'Admin required' });
+      if (!auth.admin) return res.status(401).json({ error: 'Admin required' });
       const { shiftId } = payload;
       if (!shiftId) return res.status(400).json({ error: 'shiftId required' });
       const rows = await getRows(sheets, spreadsheetId);
@@ -131,6 +127,7 @@ export default async function handler(req, res) {
 
     return res.status(400).json({ error: 'Unknown action' });
   } catch (e) {
+    if (e.status) return res.status(e.status).json({ error: e.message });
     console.error('shifts error:', e.message, e.stack);
     return res.status(500).json({ error: 'Failed', detail: e.message });
   }

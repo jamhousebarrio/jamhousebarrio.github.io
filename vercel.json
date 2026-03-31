@@ -14,6 +14,7 @@
     { "source": "/admin/drinks", "destination": "/admin/drinks.html" },
     { "source": "/admin/events", "destination": "/admin/events.html" },
     { "source": "/admin/roles", "destination": "/admin/roles.html" },
-    { "source": "/admin/timeline", "destination": "/admin/timeline.html" }
+    { "source": "/admin/timeline", "destination": "/admin/timeline.html" },
+    { "source": "/admin/profile", "destination": "/admin/profile.html" }
   ]
 }

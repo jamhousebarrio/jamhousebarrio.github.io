@@ -3,8 +3,6 @@
   if (!members) return;
 
   var isAdmin = JH.isAdmin();
-  var pass = sessionStorage.getItem('jh_pass');
-  var writePass = sessionStorage.getItem('jh_pass');
 
   var state = { meals: [], ingredients: [], logistics: [] };
   var activeFilter = 'all';
@@ -40,11 +38,7 @@
   // ── Data fetching ─────────────────────────────────────────────────────────
 
   async function fetchData() {
-    var res = await fetch('/api/meals', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password: pass }),
-    });
+    var res = await JH.apiFetch('/api/meals', {});
     if (!res.ok) { console.error('meals fetch failed'); return; }
     var data = await res.json();
     state.meals = data.meals || [];
@@ -302,11 +296,7 @@
     document.querySelectorAll('.delete-meal-btn').forEach(function (btn) {
       btn.addEventListener('click', async function () {
         if (!confirm('Delete meal "' + btn.dataset.mealId + '" and all its ingredients?')) return;
-        var r = await fetch('/api/meals', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ password: writePass, action: 'delete-meal', mealId: btn.dataset.mealId }),
-        });
+        var r = await JH.apiFetch('/api/meals', { action: 'delete-meal', mealId: btn.dataset.mealId });
         if (!r.ok) { alert('Action failed. Please try again.'); return; }
         await reload();
       });
@@ -332,11 +322,7 @@
     document.querySelectorAll('.delete-ingredient-btn').forEach(function (btn) {
       btn.addEventListener('click', async function () {
         if (!confirm('Delete this ingredient?')) return;
-        var r = await fetch('/api/meals', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ password: writePass, action: 'delete-ingredient', ingredientId: btn.dataset.ingredientId }),
-        });
+        var r = await JH.apiFetch('/api/meals', { action: 'delete-ingredient', ingredientId: btn.dataset.ingredientId });
         if (!r.ok) { alert('Action failed. Please try again.'); return; }
         await reload();
       });
@@ -370,19 +356,14 @@
     var btn = this;
     btn.textContent = 'Saving...';
     btn.disabled = true;
-    var r = await fetch('/api/meals', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        password: writePass,
-        action: 'upsert-meal',
-        mealId: mealId,
-        name: name,
-        date: date,
-        mealType: document.getElementById('meal-type').value,
-        description: document.getElementById('meal-desc').value,
-        instructions: document.getElementById('meal-instructions').value,
-      }),
+    var r = await JH.apiFetch('/api/meals', {
+      action: 'upsert-meal',
+      mealId: mealId,
+      name: name,
+      date: date,
+      mealType: document.getElementById('meal-type').value,
+      description: document.getElementById('meal-desc').value,
+      instructions: document.getElementById('meal-instructions').value,
     });
     btn.textContent = 'Save Meal';
     btn.disabled = false;
@@ -413,18 +394,13 @@
     var btn = this;
     btn.textContent = 'Saving...';
     btn.disabled = true;
-    var r = await fetch('/api/meals', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        password: writePass,
-        action: 'upsert-ingredient',
-        ingredientId: ingredientId,
-        mealId: mealId,
-        name: name,
-        quantity: quantity,
-        unit: unit,
-      }),
+    var r = await JH.apiFetch('/api/meals', {
+      action: 'upsert-ingredient',
+      ingredientId: ingredientId,
+      mealId: mealId,
+      name: name,
+      quantity: quantity,
+      unit: unit,
     });
     btn.textContent = 'Save Ingredient';
     btn.disabled = false;

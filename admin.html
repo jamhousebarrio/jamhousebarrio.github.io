@@ -13,6 +13,8 @@ permalink: /admin
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/assets/css/admin.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/assets/js/supabase-client.js"></script>
 </head>
 <body>
 <div id="login-view">
@@ -20,39 +22,134 @@ permalink: /admin
     <h1>JamHouse</h1>
     <div class="sub">Live Music Barrio</div>
     <p class="desc">Member Login</p>
+
+    <!-- Login form -->
     <form id="login-form">
+      <input type="email" id="email" placeholder="Email" required>
       <input type="password" id="password" placeholder="Password" required>
-      <button type="submit">Enter</button>
+      <button type="submit">Log In</button>
     </form>
     <p class="login-error" id="login-error"></p>
+    <p style="text-align:center;margin-top:12px;">
+      <a href="#" id="forgot-link" style="color:var(--accent);font-size:0.85rem;text-decoration:none;">Forgot password?</a>
+    </p>
+
+    <!-- Magic link form (hidden by default) -->
+    <form id="magic-form" style="display:none;">
+      <p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:12px;">Enter your email and we'll send you a login link.</p>
+      <input type="email" id="magic-email" placeholder="Email" required>
+      <button type="submit">Send Magic Link</button>
+    </form>
+    <p class="login-error" id="magic-error"></p>
+    <p id="magic-back" style="display:none;text-align:center;margin-top:12px;">
+      <a href="#" id="back-link" style="color:var(--accent);font-size:0.85rem;text-decoration:none;">&larr; Back to login</a>
+    </p>
   </div>
 </div>
 <script>
+  var sb = JH.supabase;
+
+  // Toggle between login and magic link forms
+  document.getElementById('forgot-link').addEventListener('click', function(e) {
+    e.preventDefault();
+    document.getElementById('login-form').style.display = 'none';
+    document.getElementById('forgot-link').parentNode.style.display = 'none';
+    document.getElementById('login-error').style.display = 'none';
+    document.getElementById('magic-form').style.display = '';
+    document.getElementById('magic-back').style.display = '';
+  });
+  document.getElementById('back-link').addEventListener('click', function(e) {
+    e.preventDefault();
+    document.getElementById('login-form').style.display = '';
+    document.getElementById('forgot-link').parentNode.style.display = '';
+    document.getElementById('magic-form').style.display = 'none';
+    document.getElementById('magic-back').style.display = 'none';
+    document.getElementById('magic-error').style.display = 'none';
+  });
+
+  // Email + password login
   document.getElementById('login-form').addEventListener('submit', async function(e) {
     e.preventDefault();
     var err = document.getElementById('login-error');
     err.style.display = 'none';
+    var email = document.getElementById('email').value;
     var password = document.getElementById('password').value;
     try {
-      var res = await fetch('/api/members', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: password }) });
-      if (!res.ok) { err.textContent = 'Wrong password'; err.style.display = 'block'; return; }
-      var data = await res.json();
-      sessionStorage.setItem('jh_pass', password);
-      if (data.admin) { sessionStorage.setItem('jh_admin', '1'); window.location.href = '/admin/applications'; }
-      else { sessionStorage.removeItem('jh_admin'); window.location.href = '/admin/demographics'; }
-    } catch (e) { err.textContent = 'Something went wrong'; err.style.display = 'block'; }
+      var result = await sb.auth.signInWithPassword({ email: email, password: password });
+      if (result.error) {
+        err.textContent = result.error.message || 'Login failed';
+        err.style.display = 'block';
+        return;
+      }
+      // Redirect based on admin status
+      redirectAfterLogin(result.data.session);
+    } catch (ex) {
+      err.textContent = 'Something went wrong';
+      err.style.display = 'block';
+    }
   });
-  (async function() {
-    var cached = sessionStorage.getItem('jh_pass');
-    if (!cached) return;
+
+  // Magic link
+  document.getElementById('magic-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    var err = document.getElementById('magic-error');
+    err.style.display = 'none';
+    var email = document.getElementById('magic-email').value;
     try {
-      var res = await fetch('/api/members', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: cached }) });
+      var result = await sb.auth.signInWithOtp({
+        email: email,
+        options: { emailRedirectTo: window.location.origin + '/admin' },
+      });
+      if (result.error) {
+        err.textContent = result.error.message || 'Failed to send link';
+        err.style.display = 'block';
+        return;
+      }
+      err.textContent = 'Check your email for the login link!';
+      err.style.color = '#4caf50';
+      err.style.display = 'block';
+    } catch (ex) {
+      err.textContent = 'Something went wrong';
+      err.style.display = 'block';
+    }
+  });
+
+  async function redirectAfterLogin(session) {
+    try {
+      var res = await fetch('/api/members', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + session.access_token,
+        },
+        body: JSON.stringify({}),
+      });
       if (res.ok) {
         var data = await res.json();
-        if (data.admin) { sessionStorage.setItem('jh_admin', '1'); window.location.href = '/admin/applications'; }
+        if (data.admin) window.location.href = '/admin/applications';
         else window.location.href = '/admin/demographics';
-      } else { sessionStorage.removeItem('jh_pass'); sessionStorage.removeItem('jh_admin'); }
-    } catch (e) {}
+      } else {
+        document.getElementById('login-error').textContent = 'Account not authorized';
+        document.getElementById('login-error').style.display = 'block';
+      }
+    } catch (ex) {
+      window.location.href = '/admin/demographics';
+    }
+  }
+
+  // Auto-redirect if already logged in (or handle magic link callback)
+  (async function() {
+    if (!sb) return;
+    // Handle hash fragment from magic link / invite
+    var hashParams = new URLSearchParams(window.location.hash.substring(1));
+    if (hashParams.get('access_token')) {
+      // Supabase will handle this via onAuthStateChange
+    }
+    var sessionResult = await sb.auth.getSession();
+    var session = sessionResult.data.session;
+    if (session) {
+      redirectAfterLogin(session);
+    }
   })();
 </script>
 </body>

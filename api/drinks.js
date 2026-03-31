@@ -1,21 +1,19 @@
 import { getSheets, safeGet, toObjects, deleteRowById, upsertRow } from './_lib/sheets.js';
+import { authenticateRequest } from './_lib/auth.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
-  const { password, action, ...payload } = req.body || {};
-
-  const isAdmin = password === process.env.ADMIN_WRITE_PASSWORD;
-  if (password !== process.env.ADMIN_PASSWORD && !isAdmin) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
-
-  const spreadsheetId = process.env.SHEET_ID;
-  const HEADERS = ['Name', 'Category', 'Unit', 'PerPersonPerDay', 'Notes'];
 
   try {
+    const auth = await authenticateRequest(req);
+    const { action, ...payload } = req.body || {};
+
+    const spreadsheetId = auth.spreadsheetId;
+    const HEADERS = ['Name', 'Category', 'Unit', 'PerPersonPerDay', 'Notes'];
+
     // ── Fetch (default) ───────────────────────────────────────────────────
     if (!action) {
-      const sheets = getSheets(false);
+      const sheets = auth.sheets;
       const [drinksRows, logisticsRows] = await Promise.all([
         safeGet(sheets, spreadsheetId, 'DrinksSnacks'),
         safeGet(sheets, spreadsheetId, 'MemberLogistics'),
@@ -26,12 +24,12 @@ export default async function handler(req, res) {
       });
     }
 
-    // ── Write actions require write password ──────────────────────────────
-    if (!isAdmin) {
-      return res.status(401).json({ error: 'Unauthorized' });
+    // ── Write actions require admin ───────────────────────────────────────
+    if (!auth.admin) {
+      return res.status(401).json({ error: 'Admin required' });
     }
 
-    const sheets = getSheets(true);
+    const sheets = auth.sheets;
 
     switch (action) {
       case 'upsert': {
@@ -53,6 +51,7 @@ export default async function handler(req, res) {
     }
     return res.status(200).json({ success: true });
   } catch (e) {
+    if (e.status) return res.status(e.status).json({ error: e.message });
     console.error('Drinks API error:', e);
     return res.status(500).json({ error: 'Failed' });
   }
