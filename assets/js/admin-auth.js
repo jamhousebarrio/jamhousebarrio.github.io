@@ -6,6 +6,9 @@ JH.EVENT_END = '2026-07-12';
 JH.EVENT_WEEK_START = '2026-07-07';
 JH.EVENT_WEEK_END = '2026-07-12';
 
+// Current authenticated user (set by JH.authenticate)
+JH.currentUser = null;
+
 // Load Flatpickr for date/time inputs (dd/mm/yyyy, 24h)
 var fpReady = false;
 var fpQueue = [];
@@ -14,7 +17,6 @@ var fpQueue = [];
   link.rel = 'stylesheet';
   link.href = 'https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css';
   document.head.appendChild(link);
-  // Dark theme
   var dark = document.createElement('link');
   dark.rel = 'stylesheet';
   dark.href = 'https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.css';
@@ -30,7 +32,6 @@ var fpQueue = [];
 
 JH.initDate = function(el, opts) {
   if (!fpReady) { fpQueue.push(function() { JH.initDate(el, opts); }); return; }
-  // Destroy existing instance to avoid duplicates
   if (el._flatpickr) el._flatpickr.destroy();
   var modal = el.closest('.modal');
   var defaults = {
@@ -65,17 +66,70 @@ JH.initTime = function(el, opts) {
 
 JH.val = function(m, key) { return (m[key] || '').toString().trim(); };
 
-JH.isAdmin = function() { return sessionStorage.getItem('jh_admin') === '1'; };
+JH.isAdmin = function() { return !!(JH.currentUser && JH.currentUser.admin); };
+
+/**
+ * Make an authenticated API call. Gets fresh JWT from Supabase session.
+ */
+JH.apiFetch = async function(url, body) {
+  if (!JH.supabase) throw new Error('Supabase not initialized');
+  var sessionResult = await JH.supabase.auth.getSession();
+  var session = sessionResult.data.session;
+  if (!session) {
+    window.location.href = '/admin';
+    throw new Error('No session');
+  }
+  var res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + session.access_token,
+    },
+    body: JSON.stringify(body || {}),
+  });
+  if (res.status === 401 || res.status === 403) {
+    window.location.href = '/admin';
+    throw new Error('Unauthorized');
+  }
+  return res;
+};
 
 JH.authenticate = async function() {
-  var pass = sessionStorage.getItem('jh_pass');
-  if (!pass) { window.location.href = '/admin'; return null; }
+  if (!JH.supabase) { window.location.href = '/admin'; return null; }
+  var sessionResult = await JH.supabase.auth.getSession();
+  var session = sessionResult.data.session;
+  if (!session) { window.location.href = '/admin'; return null; }
+
+  // Check must_change_password flag
+  var user = session.user;
+  if (user.user_metadata && user.user_metadata.must_change_password) {
+    // Allow profile page to load (so they can change password)
+    if (window.location.pathname.indexOf('/admin/profile') === -1) {
+      window.location.href = '/admin/profile';
+      return null;
+    }
+  }
+
   try {
-    var res = await fetch('/api/members', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: pass }) });
-    if (!res.ok) { sessionStorage.removeItem('jh_pass'); sessionStorage.removeItem('jh_admin'); window.location.href = '/admin'; return null; }
+    var res = await JH.apiFetch('/api/members', {});
+    if (!res.ok) { await JH.supabase.auth.signOut(); window.location.href = '/admin'; return null; }
     var data = await res.json();
-    if (data.admin) sessionStorage.setItem('jh_admin', '1');
-    else sessionStorage.removeItem('jh_admin');
+
+    // Find current user in members list
+    var email = user.email.toLowerCase();
+    var me = (data.members || []).find(function(m) {
+      return (m.Email || '').toLowerCase().trim() === email;
+    });
+
+    JH.currentUser = {
+      email: user.email,
+      name: me ? JH.val(me, 'Name') : '',
+      playaName: me ? JH.val(me, 'Playa Name') : '',
+      admin: data.admin,
+      row: me ? me._row : null,
+      member: me,
+    };
+
     // Check page access
     var accessMeta = document.querySelector('meta[name="access"]');
     var pageAccess = accessMeta ? accessMeta.getAttribute('content') : 'general';
@@ -85,7 +139,11 @@ JH.authenticate = async function() {
     }
     JH.filterNav(data.admin);
     return data.members;
-  } catch (e) { sessionStorage.removeItem('jh_pass'); sessionStorage.removeItem('jh_admin'); window.location.href = '/admin'; return null; }
+  } catch (e) {
+    await JH.supabase.auth.signOut();
+    window.location.href = '/admin';
+    return null;
+  }
 };
 
 JH.filterNav = function(isAdmin) {
@@ -98,9 +156,8 @@ JH.filterNav = function(isAdmin) {
 };
 
 JH.fetchBudget = async function() {
-  var pass = sessionStorage.getItem('jh_pass');
   try {
-    var res = await fetch('/api/budget', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: pass, action: 'fetch' }) });
+    var res = await JH.apiFetch('/api/budget', { action: 'fetch' });
     if (res.ok) return await res.json();
     console.error('Budget fetch failed:', res.status);
   } catch (e) { console.error('Budget fetch error:', e); }
@@ -129,7 +186,6 @@ JH.PhoneCellRenderer.prototype.init = function(params) {
 };
 JH.PhoneCellRenderer.prototype.getGui = function() { return this.eGui; };
 
-// Mobile utilities
 JH.isMobile = window.innerWidth < 480;
 
 JH.IconsOnlyRenderer = function() {};
@@ -223,19 +279,17 @@ JH.getAllDates = function(logistics) {
 };
 
 JH.checkLogisticsPrompt = async function() {
-  // Don't show on the logistics page itself
   if (window.location.pathname.indexOf('/admin/logistics') !== -1) return;
-  var myName = sessionStorage.getItem('jh_member_name');
-  if (!myName) return;
+  if (!JH.currentUser || !JH.currentUser.name) return;
   // Cache: skip API call if checked less than 10 minutes ago
   var lastChecked = sessionStorage.getItem('jh_logistics_checked');
   if (lastChecked && (Date.now() - parseInt(lastChecked, 10)) < 600000) return;
-  var pass = sessionStorage.getItem('jh_pass');
   try {
-    var res = await fetch('/api/logistics', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: pass }) });
+    var res = await JH.apiFetch('/api/logistics', {});
     if (!res.ok) return;
     var data = await res.json();
     sessionStorage.setItem('jh_logistics_checked', Date.now());
+    var myName = JH.currentUser.name;
     var row = (data.logistics || []).find(function(r) { return r['MemberName'] === myName; });
     if (row && (row['ArrivalDate'] || row['DepartureDate'])) return;
     var banner = document.createElement('div');
