@@ -210,6 +210,23 @@
       font-size: 0.8rem;
     }
     footer a { color: var(--accent); text-decoration: none; }
+    /* Site nav for non-home pages */
+    .site-nav {
+      display: flex;
+      justify-content: center;
+      gap: 24px;
+      margin-top: 12px;
+    }
+    .site-nav a {
+      color: var(--text-muted);
+      font-family: var(--heading);
+      font-size: 0.85rem;
+      font-weight: 500;
+      text-decoration: none;
+      padding: 4px 0;
+      transition: color 0.2s;
+    }
+    .site-nav a:hover { color: var(--accent); }
     /* Hide markdown-generated content on home page — we use hero instead */
     .page-home .content { display: none; }
     /* Responsive */
@@ -240,6 +257,11 @@
       <div class="hero-title">JamHouse</div>
     </a>
     <div class="hero-sub">Live Music Barrio &middot; Elsewhere 2026</div>
+    <nav class="site-nav">
+      <a href="/">Home</a>
+      <a href="/apply">Apply</a>
+      <a href="/build">Build</a>
+    </nav>
   </header>
   <main class="container">
     <div class="content">
