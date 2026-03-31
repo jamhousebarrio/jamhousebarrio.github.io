@@ -4,7 +4,8 @@ Admin dashboard and public site for JamHouse, a live music barrio at the Elsewhe
 
 ## Tech Stack
 - **Frontend**: Jekyll static site, vanilla JS (no frameworks), Chart.js for charts, Flatpickr for date/time pickers, AG Grid for data tables
-- **Backend**: Vercel serverless functions (Node.js, 11 of 12 max)
+- **Auth**: Supabase Auth (user accounts, sessions, magic links) — no Supabase DB
+- **Backend**: Vercel serverless functions (Node.js, 12 of 12 max)
 - **Data**: Google Sheets via `@googleapis/sheets` + `google-auth-library`
 - **Deployment**: Vercel (auto-deploys from GitHub, Jekyll build)
 
@@ -25,8 +26,11 @@ admin/
   events.html                   # Event calendar (July 7-12)
   roles.html                    # Roles & leads assignment
   timeline.html                 # Setup timeline grid with task drag-drop
+  profile.html                  # User profile: password change, personal info
 api/
   _lib/sheets.js                # Shared Google Sheets helpers (all APIs import from here)
+  _lib/auth.js                  # JWT verification, member lookup, admin check
+  auth.js                       # Supabase user management (invite, disable, password flag)
   budget.js                     # Budget items, barrio fees, shopping requests
   drinks.js                     # Drinks & snacks CRUD
   events.js                     # Event planning CRUD
@@ -40,6 +44,7 @@ api/
   timeline.js                   # Setup timeline entries
 assets/
   css/admin.css                 # All admin styles (sidebar, panels, dark theme)
+  js/supabase-client.js          # Supabase client initializer (CDN)
   js/admin-auth.js              # Auth, session, shared helpers (JH namespace)
   js/admin-charts.js            # Chart.js defaults
   js/admin-applications.js      # Applications page logic
@@ -53,26 +58,32 @@ assets/
   js/admin-roles.js             # Roles page logic
   js/admin-shifts.js            # Shifts page logic
   js/admin-timeline.js          # Timeline page logic
+  js/admin-profile.js           # Profile page logic
+scripts/
+  migrate-auth.js               # One-time Supabase account migration
 dev-server.mjs                  # Local development server
 vercel.json                     # URL rewrites & framework config
 ```
 
 ## Environment Variables (Vercel)
-- `ADMIN_PASSWORD` — read-only admin access
-- `ADMIN_WRITE_PASSWORD` — write access (also grants read)
+- `SUPABASE_URL` — Supabase project URL
+- `SUPABASE_ANON_KEY` — Public key (used in frontend, hardcoded in `supabase-client.js`)
+- `SUPABASE_SERVICE_ROLE_KEY` — Secret key (server-side only, for `/api/auth.js`)
+- `SUPABASE_JWT_SECRET` — For verifying JWTs in API endpoints
 - `SHEET_ID` — Members Google Sheet ID (also used for: Inventory, MemberLogistics, Meals, MealIngredients, ShiftData, DrinksSnacks, Events, Roles, Timeline tabs)
 - `BUDGET_SHEET_ID` — Budget Google Sheet ID (Budget, Total, Barrio Fee, ShoppingRequests tabs)
 - `GOOGLE_SERVICE_ACCOUNT_KEY` — Google service account JSON (stringified)
 
 ## Key Patterns
-- **JH namespace**: `window.JH` holds shared auth/utility functions (`esc`, `formatDate`, `formatDateLong`, `to24h`, `getHeadcount`, `getAllDates`, `initDate`, `initTime`, `isMobile`, `checkLogisticsPrompt`)
+- **JH namespace**: `window.JH` holds shared auth/utility functions (`esc`, `formatDate`, `formatDateLong`, `to24h`, `getHeadcount`, `getAllDates`, `initDate`, `initTime`, `isMobile`, `checkLogisticsPrompt`, `apiFetch`, `currentUser`)
 - **Event date constants**: `JH.EVENT_START`, `JH.EVENT_END`, `JH.EVENT_WEEK_START`, `JH.EVENT_WEEK_END`
-- **Auth flow**: Password stored in `sessionStorage` (`jh_pass`, `jh_admin`), validated on each page load via `JH.authenticate()`
-- **All API endpoints are POST** with JSON body containing `{ password, action?, ...payload }`
+- **Auth flow**: Supabase session-based. `JH.authenticate()` checks Supabase session, fetches member data, sets `JH.currentUser`. `JH.apiFetch(url, body)` sends JWT in `Authorization: Bearer` header.
+- **All API endpoints are POST** with `Authorization: Bearer <jwt>` header and JSON body containing `{ action?, ...payload }`
 - **Action-based dispatch**: Each API handles multiple actions (e.g. `budget.js` handles `fetch`, `fetch-items`, `add`, `update`, `delete`, `shopping-request`, `approve-request`, `update-fee`)
 - **Shared API helpers**: `/api/_lib/sheets.js` exports `getSheets`, `safeGet`, `toObjects`, `getRows`, `getSheetId`, `deleteRowById`, `ensureTab`, `upsertRow`, `colToLetter`
 - **Auto-create tabs**: All APIs auto-create their Google Sheet tab on first insert
-- **Admin pages**: No Jekyll layout, fixed 220px sidebar, include `admin-auth.js` + `admin.css`
+- **Shared auth helpers**: `/api/_lib/auth.js` exports `verifyToken`, `getMemberByEmail`, `isAdmin`, `authenticateRequest`
+- **Admin pages**: No Jekyll layout, fixed 220px sidebar, include Supabase CDN + `supabase-client.js` + `admin-auth.js` + `admin.css`
 - **URL rewrites**: Defined in `vercel.json`
 - **Date format**: dd/mm/yyyy via Flatpickr (loaded dynamically in admin-auth.js)
 - **Time format**: 24h (HH:MM) via Flatpickr
@@ -122,8 +133,10 @@ npm install
 
 # Create .env file with your credentials
 cat > .env << 'EOF'
-ADMIN_PASSWORD=your_read_password
-ADMIN_WRITE_PASSWORD=your_write_password
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_ANON_KEY=your_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+SUPABASE_JWT_SECRET=your_jwt_secret
 SHEET_ID=your_members_sheet_id
 BUDGET_SHEET_ID=your_budget_sheet_id
 GOOGLE_SERVICE_ACCOUNT_KEY={"type":"service_account",...}
