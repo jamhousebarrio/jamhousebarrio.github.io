@@ -4,14 +4,9 @@
 
   var isAdmin = JH.isAdmin();
   var esc = JH.esc;
-  var pass = sessionStorage.getItem('jh_pass');
 
   // Fetch budget items
-  var res = await fetch('/api/budget', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ password: pass, action: 'fetch-items' })
-  });
+  var res = await JH.apiFetch('/api/budget', { action: 'fetch-items' });
   if (!res.ok) return;
   var data = await res.json();
   var items = data.items || [];
@@ -182,17 +177,9 @@
       e.stopPropagation();
       if (!confirm('Delete "' + (params.data.Item || '') + '"?')) return;
       try {
-        var res = await fetch('/api/budget', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ password: pass, action: 'delete', row: params.data._row })
-        });
+        var res = await JH.apiFetch('/api/budget', { action: 'delete', row: params.data._row });
         if (!res.ok) throw new Error('Failed');
-        var refreshRes = await fetch('/api/budget', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ password: pass, action: 'fetch-items' })
-        });
+        var refreshRes = await JH.apiFetch('/api/budget', { action: 'fetch-items' });
         if (refreshRes.ok) {
           var refreshData = await refreshRes.json();
           items = refreshData.items;
@@ -341,11 +328,7 @@
   function saveBudgetField(row, field, value) {
     var updates = {};
     updates[field] = value;
-    fetch('/api/budget', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password: pass, action: 'update', row: row, data: updates })
-    }).then(function(res) {
+    JH.apiFetch('/api/budget', { action: 'update', row: row, data: updates }).then(function(res) {
       if (!res.ok) console.error('Save failed:', field, res.status);
     }).catch(function(err) {
       console.error('Save error:', err);
@@ -357,10 +340,7 @@
     if (!cat || !item) { msgEl.textContent = 'Category and Item required'; msgEl.style.color = '#f44336'; return; }
     msgEl.textContent = 'Adding...'; msgEl.style.color = '#888';
     try {
-      var res = await fetch('/api/budget', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password: pass, action: 'add', data: { Category: cat, Item: item, Qty: qty || '1', Price: price || '0' } })
-      });
+      var res = await JH.apiFetch('/api/budget', { action: 'add', data: { Category: cat, Item: item, Qty: qty || '1', Price: price || '0' } });
       if (!res.ok) throw new Error('Failed');
       var result = await res.json();
       items.push({ _row: result.row, Category: cat, Item: item, Qty: qty || '1', Price: price || '0', 'Total Actual': '', Paid: 'FALSE', Discuss: 'FALSE', 'Paid by': '', Link: '', Comment: '' });
@@ -542,8 +522,7 @@
       wrap.querySelectorAll('.approve-btn').forEach(function(btn) {
         btn.addEventListener('click', async function() {
           var id = btn.dataset.id;
-          var r = await fetch('/api/budget', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ password: pass, action: 'approve-request', requestId: id }) });
+          var r = await JH.apiFetch('/api/budget', { action: 'approve-request', requestId: id });
           if (!r.ok) { alert('Failed to approve'); return; }
           var req = shoppingRequests.find(function(x) { return x.RequestID === id; });
           if (req) req.Status = 'approved';
@@ -553,8 +532,7 @@
       wrap.querySelectorAll('.reject-btn').forEach(function(btn) {
         btn.addEventListener('click', async function() {
           var id = btn.dataset.id;
-          var r = await fetch('/api/budget', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ password: pass, action: 'reject-request', requestId: id }) });
+          var r = await JH.apiFetch('/api/budget', { action: 'reject-request', requestId: id });
           if (!r.ok) { alert('Failed to reject'); return; }
           var req = shoppingRequests.find(function(x) { return x.RequestID === id; });
           if (req) req.Status = 'rejected';
@@ -592,8 +570,7 @@
     msg.textContent = 'Submitting...'; msg.style.color = '#888';
     var requestId = Date.now() + '-' + Math.random().toString(36).slice(2, 7);
     try {
-      var r = await fetch('/api/budget', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password: pass, action: 'shopping-request', requestId: requestId, item: item, description: desc, link: link, price: price, submittedBy: submittedBy }) });
+      var r = await JH.apiFetch('/api/budget', { action: 'shopping-request', requestId: requestId, item: item, description: desc, link: link, price: price, submittedBy: submittedBy });
       if (!r.ok) throw new Error('Failed');
       shoppingRequests.push({ RequestID: requestId, Item: item, Description: desc, Link: link, Price: price, SubmittedBy: submittedBy, Status: 'pending' });
       renderShoppingRequests();
@@ -716,11 +693,7 @@
   }
 
   function saveFee(row, name, amount, paidInFull, expected) {
-    return fetch('/api/budget', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password: pass, action: 'update-fee', row: row || 0, name: name, amount: amount, paidInFull: paidInFull, expectedFee: expected || defaultFee }),
-    });
+    return JH.apiFetch('/api/budget', { action: 'update-fee', row: row || 0, name: name, amount: amount, paidInFull: paidInFull, expectedFee: expected || defaultFee });
   }
 
   function bindFeeActions() {

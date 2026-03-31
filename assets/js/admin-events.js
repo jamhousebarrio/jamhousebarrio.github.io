@@ -3,7 +3,6 @@
   if (!members) return;
 
   var isAdmin = JH.isAdmin();
-  var pass = sessionStorage.getItem('jh_pass');
   var state = { events: [] };
   var activeFilter = 'all';
   var viewYear = 2026;
@@ -20,11 +19,7 @@
   // ── Data fetching ─────────────────────────────────────────────────────────
 
   async function fetchData() {
-    var res = await fetch('/api/events', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password: pass }),
-    });
+    var res = await JH.apiFetch('/api/events', {});
     if (!res.ok) { console.error('events fetch failed'); return; }
     var data = await res.json();
     state.events = data.events || [];
@@ -147,11 +142,7 @@
       delBtn.textContent = 'Delete';
       delBtn.addEventListener('click', async function () {
         if (!confirm('Delete "' + event.Name + '"?')) return;
-        var r = await fetch('/api/events', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ password: pass, action: 'delete', name: event.Name }),
-        });
+        var r = await JH.apiFetch('/api/events', { action: 'delete', name: event.Name });
         if (!r.ok) { alert('Delete failed.'); return; }
         closeModal();
         await reload();
@@ -188,22 +179,17 @@
     btn.textContent = 'Saving...';
     btn.disabled = true;
 
-    var r = await fetch('/api/events', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        password: pass,
-        action: 'upsert',
-        name: name,
-        originalName: editingName,
-        date: document.getElementById('event-date').value,
-        time: document.getElementById('event-time').value,
-        endTime: document.getElementById('event-end-time').value,
-        description: document.getElementById('event-description').value,
-        responsible: document.getElementById('event-responsible').value,
-        status: document.getElementById('event-status').value,
-        notes: document.getElementById('event-notes').value,
-      }),
+    var r = await JH.apiFetch('/api/events', {
+      action: 'upsert',
+      name: name,
+      originalName: editingName,
+      date: document.getElementById('event-date').value,
+      time: document.getElementById('event-time').value,
+      endTime: document.getElementById('event-end-time').value,
+      description: document.getElementById('event-description').value,
+      responsible: document.getElementById('event-responsible').value,
+      status: document.getElementById('event-status').value,
+      notes: document.getElementById('event-notes').value,
     });
 
     btn.textContent = 'Save Event';
