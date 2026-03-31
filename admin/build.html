@@ -1,0 +1,265 @@
+---
+layout: none
+title: Build Guide - JamHouse Admin
+access: general
+---
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Build Guide - JamHouse Admin</title>
+  <meta name="access" content="general">
+  <link rel="icon" type="image/svg+xml" href="/images/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/admin.css">
+  <style>
+    .jump-nav {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 24px;
+    }
+    .jump-nav a {
+      padding: 6px 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      color: var(--text-muted);
+      font-family: var(--heading);
+      font-size: 0.85rem;
+      font-weight: 500;
+      text-decoration: none;
+      transition: all 0.15s;
+    }
+    .jump-nav a:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    .build-section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 28px;
+      margin-bottom: 24px;
+    }
+    .build-section h2 {
+      font-family: var(--heading);
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: var(--accent);
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    .build-section h3 {
+      font-family: var(--heading);
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text);
+      margin: 20px 0 8px;
+    }
+    .build-section h3:first-of-type { margin-top: 0; }
+    .build-section ul, .build-section ol {
+      padding-left: 20px;
+      margin-bottom: 8px;
+    }
+    .build-section li {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      line-height: 1.7;
+      margin-bottom: 4px;
+    }
+    .build-tip {
+      background: rgba(232, 168, 76, 0.08);
+      border-left: 3px solid var(--accent);
+      padding: 12px 16px;
+      border-radius: 0 8px 8px 0;
+      margin-top: 16px;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+    .build-tip strong { color: var(--accent); }
+    @media (max-width: 600px) {
+      .build-section { padding: 20px 16px; }
+      .jump-nav { gap: 6px; }
+      .jump-nav a { font-size: 0.8rem; padding: 5px 12px; }
+    }
+  </style>
+</head>
+<body>
+<nav class="sidebar">
+  <div class="sidebar-brand">
+    <span class="brand-icon">&#127925;</span>
+    <span class="brand-text">JamHouse</span>
+  </div>
+  <div class="sidebar-nav">
+    <a class="nav-item" href="/admin/applications" data-access="admin">
+      <span class="icon">&#9993;</span>
+      <span class="nav-item-text">Applications</span>
+    </a>
+    <a class="nav-item" href="/admin/demographics" data-access="general">
+      <span class="icon">&#9776;</span>
+      <span class="nav-item-text">Approved Members</span>
+    </a>
+    <a class="nav-item" href="/admin/budget" data-access="general">
+      <span class="icon">&#9733;</span>
+      <span class="nav-item-text">Budget</span>
+    </a>
+    <a class="nav-item" href="/admin/shifts" data-access="general">
+      <span class="icon">&#9835;</span>
+      <span class="nav-item-text">Shifts</span>
+    </a>
+    <a class="nav-item" href="/admin/inventory" data-access="general">
+      <span class="icon">&#128722;</span>
+      <span class="nav-item-text">Inventory</span>
+    </a>
+    <a class="nav-item" href="/admin/logistics" data-access="general">
+      <span class="icon">&#9992;</span>
+      <span class="nav-item-text">Logistics</span>
+    </a>
+    <a class="nav-item" href="/admin/meals" data-access="general">
+      <span class="icon">&#127859;</span>
+      <span class="nav-item-text">Meals</span>
+    </a>
+    <a class="nav-item" href="/admin/drinks" data-access="general">
+      <span class="icon">&#127866;</span>
+      <span class="nav-item-text">Drinks & Snacks</span>
+    </a>
+    <a class="nav-item" href="/admin/events" data-access="general">
+      <span class="icon">&#127926;</span>
+      <span class="nav-item-text">Events</span>
+    </a>
+    <a class="nav-item" href="/admin/roles" data-access="general">
+      <span class="icon">&#128101;</span>
+      <span class="nav-item-text">Roles & Leads</span>
+    </a>
+    <a class="nav-item" href="/admin/timeline" data-access="general">
+      <span class="icon">&#128197;</span>
+      <span class="nav-item-text">Timeline</span>
+    </a>
+    <a class="nav-item active" href="/admin/build" data-access="general">
+      <span class="icon">&#128296;</span>
+      <span class="nav-item-text">Build Guide</span>
+    </a>
+  </div>
+  <div class="sidebar-footer">
+    <a href="/">&#8592; Back to Site</a>
+    <a href="#" onclick="sessionStorage.clear();window.location.href='/admin';return false;">Logout</a>
+  </div>
+</nav>
+
+<div class="main">
+  <div class="page-header">
+    <h1><span class="icon" style="color:var(--accent)">&#128296;</span> Build Guide</h1>
+    <div class="subtitle">How to build each camp structure at JamHouse</div>
+  </div>
+
+  <nav class="jump-nav">
+    <a href="#stage">&#127928; Stage</a>
+    <a href="#kitchen">&#127859; Kitchen</a>
+    <a href="#shade">&#9969; Shade</a>
+    <a href="#shower">&#128703; Shower</a>
+  </nav>
+
+  <section id="stage" class="build-section">
+    <h2>&#127928; Stage</h2>
+    <h3>Materials</h3>
+    <ul>
+      <li>Placeholder — e.g. 4x wooden pallets (120cm x 80cm)</li>
+      <li>Placeholder — e.g. 6x vertical support posts (2.4m)</li>
+      <li>Placeholder — e.g. plywood sheets for decking</li>
+      <li>Placeholder — e.g. screws, brackets, cable ties</li>
+      <li>Placeholder — e.g. shade cloth or tarp for roof</li>
+    </ul>
+    <h3>Steps</h3>
+    <ol>
+      <li>Placeholder — e.g. level the ground and lay out the footprint</li>
+      <li>Placeholder — e.g. assemble the pallet base and secure together</li>
+      <li>Placeholder — e.g. attach vertical supports at each corner</li>
+      <li>Placeholder — e.g. lay plywood decking across the pallet base</li>
+      <li>Placeholder — e.g. install overhead shade structure</li>
+      <li>Placeholder — e.g. run power cables and set up PA mount points</li>
+    </ol>
+    <div class="build-tip">
+      <strong>Tip:</strong> Placeholder — e.g. orient the stage so prevailing wind carries sound toward the audience area, not into neighbouring camps.
+    </div>
+  </section>
+
+  <section id="kitchen" class="build-section">
+    <h2>&#127859; Kitchen</h2>
+    <h3>Materials</h3>
+    <ul>
+      <li>Placeholder — e.g. folding tables (x3)</li>
+      <li>Placeholder — e.g. gas burners and propane tanks</li>
+      <li>Placeholder — e.g. shade canopy (3m x 3m)</li>
+      <li>Placeholder — e.g. water jerry cans (20L x4)</li>
+      <li>Placeholder — e.g. storage bins for dry goods</li>
+    </ul>
+    <h3>Steps</h3>
+    <ol>
+      <li>Placeholder — e.g. choose a flat area downwind from sleeping zones</li>
+      <li>Placeholder — e.g. set up shade canopy and stake securely</li>
+      <li>Placeholder — e.g. arrange tables in an L-shape for prep and serving</li>
+      <li>Placeholder — e.g. set up burners on a stable, heat-resistant surface</li>
+      <li>Placeholder — e.g. organise wash station with grey water collection</li>
+    </ol>
+    <div class="build-tip">
+      <strong>Tip:</strong> Placeholder — e.g. keep propane tanks in shade and away from direct heat sources. Have a fire extinguisher within arm's reach.
+    </div>
+  </section>
+
+  <section id="shade" class="build-section">
+    <h2>&#9969; Shade</h2>
+    <h3>Materials</h3>
+    <ul>
+      <li>Placeholder — e.g. aluminium poles or PVC pipe (3m x8)</li>
+      <li>Placeholder — e.g. shade cloth / aluminet (6m x 8m)</li>
+      <li>Placeholder — e.g. ratchet straps and carabiners</li>
+      <li>Placeholder — e.g. rebar stakes (60cm x8)</li>
+      <li>Placeholder — e.g. guy ropes and tensioners</li>
+    </ul>
+    <h3>Steps</h3>
+    <ol>
+      <li>Placeholder — e.g. lay out the shade footprint and mark pole positions</li>
+      <li>Placeholder — e.g. drive rebar stakes at each corner</li>
+      <li>Placeholder — e.g. assemble poles and attach to rebar with fittings</li>
+      <li>Placeholder — e.g. drape shade cloth over frame and secure with clips</li>
+      <li>Placeholder — e.g. add guy ropes at 45 degrees for wind stability</li>
+    </ol>
+    <div class="build-tip">
+      <strong>Tip:</strong> Placeholder — e.g. angle the shade cloth slightly so wind passes under rather than catching it like a sail. Tighten all connections at dawn when the material is coolest.
+    </div>
+  </section>
+
+  <section id="shower" class="build-section">
+    <h2>&#128703; Shower</h2>
+    <h3>Materials</h3>
+    <ul>
+      <li>Placeholder — e.g. PVC pipe frame (2m tall enclosure)</li>
+      <li>Placeholder — e.g. shower curtain or tarp for privacy walls</li>
+      <li>Placeholder — e.g. solar shower bags (20L x3)</li>
+      <li>Placeholder — e.g. pallet or wooden grate for standing surface</li>
+      <li>Placeholder — e.g. grey water collection basin</li>
+    </ul>
+    <h3>Steps</h3>
+    <ol>
+      <li>Placeholder — e.g. build the PVC frame enclosure (1m x 1m x 2m)</li>
+      <li>Placeholder — e.g. attach privacy curtains on three sides</li>
+      <li>Placeholder — e.g. place pallet floor inside for drainage</li>
+      <li>Placeholder — e.g. hang solar shower bag from top crossbar</li>
+      <li>Placeholder — e.g. set up grey water collection underneath the pallet</li>
+    </ol>
+    <div class="build-tip">
+      <strong>Tip:</strong> Placeholder — e.g. fill solar bags in the morning and leave in direct sun — they'll be warm by afternoon. Collect all grey water for proper disposal per event rules.
+    </div>
+  </section>
+</div>
+
+<script src="/assets/js/admin-auth.js"></script>
+</body>
+</html>
