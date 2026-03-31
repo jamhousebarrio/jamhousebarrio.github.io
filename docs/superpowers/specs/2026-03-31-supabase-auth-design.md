@@ -88,7 +88,7 @@ The project has a hard limit of 12 Vercel serverless functions. Currently 11 are
 
 ### Member Removal
 
-When a member's status is changed away from "Approved" (e.g., to "Rejected"), their Supabase account should be disabled via the Admin API (`updateUserById` with `{ ban_duration: 'none' }` → permanently banned). This prevents login even though the JWT might still be valid until expiry. The `getMemberByEmail` lookup must also verify the member's status is "Approved" — reject requests from non-approved members.
+When a member's status is changed away from "Approved" (e.g., to "Rejected"), their Supabase account should be disabled via the Admin API (`updateUserById` with `{ ban_duration: '876000h' }` — approximately 100 years, effectively permanent). This prevents login even though the JWT might still be valid until expiry. The `getMemberByEmail` lookup must also verify the member's status is "Approved" — reject requests from non-approved members.
 
 ### Email Changes
 
