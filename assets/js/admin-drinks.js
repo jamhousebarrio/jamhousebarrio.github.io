@@ -3,7 +3,6 @@
   if (!members) return;
 
   var isAdmin = JH.isAdmin();
-  var pass = sessionStorage.getItem('jh_pass');
   var state = { items: [], logistics: [] };
   var activeFilter = 'all';
 
@@ -38,11 +37,7 @@
   // ── Data fetching ─────────────────────────────────────────────────────────
 
   async function fetchData() {
-    var res = await fetch('/api/drinks', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password: pass }),
-    });
+    var res = await JH.apiFetch('/api/drinks', {});
     if (!res.ok) { console.error('drinks fetch failed'); return; }
     var data = await res.json();
     state.items = data.items || [];
@@ -165,11 +160,7 @@
         var item = state.items.find(function (i) { return i.Name === btn.dataset.name; });
         if (!item) return;
         if (!confirm('Delete "' + item.Name + '"? This cannot be undone.')) return;
-        var r = await fetch('/api/drinks', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ password: pass, action: 'delete', name: item.Name }),
-        });
+        var r = await JH.apiFetch('/api/drinks', { action: 'delete', name: item.Name });
         if (!r.ok) { alert('Delete failed.'); return; }
         await reload();
       });
@@ -236,18 +227,13 @@
     btn.textContent = 'Saving...';
     btn.disabled = true;
 
-    var r = await fetch('/api/drinks', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        password: pass,
-        action: 'upsert',
-        name: name,
-        category: document.getElementById('drink-category').value,
-        unit: document.getElementById('drink-unit').value,
-        perPersonPerDay: document.getElementById('drink-per-person').value,
-        notes: document.getElementById('drink-notes').value,
-      }),
+    var r = await JH.apiFetch('/api/drinks', {
+      action: 'upsert',
+      name: name,
+      category: document.getElementById('drink-category').value,
+      unit: document.getElementById('drink-unit').value,
+      perPersonPerDay: document.getElementById('drink-per-person').value,
+      notes: document.getElementById('drink-notes').value,
     });
 
     btn.textContent = 'Save Item';

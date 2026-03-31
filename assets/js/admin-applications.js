@@ -160,16 +160,37 @@
   async function updateStatus(data, newStatus) {
     var member = allMembers.find(function(m) { return m._row === data._row; });
     if (!member) return;
-    var pass = sessionStorage.getItem('jh_pass');
+    var oldStatus = val(member, 'Status') || '';
     try {
-      var res = await fetch('/api/members', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password: pass, action: 'update-status', row: data._row, status: newStatus })
-      });
+      var res = await JH.apiFetch('/api/members', { action: 'update-status', row: data._row, status: newStatus });
       if (!res.ok) throw new Error('Failed');
       member['Status'] = newStatus;
       refreshStats();
+
+      if (newStatus === 'Approved') {
+        var memberEmail = val(member, 'Email');
+        var memberName = val(member, 'Name');
+        if (memberEmail && confirm('Send invite email to ' + memberName + ' at ' + memberEmail + '?')) {
+          try {
+            var inviteRes = await JH.apiFetch('/api/auth', { action: 'invite', email: memberEmail });
+            if (!inviteRes.ok) {
+              var inviteErr = await inviteRes.json().catch(function() { return {}; });
+              alert('Invite failed: ' + (inviteErr.error || 'Unknown error'));
+            }
+          } catch (inviteEx) {
+            alert('Failed to send invite: ' + inviteEx.message);
+          }
+        }
+      }
+
+      if (oldStatus.toLowerCase() === 'approved' && newStatus.toLowerCase() !== 'approved') {
+        var memberEmail = val(member, 'Email');
+        if (memberEmail) {
+          try {
+            await JH.apiFetch('/api/auth', { action: 'disable', email: memberEmail });
+          } catch (e) { /* best effort */ }
+        }
+      }
     } catch (err) {
       // revert on failure
       gridApi.setGridOption('rowData', getRowData());
@@ -229,7 +250,6 @@
       document.getElementById('modal-msg').textContent = '';
 
       document.getElementById('modal-save').onclick = async function() {
-        var pass = sessionStorage.getItem('jh_pass');
         var updates = {};
         document.querySelectorAll('.field-input').forEach(function(el) {
           var key = el.dataset.key;
@@ -244,11 +264,7 @@
         document.getElementById('modal-msg').textContent = 'Saving...';
         document.getElementById('modal-msg').style.color = '#888';
         try {
-          var res = await fetch('/api/members', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ password: pass, action: 'update', row: m._row, updates: updates })
-          });
+          var res = await JH.apiFetch('/api/members', { action: 'update', row: m._row, updates: updates });
           if (!res.ok) {
             var err = await res.json().catch(function() { return {}; });
             throw new Error(err.error || 'Failed');
