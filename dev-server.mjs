@@ -15,7 +15,7 @@ const app = express();
 app.use(express.json());
 
 // ── API routes ────────────────────────────────────────────────────────────────
-const apiFiles = ['budget', 'inventory', 'logistics', 'meals', 'members', 'register', 'shifts'];
+const apiFiles = ['auth', 'budget', 'drinks', 'events', 'inventory', 'logistics', 'meals', 'members', 'register', 'roles', 'shifts', 'timeline'];
 
 for (const name of apiFiles) {
   const mod = await import(`./api/${name}.js`);
@@ -39,6 +39,12 @@ const rewrites = [
   ['/admin/inventory', '/admin/inventory.html'],
   ['/admin/logistics', '/admin/logistics.html'],
   ['/admin/meals', '/admin/meals.html'],
+  ['/admin/drinks', '/admin/drinks.html'],
+  ['/admin/events', '/admin/events.html'],
+  ['/admin/roles', '/admin/roles.html'],
+  ['/admin/timeline', '/admin/timeline.html'],
+  ['/admin/profile', '/admin/profile.html'],
+  ['/admin/build', '/admin/build.html'],
   ['/apply', '/apply.html'],
 ];
 
