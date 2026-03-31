@@ -1,32 +1,30 @@
 import { getSheets, toObjects, getRows, deleteRowById, upsertRow } from './_lib/sheets.js';
+import { authenticateRequest } from './_lib/auth.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
-  const { password, action, ...payload } = req.body || {};
-
-  const isAdmin = password === process.env.ADMIN_WRITE_PASSWORD;
-  if (password !== process.env.ADMIN_PASSWORD && !isAdmin) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
-
-  const spreadsheetId = process.env.SHEET_ID;
-  const TAB = 'Roles';
-  const HEADERS = ['Name', 'Description', 'AssignedTo', 'Status', 'Notes'];
 
   try {
+    const auth = await authenticateRequest(req);
+    const { action, ...payload } = req.body || {};
+
+    const spreadsheetId = auth.spreadsheetId;
+    const TAB = 'Roles';
+    const HEADERS = ['Name', 'Description', 'AssignedTo', 'Status', 'Notes'];
+
     // ── Fetch (default) ───────────────────────────────────────────────────
     if (!action) {
-      const sheets = getSheets(false);
+      const sheets = auth.sheets;
       const rows = await getRows(sheets, spreadsheetId, TAB);
       return res.status(200).json({ roles: toObjects(rows) });
     }
 
-    // ── Write actions require write password ──────────────────────────────
-    if (!isAdmin) {
-      return res.status(401).json({ error: 'Unauthorized' });
+    // ── Write actions require admin ───────────────────────────────────────
+    if (!auth.admin) {
+      return res.status(401).json({ error: 'Admin required' });
     }
 
-    const sheets = getSheets(true);
+    const sheets = auth.sheets;
 
     switch (action) {
       case 'upsert': {
@@ -48,6 +46,7 @@ export default async function handler(req, res) {
     }
     return res.status(200).json({ success: true });
   } catch (e) {
+    if (e.status) return res.status(e.status).json({ error: e.message });
     console.error('Roles API error:', e);
     return res.status(500).json({ error: 'Failed' });
   }

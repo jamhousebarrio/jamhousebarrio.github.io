@@ -1,22 +1,20 @@
 import { getSheets, safeGet, toObjects, getRows, getSheetId, deleteRowById, upsertRow } from './_lib/sheets.js';
+import { authenticateRequest } from './_lib/auth.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
-  const { password, action, ...payload } = req.body || {};
-
-  const isAdmin = password === process.env.ADMIN_WRITE_PASSWORD;
-  if (password !== process.env.ADMIN_PASSWORD && !isAdmin) {
-    return res.status(401).json({ error: 'Wrong password' });
-  }
-
-  const spreadsheetId = process.env.SHEET_ID;
-  const MEAL_HEADERS = ['MealID', 'Name', 'Date', 'MealType', 'Description', 'Instructions'];
-  const INGREDIENT_HEADERS = ['IngredientID', 'MealID', 'Name', 'Quantity', 'Unit'];
 
   try {
+    const auth = await authenticateRequest(req);
+    const { action, ...payload } = req.body || {};
+
+    const spreadsheetId = auth.spreadsheetId;
+    const MEAL_HEADERS = ['MealID', 'Name', 'Date', 'MealType', 'Description', 'Instructions'];
+    const INGREDIENT_HEADERS = ['IngredientID', 'MealID', 'Name', 'Quantity', 'Unit'];
+
     // ── Fetch (default) ───────────────────────────────────────────────────
     if (!action) {
-      const sheets = getSheets(false);
+      const sheets = auth.sheets;
       const [mealsRows, ingredientsRows, logisticsRows] = await Promise.all([
         safeGet(sheets, spreadsheetId, 'Meals'),
         safeGet(sheets, spreadsheetId, 'MealIngredients'),
@@ -29,12 +27,12 @@ export default async function handler(req, res) {
       });
     }
 
-    // ── Write actions require write password ──────────────────────────────
-    if (!isAdmin) {
-      return res.status(401).json({ error: 'Unauthorized' });
+    // ── Write actions require admin ───────────────────────────────────────
+    if (!auth.admin) {
+      return res.status(401).json({ error: 'Admin required' });
     }
 
-    const sheets = getSheets(true);
+    const sheets = auth.sheets;
 
     switch (action) {
       case 'upsert-meal': {
@@ -90,6 +88,7 @@ export default async function handler(req, res) {
     }
     return res.status(200).json({ success: true });
   } catch (e) {
+    if (e.status) return res.status(e.status).json({ error: e.message });
     console.error('Meals API error:', e);
     return res.status(500).json({ error: 'Failed' });
   }
