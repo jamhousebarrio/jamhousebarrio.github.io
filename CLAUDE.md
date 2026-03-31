@@ -69,7 +69,7 @@ vercel.json                     # URL rewrites & framework config
 - `SUPABASE_URL` — Supabase project URL
 - `SUPABASE_ANON_KEY` — Public key (used in frontend, hardcoded in `supabase-client.js`)
 - `SUPABASE_SERVICE_ROLE_KEY` — Secret key (server-side only, for `/api/auth.js`)
-- `SUPABASE_JWT_SECRET` — For verifying JWTs in API endpoints
+- `SUPABASE_JWT_PUBLIC_KEY` — EC public key (JWK JSON) for verifying JWTs (ES256)
 - `SHEET_ID` — Members Google Sheet ID (also used for: Inventory, MemberLogistics, Meals, MealIngredients, ShiftData, DrinksSnacks, Events, Roles, Timeline tabs)
 - `BUDGET_SHEET_ID` — Budget Google Sheet ID (Budget, Total, Barrio Fee, ShoppingRequests tabs)
 - `GOOGLE_SERVICE_ACCOUNT_KEY` — Google service account JSON (stringified)

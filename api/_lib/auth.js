@@ -1,7 +1,10 @@
 import jwt from 'jsonwebtoken';
+import { createPublicKey } from 'crypto';
 import { getSheets, safeGet } from './sheets.js';
 
-const JWT_SECRET = process.env.SUPABASE_JWT_SECRET;
+// Build PEM public key from JWK for ES256 verification
+const jwk = JSON.parse(process.env.SUPABASE_JWT_PUBLIC_KEY || '{}');
+const publicKey = jwk.kty ? createPublicKey({ key: jwk, format: 'jwk' }) : null;
 
 /**
  * Verify Supabase JWT from Authorization header.
@@ -15,8 +18,13 @@ export function verifyToken(req) {
     err.status = 401;
     throw err;
   }
+  if (!publicKey) {
+    const err = new Error('JWT public key not configured');
+    err.status = 500;
+    throw err;
+  }
   try {
-    const payload = jwt.verify(token, JWT_SECRET, { algorithms: ['HS256'] });
+    const payload = jwt.verify(token, publicKey, { algorithms: ['ES256'] });
     if (!payload.email) {
       const err = new Error('Token missing email claim');
       err.status = 401;
