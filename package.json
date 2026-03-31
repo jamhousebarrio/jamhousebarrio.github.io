@@ -6,7 +6,9 @@
   },
   "dependencies": {
     "@googleapis/sheets": "^13.0.1",
-    "google-auth-library": "^10.6.2"
+    "@supabase/supabase-js": "^2.101.0",
+    "google-auth-library": "^10.6.2",
+    "jsonwebtoken": "^9.0.3"
   },
   "devDependencies": {
     "dotenv": "^17.3.1",
