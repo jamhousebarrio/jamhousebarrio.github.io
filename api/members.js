@@ -1,28 +1,16 @@
-import { sheets as sheetsApi } from '@googleapis/sheets';
-import { GoogleAuth } from 'google-auth-library';
 import { colToLetter } from './_lib/sheets.js';
+import { authenticateRequest } from './_lib/auth.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
-  const { password, action, ...payload } = req.body || {};
-  const isAdmin = password === process.env.ADMIN_WRITE_PASSWORD;
-  if (password !== process.env.ADMIN_PASSWORD && !isAdmin) {
-    return res.status(401).json({ error: 'Wrong password' });
-  }
 
   try {
-    const credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY);
-    const needsWrite = action === 'update' || action === 'update-status';
-    const auth = new GoogleAuth({
-      credentials,
-      scopes: [needsWrite
-        ? 'https://www.googleapis.com/auth/spreadsheets'
-        : 'https://www.googleapis.com/auth/spreadsheets.readonly'],
-    });
-    const sheets = sheetsApi({ version: 'v4', auth });
-    const spreadsheetId = process.env.SHEET_ID;
+    const auth = await authenticateRequest(req);
+    const { action, ...payload } = req.body || {};
+    const sheets = auth.sheets;
+    const spreadsheetId = auth.spreadsheetId;
 
     // ── Fetch members (default) ───────────────────────────────────────────
     if (!action) {
@@ -32,7 +20,7 @@ export default async function handler(req, res) {
       });
       const rows = response.data.values;
       if (!rows || rows.length === 0) {
-        return res.status(200).json({ members: [], admin: isAdmin });
+        return res.status(200).json({ members: [], admin: auth.admin });
       }
       const headers = rows[0];
       const members = rows.slice(1).map(row => {
@@ -40,12 +28,12 @@ export default async function handler(req, res) {
         headers.forEach((h, i) => { obj[h] = row[i] || ''; });
         return obj;
       });
-      return res.status(200).json({ members, admin: isAdmin });
+      return res.status(200).json({ members, admin: auth.admin });
     }
 
-    // ── Write actions require write password ──────────────────────────────
-    if (!isAdmin) {
-      return res.status(401).json({ error: 'Unauthorized' });
+    // ── Write actions require admin ──────────────────────────────────────
+    if (!auth.admin) {
+      return res.status(401).json({ error: 'Admin required' });
     }
 
     const headersRes = await sheets.spreadsheets.values.get({
@@ -59,6 +47,10 @@ export default async function handler(req, res) {
       const { row, updates } = payload;
       if (!row || !updates || typeof updates !== 'object') {
         return res.status(400).json({ error: 'Row and updates are required' });
+      }
+      // Block Admin column changes from non-admins (already checked above, but explicit)
+      if ('Admin' in updates && !auth.admin) {
+        return res.status(403).json({ error: 'Only admins can change admin status' });
       }
       var data = [];
       for (var key in updates) {
@@ -97,6 +89,7 @@ export default async function handler(req, res) {
 
     return res.status(400).json({ error: 'Invalid action' });
   } catch (e) {
+    if (e.status) return res.status(e.status).json({ error: e.message });
     console.error('Members API error:', e);
     return res.status(500).json({ error: 'Failed' });
   }

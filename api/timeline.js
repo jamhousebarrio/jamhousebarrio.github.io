@@ -1,21 +1,19 @@
 import { getSheets, safeGet, toObjects, ensureTab } from './_lib/sheets.js';
+import { authenticateRequest } from './_lib/auth.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
-  const { password, action, ...payload } = req.body || {};
-
-  const isAdmin = password === process.env.ADMIN_WRITE_PASSWORD;
-  if (password !== process.env.ADMIN_PASSWORD && !isAdmin) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
-
-  const spreadsheetId = process.env.SHEET_ID;
-  const tab = 'Timeline';
 
   try {
+    const auth = await authenticateRequest(req);
+    const { action, ...payload } = req.body || {};
+
+    const spreadsheetId = auth.spreadsheetId;
+    const sheets = auth.sheets;
+    const tab = 'Timeline';
+
     // Fetch all entries
     if (!action) {
-      const sheets = getSheets(false);
       const [rows, logRows] = await Promise.all([
         safeGet(sheets, spreadsheetId, tab),
         safeGet(sheets, spreadsheetId, 'MemberLogistics'),
@@ -23,8 +21,7 @@ export default async function handler(req, res) {
       return res.status(200).json({ entries: toObjects(rows), logistics: toObjects(logRows) });
     }
 
-    if (!isAdmin) return res.status(401).json({ error: 'Admin required' });
-    const sheets = getSheets(true);
+    if (!auth.admin) return res.status(401).json({ error: 'Admin required' });
 
     if (action === 'upsert') {
       const { person, date, period, task } = payload;
@@ -85,6 +82,7 @@ export default async function handler(req, res) {
 
     return res.status(400).json({ error: 'Unknown action' });
   } catch (e) {
+    if (e.status) return res.status(e.status).json({ error: e.message });
     console.error('Timeline API error:', e.message);
     return res.status(500).json({ error: 'Failed', detail: e.message });
   }

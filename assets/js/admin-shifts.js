@@ -3,7 +3,6 @@
   if (!members) return;
 
   var isAdmin = JH.isAdmin();
-  var pass = sessionStorage.getItem('jh_pass');
 
   var approvedMembers = members.filter(function (m) {
     return (JH.val(m, 'Status') || '').toLowerCase() === 'approved';
@@ -15,11 +14,7 @@
   var EVENT_DATES = ['2026-07-07', '2026-07-08', '2026-07-09', '2026-07-10', '2026-07-11', '2026-07-12'];
 
   async function fetchShifts() {
-    var r = await fetch('/api/shifts', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password: pass }),
-    });
+    var r = await JH.apiFetch('/api/shifts', {});
     if (!r.ok) return;
     var data = await r.json();
     shifts = data.shifts || [];
@@ -133,13 +128,9 @@
         var updated = people.filter(function (p) { return p !== person; }).join(', ');
         // Use assign action to set the new list (or unassign if empty)
         var action = updated ? 'assign' : 'unassign';
-        var body = { password: pass, action: action, shiftId: shiftId };
+        var body = { action: action, shiftId: shiftId };
         if (updated) body.memberName = updated;
-        var r = await fetch('/api/shifts', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body),
-        });
+        var r = await JH.apiFetch('/api/shifts', body);
         if (!r.ok) { alert('Failed.'); return; }
         await reload();
       });
@@ -151,11 +142,7 @@
         if (!confirm('Delete ALL "' + name + '" shifts across all days?')) return;
         var typeShifts = shifts.filter(function (s) { return s.Name === name; });
         for (var i = 0; i < typeShifts.length; i++) {
-          await fetch('/api/shifts', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ password: pass, action: 'delete', shiftId: typeShifts[i].ShiftID }),
-          });
+          await JH.apiFetch('/api/shifts', { action: 'delete', shiftId: typeShifts[i].ShiftID });
         }
         await reload();
       });
@@ -192,11 +179,7 @@
     for (var i = 0; i < EVENT_DATES.length; i++) {
       var date = EVENT_DATES[i];
       var shiftId = name.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + date;
-      await fetch('/api/shifts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password: pass, action: 'create', shiftId: shiftId, name: name, date: date, startTime: start || '', endTime: end || '' }),
-      });
+      await JH.apiFetch('/api/shifts', { action: 'create', shiftId: shiftId, name: name, date: date, startTime: start || '', endTime: end || '' });
     }
 
     addModal.classList.remove('active');
@@ -218,7 +201,7 @@
     document.getElementById('assign-info').textContent = shiftName + ' — ' + JH.formatDateLong(date);
     var sel = document.getElementById('assign-select');
     sel.innerHTML = '<option value="">Select volunteer...</option>';
-    var myName = sessionStorage.getItem('jh_member_name');
+    var myName = JH.currentUser.name;
 
     if (isAdmin) {
       approvedMembers.forEach(function (m) {
@@ -260,14 +243,9 @@
     existing.push(name);
     var combined = existing.join(', ');
 
-    var r = await fetch('/api/shifts', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password: pass, action: 'assign', shiftId: assignShiftId, memberName: combined }),
-    });
+    var r = await JH.apiFetch('/api/shifts', { action: 'assign', shiftId: assignShiftId, memberName: combined });
     if (!r.ok) { msg.textContent = 'Failed.'; msg.style.color = '#f44336'; return; }
 
-    sessionStorage.setItem('jh_member_name', name);
     assignModal.classList.remove('active');
     msg.textContent = '';
     await reload();

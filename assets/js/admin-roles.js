@@ -3,7 +3,6 @@
   if (!members) return;
 
   var isAdmin = JH.isAdmin();
-  var pass = sessionStorage.getItem('jh_pass');
   var state = { roles: [] };
   var approvedMembers = members.filter(function (m) {
     return (m['Status'] || '').toLowerCase() === 'approved';
@@ -47,11 +46,7 @@
   // ── Data fetching ─────────────────────────────────────────────────────────
 
   async function fetchData() {
-    var res = await fetch('/api/roles', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password: pass }),
-    });
+    var res = await JH.apiFetch('/api/roles', {});
     if (!res.ok) { console.error('roles fetch failed'); return; }
     var data = await res.json();
     state.roles = data.roles || [];
@@ -140,11 +135,7 @@
         var role = state.roles.find(function (r) { return r.Name === btn.dataset.name; });
         if (!role) return;
         if (!confirm('Delete "' + role.Name + '"? This cannot be undone.')) return;
-        var r = await fetch('/api/roles', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ password: pass, action: 'delete', name: role.Name }),
-        });
+        var r = await JH.apiFetch('/api/roles', { action: 'delete', name: role.Name });
         if (!r.ok) { alert('Delete failed. Please try again.'); return; }
         await reload();
       });
@@ -196,19 +187,14 @@
     btn.textContent = 'Saving...';
     btn.disabled = true;
 
-    var r = await fetch('/api/roles', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        password: pass,
-        action: 'upsert',
-        name: name,
-        originalName: editingName,
-        description: document.getElementById('field-description').value,
-        assignedTo: Array.from(document.getElementById('field-assignedTo').selectedOptions).map(function (o) { return o.value; }).join(', '),
-        status: document.getElementById('field-status').value,
-        notes: document.getElementById('field-notes').value,
-      }),
+    var r = await JH.apiFetch('/api/roles', {
+      action: 'upsert',
+      name: name,
+      originalName: editingName,
+      description: document.getElementById('field-description').value,
+      assignedTo: Array.from(document.getElementById('field-assignedTo').selectedOptions).map(function (o) { return o.value; }).join(', '),
+      status: document.getElementById('field-status').value,
+      notes: document.getElementById('field-notes').value,
     });
 
     btn.textContent = 'Save Role';

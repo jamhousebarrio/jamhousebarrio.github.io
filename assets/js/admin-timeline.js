@@ -3,7 +3,6 @@
   if (!members) return;
 
   var isAdmin = JH.isAdmin();
-  var pass = sessionStorage.getItem('jh_pass');
   var state = { entries: [], logistics: [], tasks: [] };
   var taskPanelOpen = true;
 
@@ -24,11 +23,7 @@
   // ── Data fetching ─────────────────────────────────────────────────────────
 
   async function fetchData() {
-    var res = await fetch('/api/timeline', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password: pass }),
-    });
+    var res = await JH.apiFetch('/api/timeline', {});
     if (!res.ok) { console.error('timeline fetch failed'); return; }
     var data = await res.json();
     state.entries = data.entries || [];
@@ -221,11 +216,7 @@
   }
 
   function saveCell(person, date, period, newVal, oldVal, td) {
-    fetch('/api/timeline', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password: pass, action: 'upsert', person: person, date: date, period: period, task: newVal }),
-    }).then(function (r) {
+    JH.apiFetch('/api/timeline', { action: 'upsert', person: person, date: date, period: period, task: newVal }).then(function (r) {
       if (!r.ok) { if (td) td.textContent = oldVal; alert('Save failed.'); return; }
       var entry = state.entries.find(function (e) {
         return e.Person === person && e.Date === date && e.Period === period;

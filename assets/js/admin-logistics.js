@@ -2,7 +2,6 @@
   var members = await JH.authenticate();
   if (!members) return;
 
-  var pass = sessionStorage.getItem('jh_pass');
   var approvedMembers = members.filter(function (m) {
     return (m['Status'] || '').toLowerCase() === 'approved';
   });
@@ -19,7 +18,7 @@
 
   // ── Name selector ─────────────────────────────────────────────────────────
 
-  state.myName = sessionStorage.getItem('jh_member_name');
+  state.myName = JH.currentUser.name;
 
   var nameModal = document.getElementById('name-modal');
   var nameSelect = document.getElementById('name-select');
@@ -59,7 +58,6 @@
     var val = nameSelect.value;
     if (!val) return;
     state.myName = val;
-    sessionStorage.setItem('jh_member_name', val);
     nameModal.classList.remove('active');
     renderNameDisplay();
     render();
@@ -68,11 +66,7 @@
   // ── Data fetching ─────────────────────────────────────────────────────────
 
   async function fetchData() {
-    var res = await fetch('/api/logistics', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password: pass }),
-    });
+    var res = await JH.apiFetch('/api/logistics', {});
     if (!res.ok) { console.error('logistics fetch failed'); return; }
     var data = await res.json();
     state.logistics = data.logistics || [];
@@ -163,8 +157,7 @@
       btn.textContent = 'Saving...';
       btn.disabled = true;
 
-      var body = {
-        password: pass,
+      var res = await JH.apiFetch('/api/logistics', {
         action: 'upsert',
         memberName: state.myName,
         arrivalDate: document.getElementById('f-arrival').value,
@@ -175,12 +168,6 @@
         campingType: document.getElementById('f-camping').value,
         tentSize: document.getElementById('f-tent-size') ? document.getElementById('f-tent-size').value : '',
         notes: document.getElementById('f-notes').value,
-      };
-
-      var res = await fetch('/api/logistics', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
       });
 
       if (!res.ok) {
