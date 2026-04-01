@@ -84,6 +84,23 @@
     }
   });
 
+  // Admin badge
+  var badge = document.getElementById('admin-badge');
+  if (badge) {
+    badge.style.display = '';
+    if (user.admin) {
+      badge.textContent = 'Admin';
+      badge.style.background = 'rgba(232,168,76,0.12)';
+      badge.style.color = '#e8a84c';
+      badge.style.border = '1px solid rgba(232,168,76,0.3)';
+    } else {
+      badge.textContent = 'Member';
+      badge.style.background = 'rgba(255,255,255,0.04)';
+      badge.style.color = 'var(--text-muted)';
+      badge.style.border = '1px solid var(--border)';
+    }
+  }
+
   // Personal info section
   var editableFields = ['Name', 'Playa Name', 'Email', 'Phone', 'Location', 'Nationality', 'Gender', 'Age'];
   var infoForm = document.getElementById('info-form');
