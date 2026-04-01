@@ -103,9 +103,9 @@
   var gridOptions = {
     columnDefs: columnDefs,
     rowData: getRowData(),
-    defaultColDef: { resizable: true, flex: 1, minWidth: 100 },
+    defaultColDef: { resizable: !JH.isMobile, flex: 1, minWidth: 100, suppressMovable: JH.isMobile },
     pagination: true,
-    paginationPageSize: 25,
+    paginationPageSize: JH.isMobile ? 15 : 25,
     suppressCellFocus: true,
     onModelUpdated: function() {
       var count = gridApi ? gridApi.getDisplayedRowCount() : 0;
