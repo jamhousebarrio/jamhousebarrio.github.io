@@ -48,19 +48,27 @@ body {
 }
 .login-box p.desc { color: var(--text-muted); font-size: 0.88rem; margin-bottom: 20px; font-weight: 500; }
 .login-box form { display: flex; flex-direction: column; gap: 12px; }
+.login-box input[type="email"],
 .login-box input[type="password"] {
-  text-align: center; font-size: 1rem; padding: 14px 16px;
+  width: 100%; box-sizing: border-box; text-align: center; font-size: 1rem; padding: 14px 16px;
   background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
   color: var(--text); font-family: var(--body); outline: none; transition: border-color 0.2s;
 }
+.pw-wrapper { position: relative; }
+.pw-wrapper input { padding-right: 44px !important; }
+.pw-toggle {
+  position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+  background: none; border: none; color: var(--text-muted); cursor: pointer;
+  font-size: 1.1rem; padding: 4px; line-height: 1;
+}
 .login-box input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow-subtle); }
-.login-box button {
-  padding: 14px; background: var(--accent); color: var(--bg); border: none; border-radius: var(--radius);
+.login-box button[type="submit"] {
+  width: 100%; padding: 14px; background: var(--accent); color: var(--bg); border: none; border-radius: var(--radius);
   font-family: var(--heading); font-weight: 700; font-size: 1rem; cursor: pointer;
   transition: transform 0.2s, box-shadow 0.2s; box-shadow: 0 4px 30px rgba(232,168,76,0.25);
   letter-spacing: 0.02em;
 }
-.login-box button:hover { transform: translateY(-2px); box-shadow: 0 6px 40px rgba(232,168,76,0.35); }
+.login-box button[type="submit"]:hover { transform: translateY(-2px); box-shadow: 0 6px 40px rgba(232,168,76,0.35); }
 .login-error { color: var(--danger); display: none; margin-top: 8px; font-size: 0.88rem; }
 
 /* ═══════════════════════════════════════ SIDEBAR ═══════════════════════════════════════ */
@@ -171,6 +179,10 @@ table tbody tr:nth-child(even) td { background: rgba(255,255,255,0.012); }
 .status-approved { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 0.72rem; font-weight: 600; background: rgba(90,158,111,0.15); color: var(--success); border: 1px solid rgba(90,158,111,0.3); }
 .status-pending { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 0.72rem; font-weight: 600; background: rgba(212,144,58,0.15); color: var(--warning); border: 1px solid rgba(212,144,58,0.3); }
 .status-rejected { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 0.72rem; font-weight: 600; background: rgba(192,57,43,0.15); color: var(--danger); border: 1px solid rgba(192,57,43,0.3); }
+.status-review { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 0.72rem; font-weight: 600; background: rgba(41,182,246,0.15); color: #29b6f6; border: 1px solid rgba(41,182,246,0.3); }
+.status-vibe-check { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 0.72rem; font-weight: 600; background: rgba(171,71,188,0.15); color: #ab47bc; border: 1px solid rgba(171,71,188,0.3); }
+.status-team-discussion { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 0.72rem; font-weight: 600; background: rgba(120,144,156,0.15); color: #78909c; border: 1px solid rgba(120,144,156,0.3); }
+.status-on-boarding { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 0.72rem; font-weight: 600; background: rgba(38,166,154,0.15); color: #26a69a; border: 1px solid rgba(38,166,154,0.3); }
 
 /* ═══════════════════════════════════════ BUTTONS ═══════════════════════════════════════ */
 .btn-primary {

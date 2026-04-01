@@ -5,15 +5,23 @@
   var val = JH.val;
   var isAdmin = JH.isAdmin();
   var allMembers = members.map(function(m, i) { m._row = i + 2; return m; });
+  var ALL_STATUSES = ['Pending', 'Review', 'Vibe Check', 'Team Discussion', 'On-boarding', 'Approved', 'Rejected'];
+  var STATUS_IDS = { 'Pending': 'stat-pending', 'Review': 'stat-review', 'Vibe Check': 'stat-vibe-check', 'Team Discussion': 'stat-team-discussion', 'On-boarding': 'stat-on-boarding', 'Approved': 'stat-approved', 'Rejected': 'stat-rejected' };
+
+  function normalizeStatus(s) {
+    s = (s || '').toLowerCase();
+    for (var i = 0; i < ALL_STATUSES.length; i++) {
+      if (ALL_STATUSES[i].toLowerCase() === s) return ALL_STATUSES[i];
+    }
+    return 'Pending';
+  }
 
   function refreshStats() {
-    var p = allMembers.filter(function(x) { return val(x, 'Status').toLowerCase() === 'pending'; }).length;
-    var a = allMembers.filter(function(x) { return val(x, 'Status').toLowerCase() === 'approved'; }).length;
-    var r = allMembers.filter(function(x) { return val(x, 'Status').toLowerCase() === 'rejected'; }).length;
     document.getElementById('stat-total').textContent = allMembers.length;
-    document.getElementById('stat-pending').textContent = p;
-    document.getElementById('stat-approved').textContent = a;
-    document.getElementById('stat-rejected').textContent = r;
+    ALL_STATUSES.forEach(function(status) {
+      var count = allMembers.filter(function(x) { return normalizeStatus(val(x, 'Status')) === status; }).length;
+      document.getElementById(STATUS_IDS[status]).textContent = count;
+    });
   }
   refreshStats();
 
@@ -33,22 +41,22 @@
         'First Burn': val(m, 'First Burn'),
         'Has Ticket': val(m, 'Has Ticket'),
         Volunteer: val(m, 'Volunteer'),
-        Status: (function(s) { s = s.toLowerCase(); return s === 'approved' ? 'Approved' : s === 'rejected' ? 'Rejected' : 'Pending'; })(val(m, 'Status'))
+        Status: normalizeStatus(val(m, 'Status'))
       };
     });
   }
 
   function StatusCellRenderer() {}
   StatusCellRenderer.prototype.init = function(params) {
-    var v = (params.value || 'Pending').toLowerCase();
+    var v = normalizeStatus(params.value);
     if (isAdmin) {
       this.eGui = document.createElement('select');
       this.eGui.style.cssText = 'background:#0a0a0a;color:#e0e0e0;border:1px solid #2a2a2a;border-radius:4px;padding:2px 4px;font-size:0.8rem;cursor:pointer;width:100%;';
       var self = this;
-      ['Pending', 'Approved', 'Rejected'].forEach(function(opt) {
+      ALL_STATUSES.forEach(function(opt) {
         var o = document.createElement('option');
         o.value = opt; o.textContent = opt;
-        if (opt.toLowerCase() === v) o.selected = true;
+        if (opt === v) o.selected = true;
         self.eGui.appendChild(o);
       });
       this.eGui.addEventListener('change', function() {
@@ -56,9 +64,8 @@
       });
     } else {
       this.eGui = document.createElement('span');
-      var cls = v === 'approved' ? 'status-approved' : v === 'rejected' ? 'status-rejected' : 'status-pending';
-      this.eGui.className = cls;
-      this.eGui.textContent = v.charAt(0).toUpperCase() + v.slice(1);
+      this.eGui.className = 'status-' + v.toLowerCase().replace(/\s+/g, '-');
+      this.eGui.textContent = v;
     }
   };
   StatusCellRenderer.prototype.getGui = function() { return this.eGui; };
@@ -222,10 +229,10 @@
       }
       // Status: dropdown
       if (k === 'Status' && isAdmin) {
-        var s = (v || 'Pending').toLowerCase();
+        var s = normalizeStatus(v);
         var sel = '<select class="field-input" data-key="Status">';
-        ['Pending', 'Approved', 'Rejected'].forEach(function(opt) {
-          sel += '<option value="' + opt + '"' + (opt.toLowerCase() === s ? ' selected' : '') + '>' + opt + '</option>';
+        ALL_STATUSES.forEach(function(opt) {
+          sel += '<option value="' + opt + '"' + (opt === s ? ' selected' : '') + '>' + opt + '</option>';
         });
         sel += '</select>';
         return '<div class="detail-row"><div class="detail-label">Status</div><div class="detail-value">' + sel + '</div></div>';

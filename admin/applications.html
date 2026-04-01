@@ -100,12 +100,13 @@ access: admin
     .filter-row { display: flex; gap: 0.75rem; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; }
     .filter-row select { padding: 0.45rem 0.75rem; background: #0a0a0a; border: 1px solid #2a2a2a; border-radius: 6px; color: #e0e0e0; font-size: 0.85rem; }
     .filter-row .count { color: #888; font-size: 0.85rem; margin-left: auto; }
-    #app-grid { height: 500px; }
+    #app-grid { flex: 1; min-height: 300px; }
+    .main { display: flex; flex-direction: column; height: 100vh; box-sizing: border-box; }
+    .panel { flex: 1; display: flex; flex-direction: column; min-height: 0; }
     @media (max-width: 600px) {
       .modal { padding: 1.25rem; max-height: 90vh; width: 95%; }
       .detail-row { grid-template-columns: 1fr; gap: 0.25rem; }
       .detail-label { font-size: 0.75rem; }
-      #app-grid { height: 400px; }
       .col-toggles { gap: 0.3rem; }
       .col-toggle { font-size: 0.7rem; }
     }
@@ -190,6 +191,22 @@ access: admin
       <div class="stat-number" id="stat-pending" style="color:#ff9800;">-</div>
     </div>
     <div class="stat-card">
+      <div class="stat-label">Review</div>
+      <div class="stat-number" id="stat-review" style="color:#29b6f6;">-</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Vibe Check</div>
+      <div class="stat-number" id="stat-vibe-check" style="color:#ab47bc;">-</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Team Discussion</div>
+      <div class="stat-number" id="stat-team-discussion" style="color:#78909c;">-</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">On-boarding</div>
+      <div class="stat-number" id="stat-on-boarding" style="color:#26a69a;">-</div>
+    </div>
+    <div class="stat-card">
       <div class="stat-label">Approved</div>
       <div class="stat-number" id="stat-approved" style="color:#4caf50;">-</div>
     </div>
@@ -203,6 +220,10 @@ access: admin
       <select id="statusFilter">
         <option value="" selected>All Applications</option>
         <option value="Pending">Pending</option>
+        <option value="Review">Review</option>
+        <option value="Vibe Check">Vibe Check</option>
+        <option value="Team Discussion">Team Discussion</option>
+        <option value="On-boarding">On-boarding</option>
         <option value="Approved">Approved</option>
         <option value="Rejected">Rejected</option>
       </select>

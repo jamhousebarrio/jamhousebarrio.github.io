@@ -1,7 +1,6 @@
 import { sheets as sheetsApi } from '@googleapis/sheets';
 import { GoogleAuth } from 'google-auth-library';
 
-// Sanitize user input to prevent formula injection in spreadsheets
 function sanitize(val) {
   if (typeof val !== 'string') return val;
   return val.replace(/^[=+\-@]+/, '');
@@ -28,48 +27,59 @@ export default async function handler(req, res) {
       scopes: ["https://www.googleapis.com/auth/spreadsheets"],
     });
     const sheets = sheetsApi({ version: "v4", auth });
+    const spreadsheetId = process.env.SHEET_ID;
 
-    const row = [
-      new Date().toISOString(),
-      sanitize(b.name || ""),
-      sanitize(b.playaName || ""),
-      sanitize(b.email || ""),
-      sanitize(b.phone || ""),
-      sanitize(b.contactMethods || ""),
-      sanitize(b.contactOther || ""),
-      sanitize(b.location || ""),
-      sanitize(b.nationality || ""),
-      sanitize(b.gender || ""),
-      sanitize(b.age || ""),
-      sanitize(b.language || ""),
-      sanitize(b.otherLanguages || ""),
-      sanitize(b.firstBurn || ""),
-      sanitize(b.firstElsewhere || ""),
-      sanitize(b.knowCoreTeam || ""),
-      sanitize(b.leaveNoTrace || ""),
-      sanitize(b.consent || ""),
-      sanitize(b.whyElsewhere || ""),
-      sanitize(b.background || ""),
-      sanitize(b.artProject || ""),
-      sanitize(b.skills || ""),
-      sanitize(b.liftKg || ""),
-      sanitize(b.deepestSecrets || ""),
-      sanitize(b.talents || ""),
-      sanitize(b.hasTicket || ""),
-      sanitize(b.canBuild || ""),
-      sanitize(b.hasCar || ""),
-      sanitize(b.movingCar || ""),
-      sanitize(b.otherCamp || ""),
-      sanitize(b.volunteer || ""),
-      sanitize(b.howHeard || ""),
-      sanitize(b.specialNeeds || ""),
-      sanitize(b.needsDescription || ""),
-      "Pending",
-    ];
+    // Read headers to map data by column name, not position
+    const headersRes = await sheets.spreadsheets.values.get({
+      spreadsheetId, range: 'Sheet1!1:1',
+    });
+    const headers = (headersRes.data.values || [[]])[0] || [];
+
+    // Map field name -> value
+    const data = {
+      'Timestamp': new Date().toISOString(),
+      'Name': sanitize(b.name || ""),
+      'Playa Name': sanitize(b.playaName || ""),
+      'Email': sanitize(b.email || ""),
+      'Phone': sanitize(b.phone || ""),
+      'Contact Methods': sanitize(b.contactMethods || ""),
+      'Contact Other': sanitize(b.contactOther || ""),
+      'Location': sanitize(b.location || ""),
+      'Nationality': sanitize(b.nationality || ""),
+      'Gender': sanitize(b.gender || ""),
+      'Age': sanitize(b.age || ""),
+      'Language': sanitize(b.language || ""),
+      'Other Languages': sanitize(b.otherLanguages || ""),
+      'First Burn': sanitize(b.firstBurn || ""),
+      'First Elsewhere/Nowhere': sanitize(b.firstElsewhere || ""),
+      'Know Core Team': sanitize(b.knowCoreTeam || ""),
+      'Leave No Trace': sanitize(b.leaveNoTrace || ""),
+      'Consent': sanitize(b.consent || ""),
+      'Why Elsewhere': sanitize(b.whyElsewhere || ""),
+      'Background': sanitize(b.background || ""),
+      'Art Project': sanitize(b.artProject || ""),
+      'Skills': sanitize(b.skills || ""),
+      'Lift Kg': sanitize(b.liftKg || ""),
+      'Deepest Secrets': sanitize(b.deepestSecrets || ""),
+      'Talents': sanitize(b.talents || ""),
+      'Has Ticket': sanitize(b.hasTicket || ""),
+      'Can Build': sanitize(b.canBuild || ""),
+      'Has Car': sanitize(b.hasCar || ""),
+      'Moving Car': sanitize(b.movingCar || ""),
+      'Other Camp': sanitize(b.otherCamp || ""),
+      'Volunteer': sanitize(b.volunteer || ""),
+      'How Heard': sanitize(b.howHeard || ""),
+      'Special Needs': sanitize(b.specialNeeds || ""),
+      'Needs Description': sanitize(b.needsDescription || ""),
+      'Status': "Pending",
+    };
+
+    // Build row array matching actual sheet header order
+    const row = headers.map(h => data[h] !== undefined ? data[h] : "");
 
     await sheets.spreadsheets.values.append({
-      spreadsheetId: process.env.SHEET_ID,
-      range: "Sheet1!A:AI",
+      spreadsheetId,
+      range: "Sheet1",
       valueInputOption: "RAW",
       requestBody: { values: [row] },
     });
