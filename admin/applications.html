@@ -179,9 +179,12 @@ access: admin
   </div>
 </nav>
 <div class="main">
-  <div class="page-header">
-    <h1><span class="icon">&#9993;</span> Applications</h1>
-    <div class="subtitle">Review and manage membership applications</div>
+  <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;">
+    <div>
+      <h1><span class="icon">&#9993;</span> Applications</h1>
+      <div class="subtitle">Review and manage membership applications</div>
+    </div>
+    <button id="process-btn" style="background:none;border:1px solid var(--border);border-radius:8px;color:var(--text-muted);cursor:pointer;padding:6px 14px;font-size:0.8rem;font-family:var(--body);white-space:nowrap;">&#9432; Process</button>
   </div>
   <div class="stats-row">
     <div class="stat-card">
@@ -249,6 +252,22 @@ access: admin
     </div>
   </div>
 </div>
+
+<div class="modal-overlay" id="processOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:200;justify-content:center;align-items:center;cursor:pointer;">
+  <img src="/images/recruitment-process.jpg" alt="Recruitment Process" style="max-width:90vw;max-height:90vh;border-radius:12px;box-shadow:0 8px 40px rgba(0,0,0,0.5);">
+  <button style="position:fixed;top:16px;right:20px;background:none;border:none;color:#fff;font-size:2rem;cursor:pointer;z-index:201;">&times;</button>
+</div>
+<script>
+  (function() {
+    var overlay = document.getElementById('processOverlay');
+    document.getElementById('process-btn').addEventListener('click', function() {
+      overlay.style.display = 'flex';
+    });
+    overlay.addEventListener('click', function() {
+      overlay.style.display = 'none';
+    });
+  })();
+</script>
 
 <script src="https://cdn.jsdelivr.net/npm/ag-grid-community@32/dist/ag-grid-community.min.js"></script>
 <script src="/assets/js/admin-auth.js"></script>
