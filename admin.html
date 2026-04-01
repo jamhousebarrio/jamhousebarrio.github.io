@@ -35,16 +35,27 @@ permalink: /admin
     <p class="login-error" id="login-error"></p>
     <p style="text-align:center;margin-top:12px;">
       <a href="#" id="forgot-link" style="color:var(--accent);font-size:0.85rem;text-decoration:none;">Forgot password?</a>
+      &nbsp;&middot;&nbsp;
+      <a href="#" id="magic-link" style="color:var(--accent);font-size:0.85rem;text-decoration:none;">Login with magic link</a>
     </p>
 
     <!-- Password reset form (hidden by default) -->
-    <form id="magic-form" style="display:none;">
+    <form id="reset-form" style="display:none;">
       <p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:12px;">Enter your email and we'll send you a password reset link.</p>
-      <input type="email" id="magic-email" placeholder="Email" required>
+      <input type="email" id="reset-email" placeholder="Email" required>
       <button type="submit">Send Reset Link</button>
     </form>
+    <p class="login-error" id="reset-error"></p>
+
+    <!-- Magic link form (hidden by default) -->
+    <form id="magic-form" style="display:none;">
+      <p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:12px;">Enter your email and we'll send you a login link — no password needed.</p>
+      <input type="email" id="magic-email" placeholder="Email" required>
+      <button type="submit">Send Magic Link</button>
+    </form>
     <p class="login-error" id="magic-error"></p>
-    <p id="magic-back" style="display:none;text-align:center;margin-top:12px;">
+
+    <p id="alt-back" style="display:none;text-align:center;margin-top:12px;">
       <a href="#" id="back-link" style="color:var(--accent);font-size:0.85rem;text-decoration:none;">&larr; Back to login</a>
     </p>
   </div>
@@ -60,22 +71,35 @@ permalink: /admin
     this.style.opacity = isHidden ? '1' : '0.5';
   });
 
-  // Toggle between login and magic link forms
-  document.getElementById('forgot-link').addEventListener('click', function(e) {
-    e.preventDefault();
+  // Toggle between login, reset, and magic link forms
+  function showAltForm(formId) {
     document.getElementById('login-form').style.display = 'none';
     document.getElementById('forgot-link').parentNode.style.display = 'none';
     document.getElementById('login-error').style.display = 'none';
-    document.getElementById('magic-form').style.display = '';
-    document.getElementById('magic-back').style.display = '';
+    document.getElementById('reset-form').style.display = 'none';
+    document.getElementById('reset-error').style.display = 'none';
+    document.getElementById('magic-form').style.display = 'none';
+    document.getElementById('magic-error').style.display = 'none';
+    document.getElementById(formId).style.display = '';
+    document.getElementById('alt-back').style.display = '';
+  }
+  document.getElementById('forgot-link').addEventListener('click', function(e) {
+    e.preventDefault();
+    showAltForm('reset-form');
+  });
+  document.getElementById('magic-link').addEventListener('click', function(e) {
+    e.preventDefault();
+    showAltForm('magic-form');
   });
   document.getElementById('back-link').addEventListener('click', function(e) {
     e.preventDefault();
     document.getElementById('login-form').style.display = '';
     document.getElementById('forgot-link').parentNode.style.display = '';
+    document.getElementById('reset-form').style.display = 'none';
+    document.getElementById('reset-error').style.display = 'none';
     document.getElementById('magic-form').style.display = 'none';
-    document.getElementById('magic-back').style.display = 'none';
     document.getElementById('magic-error').style.display = 'none';
+    document.getElementById('alt-back').style.display = 'none';
   });
 
   // Email + password login
@@ -101,11 +125,11 @@ permalink: /admin
   });
 
   // Password reset
-  document.getElementById('magic-form').addEventListener('submit', async function(e) {
+  document.getElementById('reset-form').addEventListener('submit', async function(e) {
     e.preventDefault();
-    var err = document.getElementById('magic-error');
+    var err = document.getElementById('reset-error');
     err.style.display = 'none';
-    var email = document.getElementById('magic-email').value;
+    var email = document.getElementById('reset-email').value;
     try {
       var result = await sb.auth.resetPasswordForEmail(email, {
         redirectTo: window.location.origin + '/admin/profile',
@@ -116,6 +140,31 @@ permalink: /admin
         return;
       }
       err.textContent = 'Check your email for the password reset link!';
+      err.style.color = '#4caf50';
+      err.style.display = 'block';
+    } catch (ex) {
+      err.textContent = 'Something went wrong';
+      err.style.display = 'block';
+    }
+  });
+
+  // Magic link
+  document.getElementById('magic-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    var err = document.getElementById('magic-error');
+    err.style.display = 'none';
+    var email = document.getElementById('magic-email').value;
+    try {
+      var result = await sb.auth.signInWithOtp({
+        email: email,
+        options: { emailRedirectTo: window.location.origin + '/admin' },
+      });
+      if (result.error) {
+        err.textContent = result.error.message || 'Failed to send link';
+        err.style.display = 'block';
+        return;
+      }
+      err.textContent = 'Check your email for the login link!';
       err.style.color = '#4caf50';
       err.style.display = 'block';
     } catch (ex) {
