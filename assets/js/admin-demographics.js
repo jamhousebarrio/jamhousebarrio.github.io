@@ -148,19 +148,49 @@
   };
   NameCellRenderer.prototype.getGui = function() { return this.eGui; };
 
+  // Admin checkbox renderer
+  function AdminCellRenderer() {}
+  AdminCellRenderer.prototype.init = function(params) {
+    this.eGui = document.createElement('input');
+    this.eGui.type = 'checkbox';
+    this.eGui.checked = (params.value || '').toLowerCase() === 'yes';
+    this.eGui.style.accentColor = 'var(--accent, #e8a84c)';
+    this.eGui.style.width = '16px';
+    this.eGui.style.height = '16px';
+    this.eGui.style.cursor = 'pointer';
+    var row = params.data._member._row;
+    var self = this;
+    this.eGui.addEventListener('change', async function() {
+      var newVal = self.eGui.checked ? 'Yes' : '';
+      try {
+        var res = await JH.apiFetch('/api/members', { action: 'update', row: row, updates: { Admin: newVal } });
+        if (!res.ok) throw new Error('Failed');
+        params.data.Admin = newVal;
+        params.data._member['Admin'] = newVal;
+      } catch (e) {
+        self.eGui.checked = !self.eGui.checked;
+        alert('Failed to update admin status');
+      }
+    });
+  };
+  AdminCellRenderer.prototype.getGui = function() { return this.eGui; };
+
   // Roster table
   var rosterCols = [
     { field: 'Playa Name', sortable: true, filter: true, cellRenderer: NameCellRenderer },
     { field: 'Role', sortable: true, filter: true },
     { field: 'Phone', sortable: true, filter: true, cellRenderer: JH.PhoneCellRenderer }
   ];
+  if (JH.isAdmin()) {
+    rosterCols.push({ field: 'Admin', headerName: 'Admin', sortable: true, filter: true, cellRenderer: AdminCellRenderer, maxWidth: 90 });
+  }
   if (JH.isMobile) {
     var phoneCol = rosterCols.find(function(c) { return c.field === 'Phone'; });
     if (phoneCol) JH.mobilePhoneColumn(phoneCol);
   }
   var rosterGrid = agGrid.createGrid(document.getElementById('roster-grid'), {
     rowData: members.map(function(m) {
-      return { 'Playa Name': val(m, 'Playa Name'), Role: val(m, 'Role'), Phone: val(m, 'Phone'), _member: m };
+      return { 'Playa Name': val(m, 'Playa Name'), Role: val(m, 'Role'), Phone: val(m, 'Phone'), Admin: val(m, 'Admin'), _member: m };
     }),
     columnDefs: rosterCols,
     defaultColDef: { resizable: true, flex: 1, minWidth: 100 },
