@@ -102,7 +102,9 @@ export default async function handler(req, res) {
         try {
           const tgBody = {
             chat_id: process.env.TELEGRAM_CHAT_ID,
-            text: memberName + ': ' + oldStatus + ' → ' + status,
+            text: status.toLowerCase() === 'approved'
+              ? '🎉 Welcome to the barrio! ' + memberName + ' has been approved — say hi!'
+              : '📋 Application update: ' + memberName + ' moved from ' + oldStatus + ' → ' + status,
           };
           if (process.env.TELEGRAM_TOPIC_ID) tgBody.message_thread_id = parseInt(process.env.TELEGRAM_TOPIC_ID);
           await fetch('https://api.telegram.org/bot' + process.env.TELEGRAM_BOT_TOKEN + '/sendMessage', {
