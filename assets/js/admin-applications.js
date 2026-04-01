@@ -41,6 +41,7 @@
         'First Burn': val(m, 'First Burn'),
         'Has Ticket': val(m, 'Has Ticket'),
         Volunteer: val(m, 'Volunteer'),
+        'Responsible HR': val(m, 'Responsible HR'),
         Status: normalizeStatus(val(m, 'Status'))
       };
     });
@@ -97,6 +98,7 @@
     { field: 'First Burn', sortable: true, filter: true, hide: true },
     { field: 'Has Ticket', sortable: true, filter: true, hide: true },
     { field: 'Volunteer', sortable: true, filter: true, hide: true },
+    { field: 'Responsible HR', sortable: true, filter: true, editable: isAdmin },
     { field: 'Status', sortable: true, filter: true, cellRenderer: StatusCellRenderer }
   ];
 
@@ -110,6 +112,17 @@
     onModelUpdated: function() {
       var count = gridApi ? gridApi.getDisplayedRowCount() : 0;
       document.getElementById('filter-count').textContent = count + ' applications';
+    },
+    onCellValueChanged: function(event) {
+      if (event.colDef.field === 'Responsible HR') {
+        var member = allMembers.find(function(m) { return m._row === event.data._row; });
+        if (!member) return;
+        var updates = {};
+        updates['Responsible HR'] = event.newValue || '';
+        JH.apiFetch('/api/members', { action: 'update', row: event.data._row, updates: updates }).then(function(res) {
+          if (res.ok) member['Responsible HR'] = event.newValue || '';
+        });
+      }
     }
   };
 
