@@ -120,16 +120,23 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true });
     }
 
-    // ── Delete member row ──────────────────────────────────────────────────
+    // ── Delete member by email ─────────────────────────────────────────────
     if (action === 'delete') {
-      const { row } = payload;
-      if (!row) return res.status(400).json({ error: 'Row is required' });
+      const { email: targetEmail } = payload;
+      if (!targetEmail) return res.status(400).json({ error: 'Email is required' });
+      const allRows = await sheets.spreadsheets.values.get({ spreadsheetId, range: 'Sheet1' });
+      const rows = allRows.data.values || [];
+      if (rows.length < 2) return res.status(404).json({ error: 'Member not found' });
+      const emailCol = rows[0].indexOf('Email');
+      if (emailCol === -1) return res.status(500).json({ error: 'Email column not found' });
+      const rowIdx = rows.findIndex((r, i) => i > 0 && (r[emailCol] || '').toLowerCase().trim() === targetEmail.toLowerCase().trim());
+      if (rowIdx === -1) return res.status(404).json({ error: 'Member not found' });
       const sheetId = await getSheetId(sheets, spreadsheetId, 'Sheet1');
       if (sheetId === null) return res.status(500).json({ error: 'Sheet not found' });
       await sheets.spreadsheets.batchUpdate({
         spreadsheetId,
         requestBody: {
-          requests: [{ deleteDimension: { range: { sheetId, dimension: 'ROWS', startIndex: row - 1, endIndex: row } } }]
+          requests: [{ deleteDimension: { range: { sheetId, dimension: 'ROWS', startIndex: rowIdx, endIndex: rowIdx + 1 } } }]
         }
       });
       return res.status(200).json({ success: true });

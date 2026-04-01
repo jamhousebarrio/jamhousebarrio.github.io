@@ -3,7 +3,6 @@
   if (!members) return;
 
   var val = JH.val;
-  members.forEach(function(m, i) { m._row = i + 2; });
   members = members.filter(function(m) { return val(m, 'Status').toLowerCase() === 'approved'; });
 
   // Stats
@@ -192,8 +191,9 @@
       if (!confirm('Remove ' + name + ' from the barrio? This deletes their member record and Supabase account.')) return;
       try {
         var email = JH.val(memberData, 'Email');
+        if (!email) { alert('Member has no email'); return; }
         // Delete from sheet
-        var res = await JH.apiFetch('/api/members', { action: 'delete', row: memberData._row });
+        var res = await JH.apiFetch('/api/members', { action: 'delete', email: email });
         if (!res.ok) throw new Error('Failed to delete member');
         // Delete Supabase account (best effort)
         if (email) {

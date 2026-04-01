@@ -147,6 +147,40 @@ JH.authenticate = async function() {
   }
 };
 
+JH.sidebarNav = [
+  { href: '/admin/applications', icon: '&#9993;', text: 'Applications', access: 'admin' },
+  { href: '/admin/demographics', icon: '&#9776;', text: 'Approved Members', access: 'general' },
+  { href: '/admin/budget', icon: '&#9733;', text: 'Budget', access: 'general' },
+  { href: '/admin/shifts', icon: '&#9835;', text: 'Shifts', access: 'general' },
+  { href: '/admin/inventory', icon: '&#128722;', text: 'Inventory', access: 'general' },
+  { href: '/admin/logistics', icon: '&#9992;', text: 'Logistics', access: 'general' },
+  { href: '/admin/meals', icon: '&#127859;', text: 'Meals', access: 'general' },
+  { href: '/admin/drinks', icon: '&#127866;', text: 'Drinks & Snacks', access: 'general' },
+  { href: '/admin/events', icon: '&#127926;', text: 'Events', access: 'general' },
+  { href: '/admin/roles', icon: '&#128101;', text: 'Roles & Leads', access: 'general' },
+  { href: '/admin/timeline', icon: '&#128197;', text: 'Timeline', access: 'general' },
+  { href: '/admin/profile', icon: '&#128100;', text: 'Profile', access: 'general' },
+  { href: '/admin/build', icon: '&#128296;', text: 'Build Guide', access: 'general' }
+];
+
+JH.renderSidebar = function() {
+  var sidebar = document.querySelector('.sidebar');
+  if (!sidebar || sidebar.dataset.rendered) return;
+  sidebar.dataset.rendered = '1';
+  var path = window.location.pathname.replace(/\.html$/, '').replace(/\/$/, '');
+  var html = '<div class="sidebar-brand">JamHouse <span>Admin 2026</span></div><div class="sidebar-nav">';
+  JH.sidebarNav.forEach(function(item) {
+    var active = path === item.href ? ' active' : '';
+    html += '<a class="nav-item' + active + '" href="' + item.href + '" data-access="' + item.access + '">' +
+      '<span class="icon">' + item.icon + '</span><span class="nav-item-text">' + item.text + '</span></a>';
+  });
+  html += '</div><div class="sidebar-footer"><a href="/">&#8592; Back to Site</a></div>';
+  sidebar.innerHTML = html;
+};
+
+// Render sidebar immediately (before auth, so page isn't empty)
+JH.renderSidebar();
+
 JH.filterNav = function(isAdmin) {
   document.querySelectorAll('.sidebar .nav-item').forEach(function(item) {
     var access = item.getAttribute('data-access');

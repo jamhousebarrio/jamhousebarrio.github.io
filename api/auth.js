@@ -41,6 +41,32 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true });
     }
 
+    // ── Resend invite (password reset for existing user) ─────────────────
+    if (action === 'resend-invite') {
+      const user = verifyToken(req);
+      const sheets = getSheets(true);
+      const result = await getMemberByEmail(sheets, process.env.SHEET_ID, user.email);
+      if (!result || !isAdmin(result.member)) {
+        return res.status(403).json({ error: 'Admin required' });
+      }
+
+      const { email: targetEmail } = payload;
+      if (!targetEmail) return res.status(400).json({ error: 'email required' });
+
+      const supabase = getSupabaseAdmin();
+      const siteUrl = process.env.SITE_URL || 'https://jamhouse.space';
+      const { error } = await supabase.auth.admin.generateLink({
+        type: 'recovery',
+        email: targetEmail,
+        options: { redirectTo: `${siteUrl}/admin/profile` },
+      });
+      if (error) {
+        console.error('Resend invite error:', error);
+        return res.status(500).json({ error: error.message || 'Failed to resend' });
+      }
+      return res.status(200).json({ success: true });
+    }
+
     // ── Clear must_change_password flag ─────────────────────────────────
     if (action === 'clear-password-flag') {
       const user = verifyToken(req);
