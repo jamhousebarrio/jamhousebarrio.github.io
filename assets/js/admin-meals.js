@@ -129,14 +129,16 @@
       html += '<button class="date-btn' + (activeFilter === d ? ' active' : '') + '" data-date="' + JH.esc(d) + '">' + JH.esc(formatDate(d)) + '</button>';
     });
     wrap.innerHTML = html;
-    wrap.querySelectorAll('.date-btn').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        activeFilter = btn.dataset.date;
-        renderDateFilter();
-        renderMeals();
-      });
-    });
   }
+
+  // Event delegation for date filter buttons
+  document.getElementById('date-filter').addEventListener('click', function (e) {
+    var btn = e.target.closest('.date-btn');
+    if (!btn) return;
+    activeFilter = btn.dataset.date;
+    renderDateFilter();
+    renderMeals();
+  });
 
   // ── Render meal cards ─────────────────────────────────────────────────────
 
@@ -263,71 +265,60 @@
     });
 
     wrap.innerHTML = html;
-    bindMealCardEvents();
   }
 
-  // ── Bind meal card events ─────────────────────────────────────────────────
-
-  function bindMealCardEvents() {
-    // Instructions toggle
-    document.querySelectorAll('.instructions-toggle').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        var mealId = btn.dataset.mealId;
-        var textEl = document.getElementById('instructions-' + mealId);
-        if (!textEl) return;
-        var visible = textEl.style.display !== 'none';
-        textEl.style.display = visible ? 'none' : '';
-        btn.textContent = visible ? 'Show instructions' : 'Hide instructions';
-      });
-    });
+  // Event delegation — single listener on container, never accumulates
+  document.getElementById('meals-wrap').addEventListener('click', async function (e) {
+    var btn = e.target.closest('.instructions-toggle');
+    if (btn) {
+      var mealId = btn.dataset.mealId;
+      var textEl = document.getElementById('instructions-' + mealId);
+      if (!textEl) return;
+      var visible = textEl.style.display !== 'none';
+      textEl.style.display = visible ? 'none' : '';
+      btn.textContent = visible ? 'Show instructions' : 'Hide instructions';
+      return;
+    }
 
     if (!isAdmin) return;
 
-    // Edit meal
-    document.querySelectorAll('.edit-meal-btn').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        var meal = state.meals.find(function (m) { return m.MealID === btn.dataset.mealId; });
-        if (!meal) return;
-        openMealModal(meal);
-      });
-    });
+    btn = e.target.closest('.edit-meal-btn');
+    if (btn) {
+      var meal = state.meals.find(function (m) { return m.MealID === btn.dataset.mealId; });
+      if (meal) openMealModal(meal);
+      return;
+    }
 
-    // Delete meal
-    document.querySelectorAll('.delete-meal-btn').forEach(function (btn) {
-      btn.addEventListener('click', async function () {
-        if (!confirm('Delete meal "' + btn.dataset.mealId + '" and all its ingredients?')) return;
-        var r = await JH.apiFetch('/api/meals', { action: 'delete-meal', mealId: btn.dataset.mealId });
-        if (!r.ok) { alert('Action failed. Please try again.'); return; }
-        await reload();
-      });
-    });
+    btn = e.target.closest('.delete-meal-btn');
+    if (btn) {
+      if (!confirm('Delete meal "' + btn.dataset.mealId + '" and all its ingredients?')) return;
+      var r = await JH.apiFetch('/api/meals', { action: 'delete-meal', mealId: btn.dataset.mealId });
+      if (!r.ok) { alert('Action failed. Please try again.'); return; }
+      await reload();
+      return;
+    }
 
-    // Add ingredient
-    document.querySelectorAll('.add-ingredient-btn').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        openIngredientModal(null, btn.dataset.mealId);
-      });
-    });
+    btn = e.target.closest('.add-ingredient-btn');
+    if (btn) {
+      openIngredientModal(null, btn.dataset.mealId);
+      return;
+    }
 
-    // Edit ingredient
-    document.querySelectorAll('.edit-ingredient-btn').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        var ing = state.ingredients.find(function (i) { return i.IngredientID === btn.dataset.ingredientId; });
-        if (!ing) return;
-        openIngredientModal(ing, ing.MealID);
-      });
-    });
+    btn = e.target.closest('.edit-ingredient-btn');
+    if (btn) {
+      var ing = state.ingredients.find(function (i) { return i.IngredientID === btn.dataset.ingredientId; });
+      if (ing) openIngredientModal(ing, ing.MealID);
+      return;
+    }
 
-    // Delete ingredient
-    document.querySelectorAll('.delete-ingredient-btn').forEach(function (btn) {
-      btn.addEventListener('click', async function () {
-        if (!confirm('Delete this ingredient?')) return;
-        var r = await JH.apiFetch('/api/meals', { action: 'delete-ingredient', ingredientId: btn.dataset.ingredientId });
-        if (!r.ok) { alert('Action failed. Please try again.'); return; }
-        await reload();
-      });
-    });
-  }
+    btn = e.target.closest('.delete-ingredient-btn');
+    if (btn) {
+      if (!confirm('Delete this ingredient?')) return;
+      var r = await JH.apiFetch('/api/meals', { action: 'delete-ingredient', ingredientId: btn.dataset.ingredientId });
+      if (!r.ok) { alert('Action failed. Please try again.'); return; }
+      await reload();
+    }
+  });
 
   // ── Meal modal ────────────────────────────────────────────────────────────
 

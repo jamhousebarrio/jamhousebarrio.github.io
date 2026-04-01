@@ -117,30 +117,27 @@
     });
 
     wrap.innerHTML = html;
-    bindCardEvents();
   }
 
-  function bindCardEvents() {
+  // Event delegation — single listener on container, never accumulates
+  document.getElementById('roles-wrap').addEventListener('click', async function (e) {
     if (!isAdmin) return;
-
-    document.querySelectorAll('.edit-role-btn').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        var role = state.roles.find(function (r) { return r.Name === btn.dataset.name; });
-        if (role) openModal(role);
-      });
-    });
-
-    document.querySelectorAll('.delete-role-btn').forEach(function (btn) {
-      btn.addEventListener('click', async function () {
-        var role = state.roles.find(function (r) { return r.Name === btn.dataset.name; });
-        if (!role) return;
-        if (!confirm('Delete "' + role.Name + '"? This cannot be undone.')) return;
-        var r = await JH.apiFetch('/api/roles', { action: 'delete', name: role.Name });
-        if (!r.ok) { alert('Delete failed. Please try again.'); return; }
-        await reload();
-      });
-    });
-  }
+    var btn = e.target.closest('.edit-role-btn');
+    if (btn) {
+      var role = state.roles.find(function (r) { return r.Name === btn.dataset.name; });
+      if (role) openModal(role);
+      return;
+    }
+    btn = e.target.closest('.delete-role-btn');
+    if (btn) {
+      var role = state.roles.find(function (r) { return r.Name === btn.dataset.name; });
+      if (!role) return;
+      if (!confirm('Delete "' + role.Name + '"? This cannot be undone.')) return;
+      var r = await JH.apiFetch('/api/roles', { action: 'delete', name: role.Name });
+      if (!r.ok) { alert('Delete failed. Please try again.'); return; }
+      await reload();
+    }
+  });
 
   // ── Modal ─────────────────────────────────────────────────────────────────
 
@@ -149,9 +146,7 @@
 
   function openModal(role) {
     editingName = role ? role.Name : null;
-    document.getElementById('modal-title').innerHTML = (role ? 'Edit Role' : 'Add Role') +
-      ' <button class="modal-close" id="modal-close-x">&times;</button>';
-    document.getElementById('modal-close-x').addEventListener('click', closeModal);
+    document.getElementById('modal-title').firstChild.textContent = role ? 'Edit Role' : 'Add Role';
 
     document.getElementById('field-name').value = role ? role.Name : '';
     document.getElementById('field-description').value = role ? role.Description : '';
