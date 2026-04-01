@@ -37,11 +37,11 @@ permalink: /admin
       <a href="#" id="forgot-link" style="color:var(--accent);font-size:0.85rem;text-decoration:none;">Forgot password?</a>
     </p>
 
-    <!-- Magic link form (hidden by default) -->
+    <!-- Password reset form (hidden by default) -->
     <form id="magic-form" style="display:none;">
-      <p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:12px;">Enter your email and we'll send you a login link.</p>
+      <p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:12px;">Enter your email and we'll send you a password reset link.</p>
       <input type="email" id="magic-email" placeholder="Email" required>
-      <button type="submit">Send Magic Link</button>
+      <button type="submit">Send Reset Link</button>
     </form>
     <p class="login-error" id="magic-error"></p>
     <p id="magic-back" style="display:none;text-align:center;margin-top:12px;">
@@ -100,23 +100,22 @@ permalink: /admin
     }
   });
 
-  // Magic link
+  // Password reset
   document.getElementById('magic-form').addEventListener('submit', async function(e) {
     e.preventDefault();
     var err = document.getElementById('magic-error');
     err.style.display = 'none';
     var email = document.getElementById('magic-email').value;
     try {
-      var result = await sb.auth.signInWithOtp({
-        email: email,
-        options: { emailRedirectTo: window.location.origin + '/admin' },
+      var result = await sb.auth.resetPasswordForEmail(email, {
+        redirectTo: window.location.origin + '/admin/profile',
       });
       if (result.error) {
-        err.textContent = result.error.message || 'Failed to send link';
+        err.textContent = result.error.message || 'Failed to send reset link';
         err.style.display = 'block';
         return;
       }
-      err.textContent = 'Check your email for the login link!';
+      err.textContent = 'Check your email for the password reset link!';
       err.style.color = '#4caf50';
       err.style.display = 'block';
     } catch (ex) {
@@ -126,6 +125,12 @@ permalink: /admin
   });
 
   async function redirectAfterLogin(session) {
+    // Check must_change_password before anything else
+    var user = session.user;
+    if (user && user.user_metadata && user.user_metadata.must_change_password) {
+      window.location.href = '/admin/profile';
+      return;
+    }
     try {
       var res = await fetch('/api/members', {
         method: 'POST',

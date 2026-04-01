@@ -195,7 +195,16 @@
         if (memberEmail && confirm('Send invite email to ' + memberName + ' at ' + memberEmail + '?')) {
           try {
             var inviteRes = await JH.apiFetch('/api/auth', { action: 'invite', email: memberEmail });
-            if (!inviteRes.ok) {
+            if (inviteRes.status === 409) {
+              // User already has account — offer to resend
+              if (confirm(memberName + ' already has an account. Send them a password reset email instead?')) {
+                var resetRes = await JH.apiFetch('/api/auth', { action: 'resend-invite', email: memberEmail });
+                if (!resetRes.ok) {
+                  var resetErr = await resetRes.json().catch(function() { return {}; });
+                  alert('Resend failed: ' + (resetErr.error || 'Unknown error'));
+                }
+              }
+            } else if (!inviteRes.ok) {
               var inviteErr = await inviteRes.json().catch(function() { return {}; });
               alert('Invite failed: ' + (inviteErr.error || 'Unknown error'));
             }

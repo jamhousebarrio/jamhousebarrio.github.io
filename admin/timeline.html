@@ -51,67 +51,7 @@ access: general
   <script src="/assets/js/supabase-client.js"></script>
 </head>
 <body>
-<nav class="sidebar">
-  <div class="sidebar-brand">JamHouse <span>Admin 2026</span></div>
-  <div class="sidebar-nav">
-    <a class="nav-item" href="/admin/applications" data-access="admin">
-      <span class="icon">&#9993;</span>
-      <span class="nav-item-text">Applications</span>
-    </a>
-    <a class="nav-item" href="/admin/demographics" data-access="general">
-      <span class="icon">&#9776;</span>
-      <span class="nav-item-text">Approved Members</span>
-    </a>
-    <a class="nav-item" href="/admin/budget" data-access="general">
-      <span class="icon">&#9733;</span>
-      <span class="nav-item-text">Budget</span>
-    </a>
-    <a class="nav-item" href="/admin/shifts" data-access="general">
-      <span class="icon">&#9835;</span>
-      <span class="nav-item-text">Shifts</span>
-    </a>
-    <a class="nav-item" href="/admin/inventory" data-access="general">
-      <span class="icon">&#128722;</span>
-      <span class="nav-item-text">Inventory</span>
-    </a>
-    <a class="nav-item" href="/admin/logistics" data-access="general">
-      <span class="icon">&#9992;</span>
-      <span class="nav-item-text">Logistics</span>
-    </a>
-    <a class="nav-item" href="/admin/meals" data-access="general">
-      <span class="icon">&#127859;</span>
-      <span class="nav-item-text">Meals</span>
-    </a>
-    <a class="nav-item" href="/admin/drinks" data-access="general">
-      <span class="icon">&#127866;</span>
-      <span class="nav-item-text">Drinks & Snacks</span>
-    </a>
-    <a class="nav-item" href="/admin/events" data-access="general">
-      <span class="icon">&#127926;</span>
-      <span class="nav-item-text">Events</span>
-    </a>
-    <a class="nav-item" href="/admin/roles" data-access="general">
-      <span class="icon">&#128101;</span>
-      <span class="nav-item-text">Roles & Leads</span>
-    </a>
-    <a class="nav-item active" href="/admin/timeline" data-access="general">
-      <span class="icon">&#128197;</span>
-      <span class="nav-item-text">Timeline</span>
-    </a>
-    <a class="nav-item" href="/admin/profile" data-access="general">
-      <span class="icon">&#128100;</span>
-      <span class="nav-item-text">Profile</span>
-    </a>
-    <a class="nav-item" href="/admin/build" data-access="general">
-      <span class="icon">&#128296;</span>
-      <span class="nav-item-text">Build Guide</span>
-    </a>
-  </div>
-  <div class="sidebar-footer">
-    <a href="/">&#8592; Back to Site</a>
-    <a href="#" onclick="JH.supabase.auth.signOut().then(function(){window.location.href='/admin';});return false;">Logout</a>
-  </div>
-</nav>
+<nav class="sidebar"></nav>
 
 <div class="main">
   <div class="page-header">
