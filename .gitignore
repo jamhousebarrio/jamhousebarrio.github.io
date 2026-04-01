@@ -7,3 +7,5 @@ _site/
 
 vendor/
 .worktrees/
+.playwright-mcp/
+*.png
