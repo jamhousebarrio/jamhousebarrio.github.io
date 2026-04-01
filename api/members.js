@@ -1,4 +1,4 @@
-import { colToLetter } from './_lib/sheets.js';
+import { colToLetter, getSheetId } from './_lib/sheets.js';
 import { authenticateRequest } from './_lib/auth.js';
 
 export default async function handler(req, res) {
@@ -117,6 +117,21 @@ export default async function handler(req, res) {
         }
       }
 
+      return res.status(200).json({ success: true });
+    }
+
+    // ── Delete member row ──────────────────────────────────────────────────
+    if (action === 'delete') {
+      const { row } = payload;
+      if (!row) return res.status(400).json({ error: 'Row is required' });
+      const sheetId = await getSheetId(sheets, spreadsheetId, 'Sheet1');
+      if (sheetId === null) return res.status(500).json({ error: 'Sheet not found' });
+      await sheets.spreadsheets.batchUpdate({
+        spreadsheetId,
+        requestBody: {
+          requests: [{ deleteDimension: { range: { sheetId, dimension: 'ROWS', startIndex: row - 1, endIndex: row } } }]
+        }
+      });
       return res.status(200).json({ success: true });
     }
 

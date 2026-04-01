@@ -67,6 +67,8 @@
       // Clear must_change_password flag if set
       if (mustChange) {
         await JH.apiFetch('/api/auth', { action: 'clear-password-flag' });
+        // Refresh session so local metadata reflects the cleared flag
+        await sb.auth.refreshSession();
       }
 
       msg.textContent = 'Password updated!';
