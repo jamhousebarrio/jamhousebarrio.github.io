@@ -3,7 +3,7 @@ import { GoogleAuth } from 'google-auth-library';
 
 function sanitize(val) {
   if (typeof val !== 'string') return val;
-  return val.replace(/^[=+\-@]+/, '');
+  return val.replace(/^[=@]+/, '');
 }
 
 export default async function handler(req, res) {
