@@ -138,6 +138,7 @@ JH.authenticate = async function() {
       return null;
     }
     JH.filterNav(data.admin);
+    JH.addLogoutBtn();
     return data.members;
   } catch (e) {
     await JH.supabase.auth.signOut();
@@ -276,6 +277,21 @@ JH.getAllDates = function(logistics) {
     }
   });
   return Object.keys(dateSet).sort();
+};
+
+JH.addLogoutBtn = function() {
+  var header = document.querySelector('.page-header');
+  if (!header || header.querySelector('.logout-btn')) return;
+  // Wrap existing content
+  var wrapper = document.createElement('div');
+  wrapper.className = 'page-header-left';
+  while (header.firstChild) wrapper.appendChild(header.firstChild);
+  header.appendChild(wrapper);
+  var btn = document.createElement('button');
+  btn.className = 'logout-btn';
+  btn.textContent = 'Logout';
+  btn.onclick = function() { JH.supabase.auth.signOut().then(function() { window.location.href = '/admin'; }); };
+  header.appendChild(btn);
 };
 
 JH.checkLogisticsPrompt = async function() {

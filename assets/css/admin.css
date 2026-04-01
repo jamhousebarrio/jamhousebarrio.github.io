@@ -115,7 +115,10 @@ body {
 
 /* ═══════════════════════════════════════ MAIN ═══════════════════════════════════════ */
 .main { margin-left: var(--sidebar-w); padding: 28px 32px; }
-.page-header { margin-bottom: 28px; }
+.page-header { margin-bottom: 28px; display: flex; justify-content: space-between; align-items: flex-start; }
+.page-header-left { flex: 1; min-width: 0; }
+.logout-btn { background: none; border: 1px solid var(--border); color: var(--text-muted); font-size: 0.78rem; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-family: var(--body); white-space: nowrap; transition: color 0.15s, border-color 0.15s; margin-top: 4px; }
+.logout-btn:hover { color: var(--text); border-color: var(--text-muted); }
 .page-header h1 {
   font-family: var(--heading); font-size: 1.55rem; font-weight: 800;
   color: var(--text); display: inline-flex; align-items: center; gap: 10px;

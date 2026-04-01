@@ -105,49 +105,46 @@
 
     html += '</tbody></table></div>';
     wrap.innerHTML = html;
-    bindGridEvents();
   }
 
-  function bindGridEvents() {
-    document.querySelectorAll('.assign-btn').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        openAssignModal(btn.dataset.id, btn.dataset.name, btn.dataset.date);
-      });
-    });
+  // Event delegation — single listener on container, never accumulates
+  document.getElementById('shifts-wrap').addEventListener('click', async function (e) {
+    var btn = e.target.closest('.assign-btn');
+    if (btn) {
+      openAssignModal(btn.dataset.id, btn.dataset.name, btn.dataset.date);
+      return;
+    }
 
-    document.querySelectorAll('.remove-person-btn').forEach(function (btn) {
-      btn.addEventListener('click', async function (e) {
-        e.stopPropagation();
-        var person = btn.dataset.person;
-        var shiftId = btn.dataset.id;
-        if (!confirm('Remove ' + person + ' from this shift?')) return;
-        // Find the shift and remove just this person
-        var s = shifts.find(function (sh) { return sh.ShiftID === shiftId; });
-        if (!s) return;
-        var people = (s.AssignedTo || '').split(',').map(function (p) { return p.trim(); }).filter(Boolean);
-        var updated = people.filter(function (p) { return p !== person; }).join(', ');
-        // Use assign action to set the new list (or unassign if empty)
-        var action = updated ? 'assign' : 'unassign';
-        var body = { action: action, shiftId: shiftId };
-        if (updated) body.memberName = updated;
-        var r = await JH.apiFetch('/api/shifts', body);
-        if (!r.ok) { alert('Failed.'); return; }
-        await reload();
-      });
-    });
+    btn = e.target.closest('.remove-person-btn');
+    if (btn) {
+      e.stopPropagation();
+      var person = btn.dataset.person;
+      var shiftId = btn.dataset.id;
+      if (!confirm('Remove ' + person + ' from this shift?')) return;
+      var s = shifts.find(function (sh) { return sh.ShiftID === shiftId; });
+      if (!s) return;
+      var people = (s.AssignedTo || '').split(',').map(function (p) { return p.trim(); }).filter(Boolean);
+      var updated = people.filter(function (p) { return p !== person; }).join(', ');
+      var action = updated ? 'assign' : 'unassign';
+      var body = { action: action, shiftId: shiftId };
+      if (updated) body.memberName = updated;
+      var r = await JH.apiFetch('/api/shifts', body);
+      if (!r.ok) { alert('Failed.'); return; }
+      await reload();
+      return;
+    }
 
-    document.querySelectorAll('.delete-type-btn').forEach(function (btn) {
-      btn.addEventListener('click', async function () {
-        var name = btn.dataset.name;
-        if (!confirm('Delete ALL "' + name + '" shifts across all days?')) return;
-        var typeShifts = shifts.filter(function (s) { return s.Name === name; });
-        for (var i = 0; i < typeShifts.length; i++) {
-          await JH.apiFetch('/api/shifts', { action: 'delete', shiftId: typeShifts[i].ShiftID });
-        }
-        await reload();
-      });
-    });
-  }
+    btn = e.target.closest('.delete-type-btn');
+    if (btn) {
+      var name = btn.dataset.name;
+      if (!confirm('Delete ALL "' + name + '" shifts across all days?')) return;
+      var typeShifts = shifts.filter(function (s) { return s.Name === name; });
+      for (var i = 0; i < typeShifts.length; i++) {
+        await JH.apiFetch('/api/shifts', { action: 'delete', shiftId: typeShifts[i].ShiftID });
+      }
+      await reload();
+    }
+  });
 
   // ── Add shift type modal ──────────────────────────────────────────────────
 

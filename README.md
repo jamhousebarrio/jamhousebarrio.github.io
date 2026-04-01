@@ -16,20 +16,21 @@ It's not a corporate product. It's a website built by friends, for friends, to a
 
 ## Features
 
-### Live now
-
 - **Public homepage** — what JamHouse is, who it's for, and a link to apply
 - **Application form** — collects everything we need to know (including how many kg you can lift hungover under the desert sun)
-- **Admin: Applications** — review all applications, view full profiles, approve or reject members, edit details inline
-- **Admin: Approved Members** — roster of confirmed members with demographics charts (nationality, gender, burn experience, etc.)
-- **Admin: Budget** — transparent budget breakdown with charts, so everyone can see where the money goes
-
-### Coming soon
-
-- **Volunteering shifts** — plan and assign volunteer duties across the event
-- **Member info portal** — approved members get access to arrival info, logistics, packing lists, and everything they need to survive the playa
-- **Expense submission** — members can log expenses they've covered
-- **Extra budget requests** — request additional funds for a project or need, visible to the core team
+- **Admin: Applications** — review all applications, approve/reject, edit details inline, invite users via Supabase
+- **Admin: Approved Members** — roster with demographics charts (nationality, gender, burn experience, etc.)
+- **Admin: Budget** — budget breakdown with charts, barrio fee tracking, and shopping requests
+- **Admin: Shifts** — volunteer shift grid across event days
+- **Admin: Inventory** — equipment & materials tracker with photos
+- **Admin: Logistics** — member arrival/departure, transport, and camping info
+- **Admin: Meals** — meal planning, ingredients, shopping list, and PDF export
+- **Admin: Drinks & Snacks** — drinks tracker by headcount
+- **Admin: Events** — event calendar for July 7-12
+- **Admin: Roles & Leads** — role assignments and lead management
+- **Admin: Timeline** — setup timeline grid with task drag-drop
+- **Admin: Build Guide** — build/setup reference
+- **Admin: Profile** — password change and personal info
 
 ---
 
@@ -38,10 +39,12 @@ It's not a corporate product. It's a website built by friends, for friends, to a
 | Layer | What |
 |---|---|
 | Frontend | Jekyll static site, vanilla JS (no frameworks) |
+| Auth | Supabase Auth (user accounts, sessions, magic links) |
 | Charts | Chart.js |
 | Tables | AG Grid |
+| Date/Time pickers | Flatpickr |
 | Backend | Vercel serverless functions (Node.js) |
-| Data | Google Sheets via `googleapis` |
+| Data | Google Sheets via `@googleapis/sheets` + `google-auth-library` |
 | Hosting | Vercel (auto-deploys on push to `main`) |
 
 ---
@@ -49,26 +52,55 @@ It's not a corporate product. It's a website built by friends, for friends, to a
 ## Project structure
 
 ```
-index.md                    # Public homepage
-apply.html                  # Application form
-admin.html                  # Login page
+index.md                        # Public homepage
+apply.html                      # Application form
+admin.html                      # Login page
 admin/
-  applications.html         # Application review & status management
-  demographics.html         # Approved member charts & roster
-  budget.html               # Budget breakdown & charts
+  applications.html             # Application review & status management
+  demographics.html             # Approved member charts & roster
+  budget.html                   # Budget breakdown, charts & barrio fee tracking
+  shifts.html                   # Volunteer shift grid (shift types x event days)
+  inventory.html                # Equipment & materials tracker with photos
+  logistics.html                # Member arrival/departure, transport, camping
+  meals.html                    # Meal planning, ingredients, shopping list, PDF export
+  drinks.html                   # Drinks & snacks tracker by headcount
+  events.html                   # Event calendar (July 7-12)
+  roles.html                    # Roles & leads assignment
+  timeline.html                 # Setup timeline grid with task drag-drop
+  profile.html                  # User profile: password change, personal info
+  build.html                    # Build guide
 api/
-  members.js                # POST - fetch members (read or write auth)
-  budget.js                 # POST - fetch budget data (read auth)
-  register.js               # POST - save new application (no auth)
-  update-status.js          # POST - update application status (write auth)
-  update-member.js          # POST - update member fields (write auth)
+  _lib/sheets.js                # Shared Google Sheets helpers
+  _lib/auth.js                  # JWT verification, member lookup, admin check
+  auth.js                       # Supabase user management (invite, disable, password flag)
+  budget.js                     # Budget items, barrio fees, shopping requests
+  drinks.js                     # Drinks & snacks CRUD
+  events.js                     # Event planning CRUD
+  inventory.js                  # Inventory CRUD
+  logistics.js                  # Member logistics (arrival, transport, camping)
+  meals.js                      # Meals, ingredients CRUD
+  members.js                    # Members fetch, update fields, update status
+  register.js                   # Public application submission (no auth)
+  roles.js                      # Roles & leads CRUD
+  shifts.js                     # Shift types & assignments
+  timeline.js                   # Setup timeline entries
 assets/
-  css/admin.css             # All admin styles
-  js/admin-auth.js          # Auth, session, API helpers (JH namespace)
-  js/admin-charts.js        # Chart.js config & helpers
-  js/admin-demographics.js  # Demographics page logic
-  js/admin-applications.js  # Applications page logic
-  js/admin-budget.js        # Budget page logic
+  css/admin.css                 # All admin styles (sidebar, panels, dark theme)
+  js/supabase-client.js         # Supabase client initializer
+  js/admin-auth.js              # Auth, session, shared helpers (JH namespace)
+  js/admin-charts.js            # Chart.js defaults
+  js/admin-applications.js      # Applications page logic
+  js/admin-budget.js            # Budget page logic
+  js/admin-demographics.js      # Demographics page logic
+  js/admin-drinks.js            # Drinks page logic
+  js/admin-events.js            # Events page logic
+  js/admin-inventory.js         # Inventory page logic
+  js/admin-logistics.js         # Logistics page logic
+  js/admin-meals.js             # Meals page logic
+  js/admin-roles.js             # Roles page logic
+  js/admin-shifts.js            # Shifts page logic
+  js/admin-timeline.js          # Timeline page logic
+  js/admin-profile.js           # Profile page logic
 ```
 
 ---
@@ -76,33 +108,39 @@ assets/
 ## Local development
 
 ```bash
-# Install Ruby dependencies and start Jekyll
-bundle install
-bundle exec jekyll serve
-
-# Install Node dependencies (for API functions)
+# Install dependencies
 npm install
+
+# Create .env file with your credentials
+cp .env.example .env
+
+# Start local dev server
+npm run dev
 ```
 
-Jekyll serves the static site at `http://localhost:4000`. The API functions run on Vercel — for local API testing you'll need the [Vercel CLI](https://vercel.com/docs/cli) (`vercel dev`).
+The dev server runs at `http://localhost:3000` and serves static files and API routes with URL rewrites matching `vercel.json`.
 
 ### Environment variables
 
-Set these in Vercel (or a local `.env` for `vercel dev`):
+Set these in Vercel (or a local `.env`):
 
 | Variable | What it's for |
 |---|---|
-| `ADMIN_PASSWORD` | Read-only admin access |
-| `ADMIN_WRITE_PASSWORD` | Write access (status updates, member edits) — also grants read |
-| `SHEET_ID` | Google Sheet ID for members/applications |
+| `SUPABASE_URL` | Supabase project URL |
+| `SUPABASE_ANON_KEY` | Public key (used in frontend) |
+| `SUPABASE_SERVICE_ROLE_KEY` | Secret key (server-side only, for user management) |
+| `SUPABASE_JWT_PUBLIC_KEY` | EC public key (JWK JSON) for verifying JWTs |
+| `SHEET_ID` | Google Sheet ID for members and all operational tabs |
 | `BUDGET_SHEET_ID` | Google Sheet ID for budget data |
 | `GOOGLE_SERVICE_ACCOUNT_KEY` | Google service account JSON, stringified |
 
 ### Google Sheets
 
-The app reads from two sheets:
-- **Members sheet** (tab `Sheet1`): all application data + a `Status` column (column AI, index 35)
-- **Budget sheet** (tab `Total`): `Category` and `Budget Allowed` columns
+The app uses two Google Sheets:
+
+**Members sheet** (`SHEET_ID`) — tabs: Sheet1 (applications/members), Inventory, MemberLogistics, Meals, MealIngredients, ShiftData, DrinksSnacks, Events, Roles, Timeline
+
+**Budget sheet** (`BUDGET_SHEET_ID`) — tabs: Total, Budget, Barrio Fee, ShoppingRequests
 
 ---
 
@@ -114,18 +152,21 @@ Vercel auto-deploys on every push to `main`. No manual steps needed. URL rewrite
 
 ## Adding an admin page
 
-1. Create `admin/{page}.html` with the sidebar nav (copy from an existing page)
-2. Create `assets/js/admin-{page}.js` — call `JH.authenticate()` at the top
-3. Add a URL rewrite in `vercel.json`
-4. Add the nav link to the sidebar in all other admin pages
+1. Create `admin/{page}.html` with sidebar nav (copy from an existing page)
+2. Create `assets/js/admin-{page}.js` that calls `JH.authenticate()`
+3. Create `api/{page}.js` importing helpers from `./_lib/sheets.js`
+4. Add URL rewrite in `vercel.json`
+5. Add nav link to **all** existing admin pages' sidebar
 
 ---
 
 ## Auth
 
-Two password tiers, both stored in `sessionStorage`:
+Authentication uses Supabase Auth with JWT-based sessions:
 
-- **Read** (`jh_pass`): can view applications, members, budget
-- **Write** (`jh_admin`): can update statuses, edit member fields — also grants read
-
-Passwords are validated on every page load and every API call.
+- Users are invited via email when their application is approved
+- Sessions are managed by Supabase (access tokens, refresh tokens)
+- Every API call includes a `Authorization: Bearer <jwt>` header
+- JWTs are verified server-side using the EC public key
+- Admin vs. member access is determined by a flag in the members sheet
+- New users must change their password on first login
