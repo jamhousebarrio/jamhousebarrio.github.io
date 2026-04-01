@@ -26,6 +26,7 @@
         Location: val(m, 'Location'),
         Email: val(m, 'Email'),
         Phone: val(m, 'Phone'),
+        Admin: val(m, 'Admin'),
         Nationality: val(m, 'Nationality'),
         Gender: val(m, 'Gender'),
         Age: val(m, 'Age'),
@@ -82,6 +83,7 @@
     { field: 'Location', sortable: true, filter: true },
     { field: 'Email', sortable: true, filter: true, hide: true },
     { field: 'Phone', sortable: true, filter: true, cellRenderer: JH.PhoneCellRenderer },
+    { field: 'Admin', sortable: true, filter: true, hide: true },
     { field: 'Nationality', sortable: true, filter: true, hide: true },
     { field: 'Gender', sortable: true, filter: true, hide: true },
     { field: 'Age', sortable: true, filter: true, hide: true },
@@ -198,7 +200,7 @@
   }
 
   // Modal — keys that should not be editable
-  var readonlyKeys = ['_row', 'Timestamp', ''];
+  var readonlyKeys = ['_row', 'Timestamp', '', 'Admin'];
 
   function openModal(m) {
     document.getElementById('modal-title').textContent = val(m, 'Name') || 'Application';

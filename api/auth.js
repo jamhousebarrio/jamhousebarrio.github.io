@@ -26,9 +26,10 @@ export default async function handler(req, res) {
       if (!email) return res.status(400).json({ error: 'email required' });
 
       const supabase = getSupabaseAdmin();
+      const siteUrl = process.env.SITE_URL || 'https://jamhouse.space';
       const { data, error } = await supabase.auth.admin.inviteUserByEmail(email, {
         data: { must_change_password: true },
-        redirectTo: `${req.headers.origin || 'https://jamhouse.space'}/admin`,
+        redirectTo: `${siteUrl}/admin`,
       });
       if (error) {
         if (error.message && error.message.includes('already been registered')) {

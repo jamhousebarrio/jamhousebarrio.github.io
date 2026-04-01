@@ -113,6 +113,7 @@
       ['Role', val(m, 'Role')],
       ['Phone', val(m, 'Phone')],
       ['Email', val(m, 'Email')],
+      ['Admin', val(m, 'Admin')],
       ['First Burn', val(m, 'First Burn')],
       ['First Elsewhere', val(m, 'First Elsewhere/Nowhere')],
       ['Has Ticket', val(m, 'Has Ticket')],
