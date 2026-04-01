@@ -205,14 +205,6 @@
         }
       }
 
-      if (oldStatus.toLowerCase() === 'approved' && newStatus.toLowerCase() !== 'approved') {
-        var memberEmail = val(member, 'Email');
-        if (memberEmail) {
-          try {
-            await JH.apiFetch('/api/auth', { action: 'disable', email: memberEmail });
-          } catch (e) { /* best effort */ }
-        }
-      }
     } catch (err) {
       // revert on failure
       gridApi.setGridOption('rowData', getRowData());

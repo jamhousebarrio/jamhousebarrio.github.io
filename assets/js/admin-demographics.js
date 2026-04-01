@@ -3,6 +3,7 @@
   if (!members) return;
 
   var val = JH.val;
+  members.forEach(function(m, i) { m._row = i + 2; });
   members = members.filter(function(m) { return val(m, 'Status').toLowerCase() === 'approved'; });
 
   // Stats
@@ -175,6 +176,37 @@
   };
   AdminCellRenderer.prototype.getGui = function() { return this.eGui; };
 
+  // Delete button renderer (admin only)
+  function DeleteCellRenderer() {}
+  DeleteCellRenderer.prototype.init = function(params) {
+    this.eGui = document.createElement('button');
+    this.eGui.innerHTML = '&#128465;';
+    this.eGui.title = 'Remove member';
+    this.eGui.style.cssText = 'background:none;border:none;cursor:pointer;font-size:1rem;opacity:0.4;padding:4px;transition:opacity 0.15s;';
+    this.eGui.addEventListener('mouseenter', function() { this.style.opacity = '1'; });
+    this.eGui.addEventListener('mouseleave', function() { this.style.opacity = '0.4'; });
+    var memberData = params.data._member;
+    this.eGui.addEventListener('click', async function(e) {
+      e.stopPropagation();
+      var name = JH.val(memberData, 'Playa Name') || JH.val(memberData, 'Name');
+      if (!confirm('Remove ' + name + ' from the barrio? This deletes their member record and Supabase account.')) return;
+      try {
+        var email = JH.val(memberData, 'Email');
+        // Delete from sheet
+        var res = await JH.apiFetch('/api/members', { action: 'delete', row: memberData._row });
+        if (!res.ok) throw new Error('Failed to delete member');
+        // Delete Supabase account (best effort)
+        if (email) {
+          try { await JH.apiFetch('/api/auth', { action: 'delete-user', email: email }); } catch (e) {}
+        }
+        window.location.reload();
+      } catch (err) {
+        alert('Delete failed: ' + err.message);
+      }
+    });
+  };
+  DeleteCellRenderer.prototype.getGui = function() { return this.eGui; };
+
   // Roster table
   var rosterCols = [
     { field: 'Playa Name', sortable: true, filter: true, cellRenderer: NameCellRenderer },
@@ -183,6 +215,7 @@
   ];
   if (JH.isAdmin()) {
     rosterCols.push({ field: 'Admin', headerName: 'Admin', sortable: true, filter: true, cellRenderer: AdminCellRenderer, maxWidth: 90 });
+    rosterCols.push({ headerName: '', cellRenderer: DeleteCellRenderer, maxWidth: 50, sortable: false, filter: false, suppressSizeToFit: true });
   }
   if (JH.isMobile) {
     var phoneCol = rosterCols.find(function(c) { return c.field === 'Phone'; });

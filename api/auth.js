@@ -55,8 +55,8 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true });
     }
 
-    // ── Disable user (when un-approved) ─────────────────────────────────
-    if (action === 'disable') {
+    // ── Delete user (remove Supabase account) ───────────────────────────
+    if (action === 'delete-user') {
       const user = verifyToken(req);
       const sheets = getSheets(true);
       const result = await getMemberByEmail(sheets, process.env.SHEET_ID, user.email);
@@ -74,14 +74,12 @@ export default async function handler(req, res) {
         return res.status(500).json({ error: 'Failed to find user' });
       }
       const target = users.find(u => u.email.toLowerCase() === targetEmail.toLowerCase());
-      if (!target) return res.status(404).json({ error: 'Supabase user not found' });
-
-      const { error } = await supabase.auth.admin.updateUserById(target.id, {
-        ban_duration: '876000h',
-      });
-      if (error) {
-        console.error('Disable error:', error);
-        return res.status(500).json({ error: 'Failed to disable user' });
+      if (target) {
+        const { error } = await supabase.auth.admin.deleteUser(target.id);
+        if (error) {
+          console.error('Delete user error:', error);
+          return res.status(500).json({ error: 'Failed to delete user account' });
+        }
       }
       return res.status(200).json({ success: true });
     }
