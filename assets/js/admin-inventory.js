@@ -7,9 +7,13 @@
 
   // ── Helpers ───────────────────────────────────────────────────────────────
 
-  function categoryClass(cat) {
-    var map = { Materials: 'cat-materials', Tools: 'cat-tools', Instruments: 'cat-instruments', Other: 'cat-other' };
-    return map[cat] || 'cat-other';
+  var CAT_COLORS = ['#4caf50','#42a5f5','#e8a84c','#ce93d8','#26a69a','#ef5350','#78909c','#ffb74d','#29b6f6','#ab47bc','#8d6e63','#66bb6a'];
+  var catColorMap = {};
+  var catColorIdx = 0;
+  function catColor(cat) {
+    if (!cat) cat = 'Other';
+    if (!catColorMap[cat]) catColorMap[cat] = CAT_COLORS[catColorIdx++ % CAT_COLORS.length];
+    return catColorMap[cat];
   }
 
   // ── Data fetching ─────────────────────────────────────────────────────────
@@ -50,8 +54,8 @@
         ? '<a href="' + JH.esc(item.PhotoURL) + '" target="_blank"><img class="item-photo" src="' + JH.esc(photoSrc) + '" alt="' + JH.esc(item.Name) + '" onerror="this.parentNode.outerHTML=\'<div class=\\\"item-photo-placeholder\\\">&#128230;</div>\'"></a>'
         : '<div class="item-photo-placeholder">&#128230;</div>';
 
-      var catClass = categoryClass(item.Category);
       var catLabel = item.Category || 'Other';
+      var cc = catColor(catLabel);
 
       var metaHtml = '';
       if (item.Quantity) metaHtml += '<span><strong>Qty:</strong> ' + JH.esc(item.Quantity) + '</span>';
@@ -62,7 +66,7 @@
         '<div class="item-body">' +
         '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">' +
         '<p class="item-name">' + JH.esc(item.Name) + '</p>' +
-        '<span class="item-category ' + catClass + '">' + JH.esc(catLabel) + '</span>' +
+        '<span class="item-category" style="background:' + cc + '20;color:' + cc + ';border-color:' + cc + '">' + JH.esc(catLabel) + '</span>' +
         '</div>' +
         (item.Description ? '<p class="item-desc">' + JH.esc(item.Description) + '</p>' : '') +
         (metaHtml ? '<div class="item-meta">' + metaHtml + '</div>' : '') +
@@ -100,19 +104,37 @@
 
   async function reload() {
     await fetchItems();
+    buildFilterButtons();
     renderGrid();
   }
 
   // ── Category filter ───────────────────────────────────────────────────────
 
-  document.querySelectorAll('.filter-btn').forEach(function (btn) {
-    btn.addEventListener('click', function () {
-      document.querySelectorAll('.filter-btn').forEach(function (b) { b.classList.remove('active'); });
-      btn.classList.add('active');
-      state.filter = btn.dataset.filter;
-      renderGrid();
+  function buildFilterButtons() {
+    var container = document.getElementById('filter-btns');
+    container.innerHTML = '<button class="filter-btn active" data-filter="all">All</button>';
+    var cats = [];
+    state.items.forEach(function (item) {
+      var c = item.Category || 'Other';
+      if (cats.indexOf(c) === -1) cats.push(c);
     });
-  });
+    cats.sort();
+    cats.forEach(function (cat) {
+      var btn = document.createElement('button');
+      btn.className = 'filter-btn';
+      btn.dataset.filter = cat;
+      btn.textContent = cat;
+      container.appendChild(btn);
+    });
+    container.querySelectorAll('.filter-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        container.querySelectorAll('.filter-btn').forEach(function (b) { b.classList.remove('active'); });
+        btn.classList.add('active');
+        state.filter = btn.dataset.filter;
+        renderGrid();
+      });
+    });
+  }
 
   // ── Modal ─────────────────────────────────────────────────────────────────
 
@@ -188,6 +210,7 @@
   if (isAdmin) document.getElementById('add-item-btn').style.display = '';
 
   await fetchItems();
+  buildFilterButtons();
   renderGrid();
 
 })();
