@@ -32,10 +32,7 @@ access: general
     .item-body { padding: 14px; flex: 1; display: flex; flex-direction: column; gap: 6px; }
     .item-name { font-family: var(--heading); font-size: 1rem; font-weight: 600; color: var(--text); margin: 0; }
     .item-category { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 0.73rem; font-weight: 600; font-family: var(--heading); text-transform: uppercase; letter-spacing: 0.05em; }
-    .cat-materials { background: rgba(76,175,80,0.15); color: #4caf50; border: 1px solid #4caf50; }
-    .cat-tools { background: rgba(33,150,243,0.15); color: #42a5f5; border: 1px solid #42a5f5; }
-    .cat-instruments { background: rgba(232,168,76,0.12); color: var(--accent); border: 1px solid var(--accent); }
-    .cat-other { background: rgba(156,39,176,0.15); color: #ce93d8; border: 1px solid #ce93d8; }
+    .item-category { background: rgba(156,39,176,0.15); color: #ce93d8; border: 1px solid #ce93d8; }
     .item-desc { font-size: 0.82rem; color: var(--text-muted); line-height: 1.5; margin: 0; flex: 1; }
     .item-meta { display: flex; gap: 14px; font-size: 0.8rem; color: var(--text-muted); margin-top: 4px; }
     .item-meta span strong { color: var(--text); }
@@ -77,12 +74,8 @@ access: general
   </div>
 
   <div class="inventory-toolbar">
-    <div class="filter-btns">
+    <div class="filter-btns" id="filter-btns">
       <button class="filter-btn active" data-filter="all">All</button>
-      <button class="filter-btn" data-filter="Materials">Materials</button>
-      <button class="filter-btn" data-filter="Tools">Tools</button>
-      <button class="filter-btn" data-filter="Instruments">Instruments</button>
-      <button class="filter-btn" data-filter="Other">Other</button>
     </div>
     <button class="add-item-btn" id="add-item-btn" style="display:none">+ Add Item</button>
   </div>
@@ -103,13 +96,7 @@ access: general
       </div>
       <div>
         <label>Category</label>
-        <select id="field-category">
-          <option value="">Select category...</option>
-          <option value="Materials">Materials</option>
-          <option value="Tools">Tools</option>
-          <option value="Instruments">Instruments</option>
-          <option value="Other">Other</option>
-        </select>
+        <input id="field-category" placeholder="e.g. Kitchen, Music, Lights">
       </div>
       <div>
         <label>Description</label>
