@@ -3,7 +3,7 @@
   if (!session) return;
 
   var isAdmin = JH.isAdmin();
-  var state = { items: [], filter: 'all' };
+  var state = { items: [], filter: 'all', search: '' };
 
   // ── Helpers ───────────────────────────────────────────────────────────────
 
@@ -28,53 +28,44 @@
   // ── Rendering ─────────────────────────────────────────────────────────────
 
   function filteredItems() {
-    if (state.filter === 'all') return state.items;
-    return state.items.filter(function (item) { return item.Category === state.filter; });
+    var items = state.items;
+    if (state.filter !== 'all') {
+      items = items.filter(function (item) { return item.Category === state.filter; });
+    }
+    if (state.search) {
+      var q = state.search.toLowerCase();
+      items = items.filter(function (item) {
+        return (item.Name || '').toLowerCase().indexOf(q) !== -1 ||
+               (item.Category || '').toLowerCase().indexOf(q) !== -1 ||
+               (item.Notes || '').toLowerCase().indexOf(q) !== -1;
+      });
+    }
+    return items;
   }
 
-  function renderGrid() {
-    var grid = document.getElementById('inventory-grid');
+  function renderList() {
+    var container = document.getElementById('inventory-list');
     var items = filteredItems();
+    document.getElementById('item-count').textContent = items.length + ' item' + (items.length !== 1 ? 's' : '');
 
     if (!items.length) {
-      grid.innerHTML = '<div class="empty-state">' +
-        (state.items.length ? 'No items in this category.' : 'No inventory items yet. Click "+ Add Item" to get started.') +
+      container.innerHTML = '<div class="empty-state">' +
+        (state.items.length ? 'No items match.' : 'No inventory items yet. Click "+ Add Item" to get started.') +
         '</div>';
       return;
     }
 
-    grid.innerHTML = items.map(function (item) {
-      var photoSrc = item.PhotoURL || '';
-      // Convert Google Drive links to direct thumbnail URLs
-      var driveMatch = photoSrc.match(/drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?id=)([a-zA-Z0-9_-]+)/);
-      if (driveMatch) {
-        photoSrc = 'https://drive.google.com/thumbnail?id=' + driveMatch[1] + '&sz=w400';
-      }
-      var photoHtml = photoSrc
-        ? '<a href="' + JH.esc(item.PhotoURL) + '" target="_blank"><img class="item-photo" src="' + JH.esc(photoSrc) + '" alt="' + JH.esc(item.Name) + '" onerror="this.parentNode.outerHTML=\'<div class=\\\"item-photo-placeholder\\\">&#128230;</div>\'"></a>'
-        : '<div class="item-photo-placeholder">&#128230;</div>';
-
+    container.innerHTML = items.map(function (item) {
       var catLabel = item.Category || 'Other';
       var cc = catColor(catLabel);
-
-      var metaHtml = '';
-      if (item.Quantity) metaHtml += '<span><strong>Qty:</strong> ' + JH.esc(item.Quantity) + '</span>';
-      if (item.Location) metaHtml += '<span><strong>Loc:</strong> ' + JH.esc(item.Location) + '</span>';
-
-      return '<div class="item-card" data-item-id="' + JH.esc(item.ItemID) + '">' +
-        photoHtml +
-        '<div class="item-body">' +
-        '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">' +
+      return '<div class="item-row" data-item-id="' + JH.esc(item.ItemID) + '">' +
         '<p class="item-name">' + JH.esc(item.Name) + '</p>' +
         '<span class="item-category" style="background:' + cc + '20;color:' + cc + ';border-color:' + cc + '">' + JH.esc(catLabel) + '</span>' +
-        '</div>' +
-        (item.Description ? '<p class="item-desc">' + JH.esc(item.Description) + '</p>' : '') +
-        (metaHtml ? '<div class="item-meta">' + metaHtml + '</div>' : '') +
-        (item.Notes ? '<p style="font-size:0.78rem;color:var(--text-muted);margin:2px 0 0;font-style:italic">' + JH.esc(item.Notes) + '</p>' : '') +
-        '</div>' +
+        (item.Quantity ? '<span class="item-qty">' + JH.esc(item.Quantity) + '</span>' : '') +
+        '<span class="item-notes">' + JH.esc(item.Notes || '') + '</span>' +
         (isAdmin ? '<div class="item-actions">' +
         '<button class="btn-edit" data-edit="' + JH.esc(item.ItemID) + '">Edit</button>' +
-        '<button class="btn-delete" data-delete="' + JH.esc(item.ItemID) + '">Delete</button>' +
+        '<button class="btn-delete" data-delete="' + JH.esc(item.ItemID) + '">Del</button>' +
         '</div>' : '') +
         '</div>';
     }).join('');
@@ -105,8 +96,15 @@
   async function reload() {
     await fetchItems();
     buildFilterButtons();
-    renderGrid();
+    renderList();
   }
+
+  // ── Search ──────────────────────────────────────────────────────────────
+
+  document.getElementById('search-box').addEventListener('input', function () {
+    state.search = this.value.trim();
+    renderList();
+  });
 
   // ── Category filter ───────────────────────────────────────────────────────
 
@@ -122,16 +120,20 @@
     cats.forEach(function (cat) {
       var btn = document.createElement('button');
       btn.className = 'filter-btn';
+      if (cat === state.filter) btn.classList.add('active');
       btn.dataset.filter = cat;
       btn.textContent = cat;
       container.appendChild(btn);
     });
+    if (state.filter !== 'all') {
+      container.querySelector('[data-filter="all"]').classList.remove('active');
+    }
     container.querySelectorAll('.filter-btn').forEach(function (btn) {
       btn.addEventListener('click', function () {
         container.querySelectorAll('.filter-btn').forEach(function (b) { b.classList.remove('active'); });
         btn.classList.add('active');
         state.filter = btn.dataset.filter;
-        renderGrid();
+        renderList();
       });
     });
   }
@@ -211,6 +213,6 @@
 
   await fetchItems();
   buildFilterButtons();
-  renderGrid();
+  renderList();
 
 })();
