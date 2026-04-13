@@ -34,6 +34,7 @@
         Location: val(m, 'Location'),
         Email: val(m, 'Email'),
         Phone: val(m, 'Phone'),
+        Telegram: val(m, 'Telegram'),
         Admin: val(m, 'Admin'),
         Nationality: val(m, 'Nationality'),
         Gender: val(m, 'Gender'),
@@ -231,7 +232,7 @@
     }).map(function(k) {
       var v = val(m, k);
       var escaped = v ? v.replace(/</g, '&lt;') : '';
-      var links = (k === 'Phone') ? JH.contactLinks(v) : '';
+      var links = (k === 'Phone') ? JH.contactLinks(v, val(m, 'Telegram')) : '';
       // Timestamp: human-friendly
       if (k === 'Timestamp' || k === '') {
         var display = '<span style="color:#555;">—</span>';

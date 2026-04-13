@@ -285,6 +285,10 @@ title: Apply - JamHouse 2026
           </div>
         </div>
         <div class="form-group">
+          <label>Telegram Handle <span class="optional">(optional)</span></label>
+          <input type="text" name="telegram" placeholder="@username">
+        </div>
+        <div class="form-group">
           <label>Contact Methods</label>
           <div class="checkbox-group">
             <label><input type="checkbox" name="contactWhatsApp" value="WhatsApp"> WhatsApp</label>
@@ -526,6 +530,7 @@ title: Apply - JamHouse 2026
         playaName: playaName,
         email: form.email.value,
         phone: form.phoneCode.value + ' ' + form.phone.value,
+        telegram: form.telegram.value,
         contactMethods: contactMethods.join(','),
         contactOther: form.contactOther.value,
         location: form.location.value,

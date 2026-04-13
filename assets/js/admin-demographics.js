@@ -223,7 +223,7 @@
   }
   var rosterGrid = agGrid.createGrid(document.getElementById('roster-grid'), {
     rowData: members.map(function(m) {
-      return { 'Playa Name': val(m, 'Playa Name'), Role: val(m, 'Role'), Phone: val(m, 'Phone'), Admin: val(m, 'Admin'), _member: m };
+      return { 'Playa Name': val(m, 'Playa Name'), Role: val(m, 'Role'), Phone: val(m, 'Phone'), Telegram: val(m, 'Telegram'), Admin: val(m, 'Admin'), _member: m };
     }),
     columnDefs: rosterCols,
     defaultColDef: { resizable: true, flex: 1, minWidth: 100 },

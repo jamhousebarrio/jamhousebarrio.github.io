@@ -205,11 +205,17 @@ JH.tgIcon = '<svg viewBox="0 0 24 24" width="16" height="16" style="vertical-ali
 
 JH.phoneDigits = function(v) { return v.replace(/[^+\d]/g, '').replace(/\+/g, ''); };
 
-JH.contactLinks = function(v) {
+JH.contactLinks = function(v, telegram) {
   var digits = JH.phoneDigits(v);
-  if (!digits) return '';
-  return ' &nbsp;<a href="https://wa.me/' + digits + '" target="_blank" title="WhatsApp" style="text-decoration:none;">' + JH.waIcon + '</a>' +
-    ' <a href="https://t.me/+' + digits + '" target="_blank" title="Telegram" style="text-decoration:none;">' + JH.tgIcon + '</a>';
+  var html = '';
+  if (digits) html += ' &nbsp;<a href="https://wa.me/' + digits + '" target="_blank" title="WhatsApp" style="text-decoration:none;">' + JH.waIcon + '</a>';
+  var tgHandle = (telegram || '').trim().replace(/^@/, '');
+  if (tgHandle) {
+    html += ' <a href="https://t.me/' + tgHandle + '" target="_blank" title="Telegram: @' + tgHandle + '" style="text-decoration:none;">' + JH.tgIcon + '</a>';
+  } else if (digits) {
+    html += ' <a href="https://t.me/+' + digits + '" target="_blank" title="Telegram" style="text-decoration:none;">' + JH.tgIcon + '</a>';
+  }
+  return html;
 };
 
 JH.PhoneCellRenderer = function() {};
@@ -217,7 +223,8 @@ JH.PhoneCellRenderer.prototype.init = function(params) {
   var v = (params.value || '').trim();
   this.eGui = document.createElement('span');
   if (!v) return;
-  this.eGui.innerHTML = v.replace(/</g, '&lt;') + JH.contactLinks(v);
+  var tg = params.data ? params.data.Telegram : '';
+  this.eGui.innerHTML = v.replace(/</g, '&lt;') + JH.contactLinks(v, tg);
 };
 JH.PhoneCellRenderer.prototype.getGui = function() { return this.eGui; };
 
@@ -227,7 +234,8 @@ JH.IconsOnlyRenderer = function() {};
 JH.IconsOnlyRenderer.prototype.init = function(params) {
   this.eGui = document.createElement('span');
   var v = (params.value || '').trim();
-  if (v) this.eGui.innerHTML = JH.contactLinks(v);
+  var tg = params.data ? params.data.Telegram : '';
+  if (v) this.eGui.innerHTML = JH.contactLinks(v, tg);
 };
 JH.IconsOnlyRenderer.prototype.getGui = function() { return this.eGui; };
 

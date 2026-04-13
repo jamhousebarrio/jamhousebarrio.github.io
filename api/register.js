@@ -42,6 +42,7 @@ export default async function handler(req, res) {
       'Playa Name': sanitize(b.playaName || ""),
       'Email': sanitize(b.email || ""),
       'Phone': sanitize(b.phone || ""),
+      'Telegram': sanitize(b.telegram || ""),
       'Contact Methods': sanitize(b.contactMethods || ""),
       'Contact Other': sanitize(b.contactOther || ""),
       'Location': sanitize(b.location || ""),
