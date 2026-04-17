@@ -1,0 +1,100 @@
+---
+layout: none
+title: Useful Info - JamHouse Admin
+access: general
+---
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Useful Info - JamHouse Admin</title>
+  <meta name="access" content="general">
+  <link rel="icon" type="image/svg+xml" href="/images/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/admin.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/assets/js/supabase-client.js"></script>
+</head>
+<body>
+<nav class="sidebar"></nav>
+<div class="main">
+  <div class="page-header">
+    <h1><span class="icon">&#128218;</span> Useful Info</h1>
+    <div class="subtitle">Documents and resources for barrio members</div>
+  </div>
+
+  <div class="panel">
+    <h2>Documents</h2>
+    <div id="docs-list">
+      <a href="/assets/docs/elsewhere-2026-volunteer-guide.pdf" target="_blank" rel="noopener" class="doc-card">
+        <span class="doc-icon">&#128196;</span>
+        <div class="doc-info">
+          <div class="doc-title">Elsewhere 2026 Volunteer Survival Guide</div>
+          <div class="doc-desc">Pre and post event volunteering guide -- how to sign up, ticket info, camping, strike, packing list and more</div>
+        </div>
+        <span class="doc-open">Open &#8599;</span>
+      </a>
+    </div>
+  </div>
+</div>
+
+<style>
+  .doc-card {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    text-decoration: none;
+    color: var(--text);
+    transition: border-color 0.2s, background 0.2s;
+    margin-bottom: 10px;
+  }
+  .doc-card:hover {
+    border-color: var(--accent);
+    background: var(--surface2);
+  }
+  .doc-icon {
+    font-size: 2rem;
+    flex-shrink: 0;
+  }
+  .doc-info {
+    flex: 1;
+    min-width: 0;
+  }
+  .doc-title {
+    font-family: var(--heading);
+    font-weight: 600;
+    font-size: 0.95rem;
+    margin-bottom: 4px;
+  }
+  .doc-desc {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    line-height: 1.4;
+  }
+  .doc-open {
+    font-size: 0.82rem;
+    color: var(--accent);
+    font-weight: 600;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  @media (max-width: 600px) {
+    .doc-card { flex-wrap: wrap; gap: 10px; }
+    .doc-open { width: 100%; text-align: right; }
+  }
+</style>
+
+<script src="/assets/js/admin-auth.js"></script>
+<script>
+(async function() {
+  await JH.authenticate();
+})();
+</script>
+</body>
+</html>
