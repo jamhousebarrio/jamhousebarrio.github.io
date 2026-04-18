@@ -36,7 +36,27 @@ access: general
         </div>
         <span class="doc-open">Open &#8599;</span>
       </a>
+      <a href="/assets/docs/kitchen-guide.pdf" target="_blank" rel="noopener" class="doc-card">
+        <span class="doc-icon">&#127859;</span>
+        <div class="doc-info">
+          <div class="doc-title">Kitchen Guide</div>
+          <div class="doc-desc">Kitchen setup and layout reference</div>
+        </div>
+        <span class="doc-open">Open &#8599;</span>
+      </a>
     </div>
+  </div>
+
+  <div class="panel">
+    <h2>Build 2025 Photos</h2>
+    <div class="photo-grid" id="photo-grid"></div>
+  </div>
+
+  <div class="lightbox" id="lightbox" onclick="closeLightbox()">
+    <span class="lightbox-close" onclick="closeLightbox()">&times;</span>
+    <img id="lightbox-img" src="" alt="">
+    <span class="lightbox-prev" onclick="event.stopPropagation();navPhoto(-1)">&#10094;</span>
+    <span class="lightbox-next" onclick="event.stopPropagation();navPhoto(1)">&#10095;</span>
   </div>
 </div>
 
@@ -84,9 +104,64 @@ access: general
     white-space: nowrap;
     flex-shrink: 0;
   }
+  .photo-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 10px;
+  }
+  .photo-grid img {
+    width: 100%;
+    height: 180px;
+    object-fit: cover;
+    border-radius: 6px;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    transition: border-color 0.2s, transform 0.2s;
+  }
+  .photo-grid img:hover {
+    border-color: var(--accent);
+    transform: scale(1.02);
+  }
+  .lightbox {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.92);
+    z-index: 9999;
+    align-items: center;
+    justify-content: center;
+  }
+  .lightbox.active { display: flex; }
+  .lightbox img {
+    max-width: 90vw;
+    max-height: 90vh;
+    border-radius: 8px;
+  }
+  .lightbox-close {
+    position: absolute;
+    top: 16px;
+    right: 24px;
+    font-size: 2rem;
+    color: #fff;
+    cursor: pointer;
+  }
+  .lightbox-prev, .lightbox-next {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 2.5rem;
+    color: #fff;
+    cursor: pointer;
+    padding: 12px;
+    user-select: none;
+  }
+  .lightbox-prev { left: 16px; }
+  .lightbox-next { right: 16px; }
   @media (max-width: 600px) {
     .doc-card { flex-wrap: wrap; gap: 10px; }
     .doc-open { width: 100%; text-align: right; }
+    .photo-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+    .photo-grid img { height: 120px; }
   }
 </style>
 
@@ -94,7 +169,37 @@ access: general
 <script>
 (async function() {
   await JH.authenticate();
+  const grid = document.getElementById('photo-grid');
+  for (let i = 1; i <= 26; i++) {
+    const img = document.createElement('img');
+    img.src = '/assets/images/build-2025/build-' + i + '.jpg';
+    img.alt = 'Build 2025 photo ' + i;
+    img.loading = 'lazy';
+    img.onclick = function() { openLightbox(i - 1); };
+    grid.appendChild(img);
+  }
 })();
+let currentPhoto = 0;
+function openLightbox(idx) {
+  currentPhoto = idx;
+  const lb = document.getElementById('lightbox');
+  document.getElementById('lightbox-img').src = '/assets/images/build-2025/build-' + (idx + 1) + '.jpg';
+  lb.classList.add('active');
+}
+function closeLightbox() {
+  document.getElementById('lightbox').classList.remove('active');
+}
+function navPhoto(dir) {
+  currentPhoto = ((currentPhoto + dir) % 26 + 26) % 26;
+  document.getElementById('lightbox-img').src = '/assets/images/build-2025/build-' + (currentPhoto + 1) + '.jpg';
+}
+document.addEventListener('keydown', function(e) {
+  const lb = document.getElementById('lightbox');
+  if (!lb.classList.contains('active')) return;
+  if (e.key === 'Escape') closeLightbox();
+  if (e.key === 'ArrowLeft') navPhoto(-1);
+  if (e.key === 'ArrowRight') navPhoto(1);
+});
 </script>
 </body>
 </html>
