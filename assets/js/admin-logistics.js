@@ -219,7 +219,7 @@
     });
 
     var html = '<div style="overflow-x:auto"><table class="logistics-table"><thead><tr>';
-    html += '<th>Name</th><th>Arrives</th><th>Time</th><th>Transport</th><th>Pickup</th><th>Departs</th><th>Camping</th><th>Notes</th>';
+    html += '<th>Name</th><th>Arrives</th><th>Time</th><th>Transport</th><th>Pickup</th><th>Departs</th><th>Camping</th><th>Size</th><th>Notes</th>';
     html += '</tr></thead><tbody>';
 
     sorted.forEach(function (m) {
@@ -239,9 +239,10 @@
         html += '<td>' + (row['NeedsPickup'] ? JH.esc(row['NeedsPickup']) : '<span class="not-filled">—</span>') + '</td>';
         html += '<td>' + (row['DepartureDate'] ? JH.formatDate(row['DepartureDate']) : '<span class="not-filled">—</span>') + '</td>';
         html += '<td>' + campBadge(row['CampingType']) + '</td>';
+        html += '<td>' + (row['TentSize'] ? JH.esc(row['TentSize']) : '<span class="not-filled">—</span>') + '</td>';
         html += '<td>' + (row['Notes'] ? JH.esc(row['Notes']) : '<span class="not-filled">—</span>') + '</td>';
       } else {
-        html += '<td colspan="7"><span class="not-filled">Not filled in yet</span></td>';
+        html += '<td colspan="8"><span class="not-filled">Not filled in yet</span></td>';
       }
 
       html += '</tr>';
