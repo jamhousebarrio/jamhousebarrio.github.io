@@ -3,7 +3,7 @@
   if (!members) return;
 
   var isAdmin = JH.isAdmin();
-  var state = { entries: [], logistics: [], tasks: [] };
+  var state = { entries: [], logistics: [], tasks: [], noOrgMap: {} };
   var taskPanelOpen = true;
 
   // Default tasks that need allocating
@@ -28,7 +28,20 @@
     var data = await res.json();
     state.entries = data.entries || [];
     state.logistics = data.logistics || [];
+    state.noOrgMap = {};
+    state.logistics.forEach(function (l) {
+      var person = l.MemberName;
+      if (!person) return;
+      var dates = (l.NoOrgDates || '').split(',').map(function (s) { return s.trim(); }).filter(Boolean);
+      if (!dates.length) return;
+      state.noOrgMap[person] = state.noOrgMap[person] || {};
+      dates.forEach(function (d) { state.noOrgMap[person][d] = true; });
+    });
     loadTasks();
+  }
+
+  function isNoOrg(person, date) {
+    return !!(state.noOrgMap[person] && state.noOrgMap[person][date]);
   }
 
   function loadTasks() {
@@ -128,8 +141,11 @@
         periods.forEach(function (period) {
           var task = getTask(person, date, period);
           var available = isAvailable(person, date);
+          var noorg = isNoOrg(person, date);
 
-          if (isAdmin && available) {
+          if (noorg) {
+            html += '<td class="task-cell noorg" title="On NoOrg duty">NoOrg</td>';
+          } else if (isAdmin && available) {
             html += '<td class="task-cell" data-person="' + JH.esc(person) + '" data-date="' + JH.esc(date) + '" data-period="' + JH.esc(period) + '">' + JH.esc(task) + '</td>';
           } else if (!available) {
             html += '<td class="task-cell unavailable" title="Not arrived yet">' + JH.esc(task) + '</td>';
@@ -184,7 +200,7 @@
   // ── Inline cell editing ───────────────────────────────────────────────────
 
   function bindCellEditing() {
-    document.querySelectorAll('.task-cell:not(.unavailable)').forEach(function (td) {
+    document.querySelectorAll('.task-cell:not(.unavailable):not(.noorg)').forEach(function (td) {
       td.addEventListener('click', function () {
         if (td.classList.contains('editing')) return;
 
@@ -243,7 +259,7 @@
       });
     });
 
-    document.querySelectorAll('.task-cell:not(.unavailable)').forEach(function (td) {
+    document.querySelectorAll('.task-cell:not(.unavailable):not(.noorg)').forEach(function (td) {
       td.addEventListener('dragover', function (e) {
         e.preventDefault();
         td.classList.add('drag-over');

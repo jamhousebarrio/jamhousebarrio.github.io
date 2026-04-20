@@ -30,6 +30,8 @@ access: general
     .timeline-table tr.resource-row td.name-cell { font-weight: 700; color: var(--accent); }
     .timeline-table td.task-cell.unavailable { background: rgba(255,255,255,0.02); cursor: not-allowed; }
     .timeline-table td.task-cell.unavailable:hover { background: rgba(255,255,255,0.02); }
+    .timeline-table td.task-cell.noorg { background: rgba(244,67,54,0.08); cursor: not-allowed; color: #f44336; font-style: italic; }
+    .timeline-table td.task-cell.noorg:hover { background: rgba(244,67,54,0.08); }
     .empty-state { color: var(--text-muted); font-size: 0.9rem; padding: 24px; text-align: center; }
     .timeline-legend { font-size: 0.78rem; color: var(--text-muted); margin-bottom: 12px; }
     .task-panel { margin-top: 20px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
@@ -59,6 +61,7 @@ access: general
     <div class="subtitle">Who does what, when</div>
   </div>
 
+  <div class="timeline-legend">Grey = not arrived yet. Red = on NoOrg duty.</div>
   <div id="timeline-wrap">Loading timeline...</div>
 </div>
 
