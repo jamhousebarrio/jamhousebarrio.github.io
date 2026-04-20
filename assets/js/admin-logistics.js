@@ -118,6 +118,9 @@
     html += '</select></div>';
     var showSize = row['CampingType'] === 'tent' || row['CampingType'] === 'caravan';
     html += '<div class="form-row tent-size-row' + (showSize ? ' visible' : '') + '" id="tent-size-row"><label>Size</label><input type="text" id="f-tent-size" placeholder="e.g. 2-person, 4x4m" value="' + JH.esc(row['TentSize'] || '') + '"></div>';
+    html += '<div class="form-row"><label>NoOrg duty days</label>';
+    html += '<input type="text" id="f-noorg" placeholder="Pick one or more days" value="' + JH.esc(row['NoOrgDates'] || '') + '">';
+    html += '<div class="form-hint">Days you\'re on festival crew \u2014 barrio setup tasks won\'t be assigned to you on these days.</div></div>';
     html += '<div class="form-row"><label>Notes</label><textarea id="f-notes" placeholder="Anything else the team should know...">' + JH.esc(row['Notes'] || '') + '</textarea></div>';
     html += '<div style="display:flex;align-items:center">';
     html += '<button type="submit" class="btn-primary" id="save-btn">Save</button>';
@@ -131,6 +134,10 @@
     JH.initDate(document.getElementById('f-arrival'));
     JH.initDate(document.getElementById('f-departure'));
     JH.initTime(document.getElementById('f-arrival-time'));
+    var noorgEl = document.getElementById('f-noorg');
+    if (noorgEl) {
+      JH.initDate(noorgEl, { mode: 'multiple', conjunction: ',' });
+    }
 
     // Toggle tent size field
     document.getElementById('f-camping').addEventListener('change', function () {
@@ -168,6 +175,7 @@
         campingType: document.getElementById('f-camping').value,
         tentSize: document.getElementById('f-tent-size') ? document.getElementById('f-tent-size').value : '',
         notes: document.getElementById('f-notes').value,
+        noOrgDates: document.getElementById('f-noorg') ? document.getElementById('f-noorg').value : '',
       });
 
       if (!res.ok) {
