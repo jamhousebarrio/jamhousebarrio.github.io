@@ -6,7 +6,29 @@
     return (m['Status'] || '').toLowerCase() === 'approved';
   });
 
-  var state = { logistics: [], myName: null };
+  var state = { logistics: [], myName: null, editingMember: null };
+
+  function activeName() { return state.editingMember || state.myName; }
+
+  // Find a member's logistics row. `name` can be either Playa Name or Real
+  // Name; we look up the row under that key, then fall back to the member's
+  // other name (Playa<->Real) for legacy data. Returns the key that matched
+  // so saves don't orphan the old row.
+  function findLogisticsRow(name) {
+    var row = state.logistics.find(function (r) { return r.MemberName === name; });
+    if (row) return { row: row, key: name };
+    var memberObj = approvedMembers.find(function (m) {
+      return (m['Playa Name'] || '') === name || (m['Name'] || '') === name;
+    });
+    if (memberObj) {
+      var alt = memberObj['Playa Name'] === name ? memberObj['Name'] : memberObj['Playa Name'];
+      if (alt) {
+        row = state.logistics.find(function (r) { return r.MemberName === alt; });
+        if (row) return { row: row, key: alt };
+      }
+    }
+    return { row: null, key: name };
+  }
 
   // ── Helpers ───────────────────────────────────────────────────────────────
 
@@ -32,7 +54,7 @@
 
   // ── Name selector ─────────────────────────────────────────────────────────
 
-  state.myName = JH.currentUser.name;
+  state.myName = JH.currentUser.playaName || JH.currentUser.name;
 
   var nameModal = document.getElementById('name-modal');
   var nameSelect = document.getElementById('name-select');
@@ -40,12 +62,7 @@
 
   function renderNameDisplay() {
     var wrap = document.getElementById('name-display-wrap');
-    wrap.innerHTML = '<div id="name-display" style="margin-bottom:16px"><span style="font-size:0.8rem;color:var(--text-muted)">Signed in as <strong style="color:var(--accent)">' + JH.esc(state.myName) + '</strong> \u2014 <a href="#" id="change-name-link" style="color:var(--text-muted);font-size:0.78rem">change</a></span></div>';
-    document.getElementById('change-name-link').addEventListener('click', function (e) {
-      e.preventDefault();
-      populateNameSelect();
-      nameModal.classList.add('active');
-    });
+    wrap.innerHTML = '<div id="name-display" style="margin-bottom:16px"><span style="font-size:0.8rem;color:var(--text-muted)">Signed in as <strong style="color:var(--accent)">' + JH.esc(state.myName) + '</strong></span></div>';
   }
 
   function populateNameSelect() {
@@ -90,18 +107,23 @@
 
   function renderMyInfo() {
     var wrap = document.getElementById('my-info-content');
-    if (!state.myName) {
+    var who = activeName();
+    if (!who) {
       wrap.innerHTML = '<div class="empty-state">Select your name to fill in your info.</div>';
       return;
     }
 
-    var row = state.logistics.find(function (r) { return r['MemberName'] === state.myName; }) || {};
+    var found = findLogisticsRow(who);
+    var row = found.row || {};
     var hasData = row['ArrivalDate'] || row['DepartureDate'];
 
     var html = '';
+    if (state.editingMember) {
+      html += '<div class="editing-banner"><span>Editing <strong>' + JH.esc(state.editingMember) + '</strong></span><a id="back-to-me">\u2190 Back to my info</a></div>';
+    }
     if (!hasData) {
       html += '<div style="background:rgba(232,168,76,0.1);border:1px solid var(--accent);border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:0.85rem;color:var(--text)">';
-      html += '<strong style="color:var(--accent)">Hey ' + JH.esc(state.myName) + '!</strong> We don\'t have your arrival info yet. Please fill in the form below so we can plan meals and pickups.';
+      html += '<strong style="color:var(--accent)">Hey ' + JH.esc(who) + '!</strong> We don\'t have arrival info yet. Please fill in the form below so we can plan meals and pickups.';
       html += '</div>';
     }
     html += '<form id="logistics-form">';
@@ -144,6 +166,15 @@
 
     wrap.innerHTML = html;
 
+    var backLink = document.getElementById('back-to-me');
+    if (backLink) {
+      backLink.addEventListener('click', function (e) {
+        e.preventDefault();
+        state.editingMember = null;
+        renderMyInfo();
+      });
+    }
+
     // Init Flatpickr for date/time inputs
     JH.initDate(document.getElementById('f-arrival'));
     JH.initDate(document.getElementById('f-departure'));
@@ -180,7 +211,7 @@
 
       var res = await JH.apiFetch('/api/logistics', {
         action: 'upsert',
-        memberName: state.myName,
+        memberName: findLogisticsRow(activeName()).key,
         arrivalDate: document.getElementById('f-arrival').value,
         arrivalTime: document.getElementById('f-arrival-time').value,
         transport: document.getElementById('f-transport').value,
@@ -206,7 +237,9 @@
       setTimeout(function () { feedback.classList.remove('visible'); }, 2000);
 
       await fetchData();
+      if (state.editingMember) state.editingMember = null;
       renderAllMembers();
+      renderMyInfo();
     });
   }
 
@@ -230,8 +263,8 @@
     var sorted = approvedMembers.slice().sort(function (a, b) {
       var nameA = a['Playa Name'] || a['Name'] || '';
       var nameB = b['Playa Name'] || b['Name'] || '';
-      var rowA = logMap[a['Name']] || logMap[nameA];
-      var rowB = logMap[b['Name']] || logMap[nameB];
+      var rowA = logMap[nameA] || logMap[a['Name']];
+      var rowB = logMap[nameB] || logMap[b['Name']];
       var dateA = rowA ? (rowA['ArrivalDate'] || '') : '';
       var dateB = rowB ? (rowB['ArrivalDate'] || '') : '';
       if (dateA && dateB) return dateA < dateB ? -1 : dateA > dateB ? 1 : 0;
@@ -247,12 +280,16 @@
     sorted.forEach(function (m) {
       var name = m['Playa Name'] || m['Name'] || '';
       if (!name) return;
-      var row = logMap[m['Name']] || logMap[name];
+      var row = logMap[name] || logMap[m['Name']];
       var isMe = state.myName && name === state.myName;
       var rowClass = isMe ? ' class="my-row"' : '';
 
       html += '<tr' + rowClass + '>';
-      html += '<td><strong>' + JH.esc(name) + (isMe ? ' <span style="color:var(--accent);font-size:0.75rem">(you)</span>' : '') + '</strong></td>';
+      var editBtn = '';
+      if (JH.isAdmin()) {
+        editBtn = '<button class="edit-pencil" data-name="' + JH.esc(m['Playa Name'] || m['Name'] || '') + '" title="Edit logistics">\u270e</button>';
+      }
+      html += '<td>' + editBtn + '<strong>' + JH.esc(name) + (isMe ? ' <span style="color:var(--accent);font-size:0.75rem">(you)</span>' : '') + '</strong></td>';
 
       if (row) {
         html += '<td>' + (row['ArrivalDate'] ? JH.formatDate(row['ArrivalDate']) : '<span class="not-filled">—</span>') + '</td>';
@@ -278,6 +315,19 @@
 
     html += '</tbody></table></div>';
     wrap.innerHTML = html;
+
+    if (JH.isAdmin()) {
+      wrap.querySelectorAll('.edit-pencil').forEach(function (btn) {
+        btn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          var who = btn.getAttribute('data-name');
+          if (!who) { alert('Member has no name set — cannot edit'); return; }
+          state.editingMember = who;
+          renderMyInfo();
+          document.getElementById('my-info-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+      });
+    }
   }
 
   // ── Render coordinator ────────────────────────────────────────────────────

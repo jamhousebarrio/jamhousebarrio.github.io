@@ -22,7 +22,9 @@ export default async function handler(req, res) {
       if (!memberName) return res.status(400).json({ error: 'memberName required' });
 
       const myName = ((auth.member && auth.member.Name) || '').trim();
-      if (memberName.trim() !== myName && !auth.admin) {
+      const myPlaya = ((auth.member && auth.member['Playa Name']) || '').trim();
+      const target = memberName.trim();
+      if (target !== myName && target !== myPlaya && !auth.admin) {
         return res.status(403).json({ error: 'Only admins can edit other members' });
       }
 

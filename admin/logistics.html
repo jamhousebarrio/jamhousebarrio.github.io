@@ -58,7 +58,11 @@ access: general
     .pickup-row { display: none; }
     .pickup-row.visible { display: flex; }
     .form-hint { font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; font-style: italic; }
-  </style>
+    .edit-pencil { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 0.95rem; padding: 0 6px; opacity: 0.5; }
+    .edit-pencil:hover { color: var(--accent); opacity: 1; }
+    .editing-banner { background: rgba(232,168,76,0.1); border: 1px solid var(--accent); border-radius: 6px; padding: 8px 12px; margin-bottom: 12px; font-size: 0.85rem; display: flex; justify-content: space-between; align-items: center; }
+    .editing-banner a { color: var(--accent); cursor: pointer; }
+</style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="/assets/js/supabase-client.js"></script>
 </head>
