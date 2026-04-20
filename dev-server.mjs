@@ -8,8 +8,9 @@ const { fileURLToPath } = await import('url');
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-// Load .env
+// Load .env and .env.supabase (Supabase vars live in the latter)
 config({ path: path.join(__dirname, '.env') });
+config({ path: path.join(__dirname, '.env.supabase') });
 
 const app = express();
 app.use(express.json());

@@ -3,6 +3,7 @@
   if (!members) return;
 
   var val = JH.val;
+  members.forEach(function(m, i) { m._row = i + 2; });
   members = members.filter(function(m) { return val(m, 'Status').toLowerCase() === 'approved'; });
 
   // Stats
