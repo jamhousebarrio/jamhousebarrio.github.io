@@ -16,6 +16,20 @@
     return '<span class="' + cls + '">' + JH.esc(type) + '</span>';
   }
 
+  var MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  var DAYS_ABBR = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  function ordinal(n) {
+    var s = ['th','st','nd','rd'], v = n % 100;
+    return n + (s[(v - 20) % 10] || s[v] || s[0]);
+  }
+  function formatNoOrgDate(dateStr) {
+    var parts = (dateStr || '').split('-');
+    if (parts.length !== 3) return dateStr;
+    var d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+    if (isNaN(d.getTime())) return dateStr;
+    return ordinal(d.getDate()) + ' ' + MONTHS[d.getMonth()] + ', ' + DAYS_ABBR[d.getDay()];
+  }
+
   // ── Name selector ─────────────────────────────────────────────────────────
 
   state.myName = JH.currentUser.name;
@@ -216,8 +230,8 @@
     var sorted = approvedMembers.slice().sort(function (a, b) {
       var nameA = a['Playa Name'] || a['Name'] || '';
       var nameB = b['Playa Name'] || b['Name'] || '';
-      var rowA = logMap[nameA];
-      var rowB = logMap[nameB];
+      var rowA = logMap[a['Name']] || logMap[nameA];
+      var rowB = logMap[b['Name']] || logMap[nameB];
       var dateA = rowA ? (rowA['ArrivalDate'] || '') : '';
       var dateB = rowB ? (rowB['ArrivalDate'] || '') : '';
       if (dateA && dateB) return dateA < dateB ? -1 : dateA > dateB ? 1 : 0;
@@ -227,13 +241,13 @@
     });
 
     var html = '<div style="overflow-x:auto"><table class="logistics-table"><thead><tr>';
-    html += '<th>Name</th><th>Arrives</th><th>Time</th><th>Transport</th><th>Pickup</th><th>Departs</th><th>Camping</th><th>Size</th><th>Notes</th>';
+    html += '<th>Name</th><th>Arrives</th><th>Time</th><th>Transport</th><th>Pickup</th><th>Departs</th><th>Camping</th><th>Size</th><th>NoOrg</th><th>Notes</th>';
     html += '</tr></thead><tbody>';
 
     sorted.forEach(function (m) {
       var name = m['Playa Name'] || m['Name'] || '';
       if (!name) return;
-      var row = logMap[name];
+      var row = logMap[m['Name']] || logMap[name];
       var isMe = state.myName && name === state.myName;
       var rowClass = isMe ? ' class="my-row"' : '';
 
@@ -248,9 +262,15 @@
         html += '<td>' + (row['DepartureDate'] ? JH.formatDate(row['DepartureDate']) : '<span class="not-filled">—</span>') + '</td>';
         html += '<td>' + campBadge(row['CampingType']) + '</td>';
         html += '<td>' + (row['TentSize'] ? JH.esc(row['TentSize']) : '<span class="not-filled">—</span>') + '</td>';
+        var noorgList = (row['NoOrgDates'] || '').split(',').map(function (s) { return s.trim(); }).filter(Boolean);
+        if (noorgList.length) {
+          html += '<td>' + noorgList.map(function (d) { return JH.esc(formatNoOrgDate(d)); }).join('<br>') + '</td>';
+        } else {
+          html += '<td><span class="not-filled">\u2014</span></td>';
+        }
         html += '<td>' + (row['Notes'] ? JH.esc(row['Notes']) : '<span class="not-filled">—</span>') + '</td>';
       } else {
-        html += '<td colspan="8"><span class="not-filled">Not filled in yet</span></td>';
+        html += '<td colspan="9"><span class="not-filled">Not filled in yet</span></td>';
       }
 
       html += '</tr>';
