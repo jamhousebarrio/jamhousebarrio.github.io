@@ -6,7 +6,7 @@ export default async function handler(req, res) {
 
   try {
     const auth = await authenticateRequest(req);
-    const { action, memberName, arrivalDate, arrivalTime, transport, needsPickup, departureDate, campingType, tentSize, notes } = req.body || {};
+    const { action, memberName, arrivalDate, arrivalTime, transport, needsPickup, departureDate, campingType, tentSize, notes, noOrgDates } = req.body || {};
 
     const id = auth.spreadsheetId;
     const sheets = auth.sheets;
@@ -21,8 +21,13 @@ export default async function handler(req, res) {
     if (action === 'upsert') {
       if (!memberName) return res.status(400).json({ error: 'memberName required' });
 
+      const myName = ((auth.member && auth.member.Name) || '').trim();
+      if (memberName.trim() !== myName && !auth.admin) {
+        return res.status(403).json({ error: 'Only admins can edit other members' });
+      }
+
       const tabName = 'MemberLogistics';
-      const allHeaders = ['MemberName', 'ArrivalDate', 'ArrivalTime', 'Transport', 'NeedsPickup', 'DepartureDate', 'CampingType', 'TentSize', 'Notes'];
+      const allHeaders = ['MemberName', 'ArrivalDate', 'ArrivalTime', 'Transport', 'NeedsPickup', 'DepartureDate', 'CampingType', 'TentSize', 'Notes', 'NoOrgDates'];
       const fieldMap = {
         MemberName: memberName,
         ArrivalDate: arrivalDate || '',
@@ -33,6 +38,7 @@ export default async function handler(req, res) {
         CampingType: campingType || '',
         TentSize: tentSize || '',
         Notes: notes || '',
+        NoOrgDates: noOrgDates || '',
       };
 
       const existing = await safeGet(sheets, id, tabName);
