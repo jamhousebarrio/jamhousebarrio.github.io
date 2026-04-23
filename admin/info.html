@@ -73,6 +73,21 @@ access: general
     <div class="photo-grid" id="photo-grid"></div>
   </div>
 
+  <div class="edit-modal" id="edit-modal">
+    <div class="edit-modal-card" onclick="event.stopPropagation()">
+      <h3>Edit labels</h3>
+      <img id="edit-modal-img" src="" alt="">
+      <div class="chip-row">
+        <span class="chip-row-label">Labels:</span>
+        <div id="edit-chips" class="chips"></div>
+      </div>
+      <div class="edit-modal-actions">
+        <button type="button" class="btn-secondary" onclick="closeEditModal()">Cancel</button>
+        <button type="button" id="edit-save-btn" class="upload-btn">Save</button>
+      </div>
+    </div>
+  </div>
+
   <div class="lightbox" id="lightbox" onclick="closeLightbox()">
     <span class="lightbox-close" onclick="closeLightbox()">&times;</span>
     <img id="lightbox-img" src="" alt="">
@@ -159,16 +174,45 @@ access: general
     border-radius: 3px; text-transform: capitalize;
     backdrop-filter: blur(3px);
   }
-  .photo-del {
+  .photo-actions {
     position: absolute; top: 6px; right: 6px;
-    width: 24px; height: 24px; border-radius: 50%;
-    background: rgba(0,0,0,0.7); color: #fff; border: none;
-    font-size: 1.1rem; line-height: 1; cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-    opacity: 0; transition: opacity 0.15s, background 0.15s;
+    display: flex; gap: 4px;
+    opacity: 0; transition: opacity 0.15s;
   }
-  .photo-wrap:hover .photo-del { opacity: 1; }
-  .photo-del:hover { background: #c43; }
+  .photo-wrap:hover .photo-actions { opacity: 1; }
+  .photo-btn {
+    width: 26px; height: 26px; border-radius: 50%;
+    background: rgba(0,0,0,0.7); color: #fff; border: none;
+    font-size: 0.95rem; line-height: 1; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.15s;
+  }
+  .photo-btn:hover { background: var(--accent); color: var(--bg); }
+  .photo-btn-del:hover { background: #c43; color: #fff; }
+
+  .edit-modal {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.82); z-index: 9998;
+    align-items: center; justify-content: center; padding: 20px;
+  }
+  .edit-modal.active { display: flex; }
+  .edit-modal-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 20px; max-width: 460px; width: 100%;
+    max-height: 90vh; overflow-y: auto;
+  }
+  .edit-modal-card h3 { font-family: var(--heading); font-size: 1.1rem; margin: 0 0 12px; }
+  .edit-modal-card img {
+    width: 100%; max-height: 240px; object-fit: cover;
+    border-radius: 6px; margin-bottom: 14px; display: block;
+  }
+  .edit-modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+  .btn-secondary {
+    padding: 8px 16px; background: transparent; color: var(--text);
+    border: 1px solid var(--border); border-radius: 6px; cursor: pointer;
+    font-size: 0.9rem; font-family: var(--heading); font-weight: 600;
+  }
+  .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
   .photo-empty { grid-column: 1 / -1; color: var(--text-muted); text-align: center; padding: 40px 0; }
 
   .lightbox { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.92); z-index: 9999; align-items: center; justify-content: center; }
@@ -184,7 +228,7 @@ access: general
     .doc-open { width: 100%; text-align: right; }
     .photo-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
     .photo-grid img { height: 120px; }
-    .photo-del { opacity: 1; }
+    .photo-actions { opacity: 1; }
   }
 </style>
 

@@ -75,6 +75,33 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true, id: newId });
     }
 
+    if (action === 'photo-update-labels') {
+      const { id, labels } = payload;
+      if (!id) return res.status(400).json({ error: 'id required' });
+      const rows = await safeGet(sheets, spreadsheetId, PHOTO_TAB);
+      if (!rows.length) return res.status(404).json({ error: 'Not found' });
+      const headers = rows[0];
+      const idCol = headers.indexOf('Id');
+      const labelsCol = headers.indexOf('Labels');
+      const byCol = headers.indexOf('UploadedBy');
+      if (idCol === -1 || labelsCol === -1) return res.status(500).json({ error: 'Sheet missing columns' });
+      const rowIdx = rows.findIndex((r, i) => i > 0 && (r[idCol] || '') === id);
+      if (rowIdx === -1) return res.status(404).json({ error: 'Not found' });
+      const uploader = (rows[rowIdx][byCol] || '').toLowerCase();
+      if (!auth.admin && uploader !== auth.email.toLowerCase() && uploader !== 'legacy') {
+        return res.status(403).json({ error: 'Only the uploader or an admin can edit' });
+      }
+      const labelsStr = Array.isArray(labels) ? labels.join(',') : (labels || '');
+      const colLetter = String.fromCharCode(65 + labelsCol);
+      await sheets.spreadsheets.values.update({
+        spreadsheetId,
+        range: `${PHOTO_TAB}!${colLetter}${rowIdx + 1}`,
+        valueInputOption: 'RAW',
+        requestBody: { values: [[labelsStr]] },
+      });
+      return res.status(200).json({ ok: true });
+    }
+
     if (action === 'photo-delete') {
       const { id } = payload;
       if (!id) return res.status(400).json({ error: 'id required' });
@@ -87,7 +114,7 @@ export default async function handler(req, res) {
       const row = rows.slice(1).find(r => (r[idCol] || '') === id);
       if (!row) return res.status(404).json({ error: 'Not found' });
       const uploader = (row[byCol] || '').toLowerCase();
-      if (!auth.admin && uploader !== auth.email.toLowerCase()) {
+      if (!auth.admin && uploader !== auth.email.toLowerCase() && uploader !== 'legacy') {
         return res.status(403).json({ error: 'Only the uploader or an admin can delete' });
       }
       const photoUrl = row[urlCol] || '';

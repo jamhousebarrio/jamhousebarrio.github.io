@@ -86,15 +86,29 @@
         wrap.appendChild(badges);
       }
 
-      const canDelete = JH.isAdmin() || (photo.uploadedBy || '').toLowerCase() === myEmail;
-      if (canDelete) {
-        const btn = document.createElement('button');
-        btn.className = 'photo-del';
-        btn.type = 'button';
-        btn.innerHTML = '&times;';
-        btn.title = 'Delete';
-        btn.onclick = (e) => { e.stopPropagation(); deletePhoto(photo.id); };
-        wrap.appendChild(btn);
+      const uploader = (photo.uploadedBy || '').toLowerCase();
+      const canEdit = JH.isAdmin() || uploader === myEmail || uploader === 'legacy';
+      if (canEdit) {
+        const actions = document.createElement('div');
+        actions.className = 'photo-actions';
+
+        const editBtn = document.createElement('button');
+        editBtn.className = 'photo-btn photo-btn-edit';
+        editBtn.type = 'button';
+        editBtn.innerHTML = '&#9998;';
+        editBtn.title = 'Edit labels';
+        editBtn.onclick = (e) => { e.stopPropagation(); openEditModal(photo); };
+        actions.appendChild(editBtn);
+
+        const delBtn = document.createElement('button');
+        delBtn.className = 'photo-btn photo-btn-del';
+        delBtn.type = 'button';
+        delBtn.innerHTML = '&times;';
+        delBtn.title = 'Delete';
+        delBtn.onclick = (e) => { e.stopPropagation(); deletePhoto(photo.id); };
+        actions.appendChild(delBtn);
+
+        wrap.appendChild(actions);
       }
 
       grid.appendChild(wrap);
@@ -161,6 +175,59 @@
     if (res.ok) await loadPhotos();
     else alert('Delete failed');
   }
+
+  let editingPhoto = null;
+  const editLabels = new Set();
+  const editChipsEl = document.getElementById('edit-chips');
+  const editModal = document.getElementById('edit-modal');
+  const editImg = document.getElementById('edit-modal-img');
+  const editSaveBtn = document.getElementById('edit-save-btn');
+
+  function renderEditChips() {
+    editChipsEl.innerHTML = '';
+    LABELS.forEach(l => {
+      editChipsEl.appendChild(mkChip(l, editLabels.has(l), () => {
+        if (editLabels.has(l)) editLabels.delete(l);
+        else editLabels.add(l);
+        renderEditChips();
+      }));
+    });
+  }
+
+  function openEditModal(photo) {
+    editingPhoto = photo;
+    editLabels.clear();
+    photo.labels.forEach(l => editLabels.add(l));
+    editImg.src = photo.url;
+    renderEditChips();
+    editModal.classList.add('active');
+  }
+
+  window.closeEditModal = function() {
+    editModal.classList.remove('active');
+    editingPhoto = null;
+  };
+
+  editModal.addEventListener('click', (e) => {
+    if (e.target === editModal) window.closeEditModal();
+  });
+
+  editSaveBtn.addEventListener('click', async () => {
+    if (!editingPhoto) return;
+    editSaveBtn.disabled = true;
+    const res = await JH.apiFetch('/api/inventory', {
+      action: 'photo-update-labels',
+      id: editingPhoto.id,
+      labels: Array.from(editLabels),
+    });
+    editSaveBtn.disabled = false;
+    if (res.ok) {
+      window.closeEditModal();
+      await loadPhotos();
+    } else {
+      alert('Save failed');
+    }
+  });
 
   let lbList = [];
   let lbIdx = 0;
