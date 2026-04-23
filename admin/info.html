@@ -48,7 +48,28 @@ access: general
   </div>
 
   <div class="panel">
-    <h2>Build 2025 Photos</h2>
+    <h2>Build Photos</h2>
+    <p class="panel-lede">Share your photos from past builds. Tag each upload with the spaces/subjects it shows.</p>
+
+    <div class="upload-box">
+      <label class="upload-label">
+        <input type="file" id="file-input" accept="image/*" multiple hidden>
+        <span class="upload-pick">Choose photos…</span>
+      </label>
+      <div id="file-list" class="file-list"></div>
+      <div class="chip-row">
+        <span class="chip-row-label">Labels:</span>
+        <div id="upload-chips" class="chips"></div>
+      </div>
+      <button id="upload-btn" type="button" class="upload-btn">Upload</button>
+      <span id="upload-status" class="upload-status"></span>
+    </div>
+
+    <div class="gallery-head">
+      <span class="chip-row-label">Filter:</span>
+      <div id="filter-bar" class="chips"></div>
+    </div>
+
     <div class="photo-grid" id="photo-grid"></div>
   </div>
 
@@ -62,144 +83,112 @@ access: general
 
 <style>
   .doc-card {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    padding: 16px;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    text-decoration: none;
-    color: var(--text);
+    display: flex; align-items: center; gap: 14px;
+    padding: 16px; background: var(--bg);
+    border: 1px solid var(--border); border-radius: 8px;
+    text-decoration: none; color: var(--text);
     transition: border-color 0.2s, background 0.2s;
     margin-bottom: 10px;
   }
-  .doc-card:hover {
-    border-color: var(--accent);
-    background: var(--surface2);
+  .doc-card:hover { border-color: var(--accent); background: var(--surface2); }
+  .doc-icon { font-size: 2rem; flex-shrink: 0; }
+  .doc-info { flex: 1; min-width: 0; }
+  .doc-title { font-family: var(--heading); font-weight: 600; font-size: 0.95rem; margin-bottom: 4px; }
+  .doc-desc { font-size: 0.82rem; color: var(--text-muted); line-height: 1.4; }
+  .doc-open { font-size: 0.82rem; color: var(--accent); font-weight: 600; white-space: nowrap; flex-shrink: 0; }
+
+  .panel-lede { color: var(--text-muted); font-size: 0.9rem; margin: -6px 0 16px; }
+
+  .upload-box {
+    border: 1px dashed var(--border); border-radius: 8px;
+    padding: 16px; margin-bottom: 20px; background: var(--bg);
+    display: flex; flex-wrap: wrap; align-items: center; gap: 12px;
   }
-  .doc-icon {
-    font-size: 2rem;
-    flex-shrink: 0;
+  .upload-label { cursor: pointer; }
+  .upload-pick {
+    display: inline-block; padding: 8px 14px;
+    background: var(--surface2); border: 1px solid var(--border); border-radius: 6px;
+    font-size: 0.9rem; transition: border-color 0.15s, background 0.15s;
   }
-  .doc-info {
-    flex: 1;
-    min-width: 0;
+  .upload-pick:hover { border-color: var(--accent); }
+  .file-list { display: flex; flex-wrap: wrap; gap: 6px; font-size: 0.82rem; color: var(--text-muted); }
+  .file-pill { background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; padding: 2px 8px; }
+  .file-skip { color: #e06868; }
+  .chip-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; width: 100%; }
+  .chip-row-label { font-size: 0.82rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip {
+    display: inline-block; padding: 4px 10px;
+    background: var(--surface2); border: 1px solid var(--border); border-radius: 999px;
+    font-size: 0.82rem; cursor: pointer; user-select: none;
+    transition: border-color 0.15s, background 0.15s, color 0.15s;
+    text-transform: capitalize;
   }
-  .doc-title {
-    font-family: var(--heading);
-    font-weight: 600;
-    font-size: 0.95rem;
-    margin-bottom: 4px;
+  .chip:hover { border-color: var(--accent); }
+  .chip-active { background: var(--accent); color: var(--bg); border-color: var(--accent); font-weight: 600; }
+
+  .upload-btn {
+    padding: 8px 18px; background: var(--accent); color: var(--bg);
+    font-family: var(--heading); font-weight: 600; font-size: 0.9rem;
+    border: none; border-radius: 6px; cursor: pointer;
   }
-  .doc-desc {
-    font-size: 0.82rem;
-    color: var(--text-muted);
-    line-height: 1.4;
-  }
-  .doc-open {
-    font-size: 0.82rem;
-    color: var(--accent);
-    font-weight: 600;
-    white-space: nowrap;
-    flex-shrink: 0;
-  }
+  .upload-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+  .upload-status { font-size: 0.82rem; color: var(--text-muted); }
+
+  .gallery-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+
   .photo-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 10px;
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px;
   }
+  .photo-wrap { position: relative; }
   .photo-grid img {
-    width: 100%;
-    height: 180px;
-    object-fit: cover;
-    border-radius: 6px;
-    cursor: pointer;
+    width: 100%; height: 180px; object-fit: cover;
+    border-radius: 6px; cursor: pointer;
     border: 1px solid var(--border);
     transition: border-color 0.2s, transform 0.2s;
+    display: block;
   }
-  .photo-grid img:hover {
-    border-color: var(--accent);
-    transform: scale(1.02);
+  .photo-grid img:hover { border-color: var(--accent); transform: scale(1.02); }
+  .photo-labels {
+    position: absolute; left: 6px; bottom: 6px; right: 6px;
+    display: flex; flex-wrap: wrap; gap: 3px; pointer-events: none;
   }
-  .lightbox {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.92);
-    z-index: 9999;
-    align-items: center;
-    justify-content: center;
+  .label-badge {
+    font-size: 0.68rem; padding: 2px 6px;
+    background: rgba(0,0,0,0.72); color: #fff;
+    border-radius: 3px; text-transform: capitalize;
+    backdrop-filter: blur(3px);
   }
+  .photo-del {
+    position: absolute; top: 6px; right: 6px;
+    width: 24px; height: 24px; border-radius: 50%;
+    background: rgba(0,0,0,0.7); color: #fff; border: none;
+    font-size: 1.1rem; line-height: 1; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; transition: opacity 0.15s, background 0.15s;
+  }
+  .photo-wrap:hover .photo-del { opacity: 1; }
+  .photo-del:hover { background: #c43; }
+  .photo-empty { grid-column: 1 / -1; color: var(--text-muted); text-align: center; padding: 40px 0; }
+
+  .lightbox { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.92); z-index: 9999; align-items: center; justify-content: center; }
   .lightbox.active { display: flex; }
-  .lightbox img {
-    max-width: 90vw;
-    max-height: 90vh;
-    border-radius: 8px;
-  }
-  .lightbox-close {
-    position: absolute;
-    top: 16px;
-    right: 24px;
-    font-size: 2rem;
-    color: #fff;
-    cursor: pointer;
-  }
-  .lightbox-prev, .lightbox-next {
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    font-size: 2.5rem;
-    color: #fff;
-    cursor: pointer;
-    padding: 12px;
-    user-select: none;
-  }
+  .lightbox img { max-width: 90vw; max-height: 90vh; border-radius: 8px; }
+  .lightbox-close { position: absolute; top: 16px; right: 24px; font-size: 2rem; color: #fff; cursor: pointer; }
+  .lightbox-prev, .lightbox-next { position: absolute; top: 50%; transform: translateY(-50%); font-size: 2.5rem; color: #fff; cursor: pointer; padding: 12px; user-select: none; }
   .lightbox-prev { left: 16px; }
   .lightbox-next { right: 16px; }
+
   @media (max-width: 600px) {
     .doc-card { flex-wrap: wrap; gap: 10px; }
     .doc-open { width: 100%; text-align: right; }
     .photo-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
     .photo-grid img { height: 120px; }
+    .photo-del { opacity: 1; }
   }
 </style>
 
 <script src="/assets/js/admin-auth.js"></script>
-<script>
-(async function() {
-  await JH.authenticate();
-  const grid = document.getElementById('photo-grid');
-  for (let i = 1; i <= 26; i++) {
-    const img = document.createElement('img');
-    img.src = '/assets/images/build-2025/build-' + i + '.jpg';
-    img.alt = 'Build 2025 photo ' + i;
-    img.loading = 'lazy';
-    img.onclick = function() { openLightbox(i - 1); };
-    grid.appendChild(img);
-  }
-})();
-let currentPhoto = 0;
-function openLightbox(idx) {
-  currentPhoto = idx;
-  const lb = document.getElementById('lightbox');
-  document.getElementById('lightbox-img').src = '/assets/images/build-2025/build-' + (idx + 1) + '.jpg';
-  lb.classList.add('active');
-}
-function closeLightbox() {
-  document.getElementById('lightbox').classList.remove('active');
-}
-function navPhoto(dir) {
-  currentPhoto = ((currentPhoto + dir) % 26 + 26) % 26;
-  document.getElementById('lightbox-img').src = '/assets/images/build-2025/build-' + (currentPhoto + 1) + '.jpg';
-}
-document.addEventListener('keydown', function(e) {
-  const lb = document.getElementById('lightbox');
-  if (!lb.classList.contains('active')) return;
-  if (e.key === 'Escape') closeLightbox();
-  if (e.key === 'ArrowLeft') navPhoto(-1);
-  if (e.key === 'ArrowRight') navPhoto(1);
-});
-</script>
+<script src="/assets/js/admin-info.js"></script>
 </body>
 </html>

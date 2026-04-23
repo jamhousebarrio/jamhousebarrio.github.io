@@ -1,5 +1,38 @@
-import { getSheets, safeGet, toObjects, deleteRowById, upsertRow } from './_lib/sheets.js';
+import { safeGet, toObjects, ensureTab, deleteRowById, upsertRow } from './_lib/sheets.js';
 import { authenticateRequest } from './_lib/auth.js';
+
+const PHOTO_TAB = 'BuildPhotos';
+const PHOTO_HEADERS = ['Id', 'Url', 'Labels', 'UploadedBy', 'UploadedAt'];
+const LEGACY_PHOTO_COUNT = 26;
+const LEGACY_PHOTO_PREFIX = '/assets/images/build-2025/build-';
+const PHOTO_BUCKET = 'build-photos';
+
+async function ensurePhotosSeeded(sheets, spreadsheetId) {
+  const rows = await safeGet(sheets, spreadsheetId, PHOTO_TAB);
+  if (rows.length > 0) return;
+  await ensureTab(sheets, spreadsheetId, PHOTO_TAB);
+  const legacy = [];
+  for (let i = 1; i <= LEGACY_PHOTO_COUNT; i++) {
+    legacy.push([`legacy-${i}`, `${LEGACY_PHOTO_PREFIX}${i}.jpg`, '', 'legacy', '2025-07-01']);
+  }
+  await sheets.spreadsheets.values.update({
+    spreadsheetId,
+    range: `${PHOTO_TAB}!A1`,
+    valueInputOption: 'RAW',
+    requestBody: { values: [PHOTO_HEADERS, ...legacy] },
+  });
+}
+
+async function deleteStorageObject(path) {
+  const base = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!base || !key || !path) return false;
+  const res = await fetch(`${base}/storage/v1/object/${PHOTO_BUCKET}/${path}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${key}`, apikey: key },
+  });
+  return res.ok;
+}
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -9,21 +42,75 @@ export default async function handler(req, res) {
     const { action, ...payload } = req.body || {};
 
     const spreadsheetId = auth.spreadsheetId;
+    const sheets = auth.sheets;
     const HEADERS = ['ItemID', 'Name', 'Category', 'Description', 'PhotoURL', 'Quantity', 'Location', 'Notes'];
 
-    // ── Fetch (default) ───────────────────────────────────────────────────
+    // ── Build Photos (any authenticated member) ───────────────────────────
+    if (action === 'photo-list') {
+      await ensurePhotosSeeded(sheets, spreadsheetId);
+      const rows = await safeGet(sheets, spreadsheetId, PHOTO_TAB);
+      const photos = toObjects(rows).map(p => ({
+        id: p.Id,
+        url: p.Url,
+        labels: (p.Labels || '').split(',').map(s => s.trim()).filter(Boolean),
+        uploadedBy: p.UploadedBy,
+        uploadedAt: p.UploadedAt,
+      }));
+      return res.status(200).json({ photos });
+    }
+
+    if (action === 'photo-add') {
+      const { url, labels } = payload;
+      if (!url) return res.status(400).json({ error: 'url required' });
+      await ensurePhotosSeeded(sheets, spreadsheetId);
+      const labelsStr = Array.isArray(labels) ? labels.join(',') : (labels || '');
+      const newId = `p-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      const now = new Date().toISOString();
+      await sheets.spreadsheets.values.append({
+        spreadsheetId,
+        range: PHOTO_TAB,
+        valueInputOption: 'RAW',
+        requestBody: { values: [[newId, url, labelsStr, auth.email, now]] },
+      });
+      return res.status(200).json({ ok: true, id: newId });
+    }
+
+    if (action === 'photo-delete') {
+      const { id } = payload;
+      if (!id) return res.status(400).json({ error: 'id required' });
+      const rows = await safeGet(sheets, spreadsheetId, PHOTO_TAB);
+      if (!rows.length) return res.status(404).json({ error: 'Not found' });
+      const headers = rows[0];
+      const idCol = headers.indexOf('Id');
+      const urlCol = headers.indexOf('Url');
+      const byCol = headers.indexOf('UploadedBy');
+      const row = rows.slice(1).find(r => (r[idCol] || '') === id);
+      if (!row) return res.status(404).json({ error: 'Not found' });
+      const uploader = (row[byCol] || '').toLowerCase();
+      if (!auth.admin && uploader !== auth.email.toLowerCase()) {
+        return res.status(403).json({ error: 'Only the uploader or an admin can delete' });
+      }
+      const photoUrl = row[urlCol] || '';
+      const marker = `/${PHOTO_BUCKET}/`;
+      const mIdx = photoUrl.indexOf(marker);
+      if (mIdx !== -1) {
+        const objectPath = photoUrl.slice(mIdx + marker.length);
+        if (objectPath) await deleteStorageObject(objectPath);
+      }
+      await deleteRowById(sheets, spreadsheetId, PHOTO_TAB, 'Id', id);
+      return res.status(200).json({ ok: true });
+    }
+
+    // ── Inventory fetch (default) ─────────────────────────────────────────
     if (!action) {
-      const sheets = auth.sheets;
       const rows = await safeGet(sheets, spreadsheetId, 'Inventory');
       return res.status(200).json({ items: toObjects(rows) });
     }
 
-    // ── Write actions require admin ───────────────────────────────────────
+    // ── Inventory write actions require admin ─────────────────────────────
     if (!auth.admin) {
       return res.status(401).json({ error: 'Admin required' });
     }
-
-    const sheets = auth.sheets;
 
     switch (action) {
       case 'upsert': {
