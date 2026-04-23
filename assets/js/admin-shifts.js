@@ -92,7 +92,7 @@
       html += '<button class="role-name-btn role-desc-btn" data-name="' + nameEsc + '" title="Click for description">' + nameEsc + '</button>';
       if (isAdmin) {
         html += ' <button class="edit-type-btn" data-name="' + nameEsc + '" title="Edit shift type">&#9998;</button>';
-        html += ' <button class="remove-btn delete-type-btn" data-name="' + nameEsc + '" title="Delete all shifts of this type">&times;</button>';
+        html += ' <button class="delete-type-btn" data-name="' + nameEsc + '" title="Delete all shifts of this type">&times;</button>';
       }
       html += '</td>';
 
@@ -246,6 +246,7 @@
     resetAddModalFields();
     document.getElementById('add-modal-title').childNodes[0].nodeValue = 'Add Shift Type ';
     document.getElementById('add-shift-save').textContent = 'Create for all days';
+    document.getElementById('delete-type-btn').style.display = 'none';
     addSlotRow('', '');
     addModal.classList.add('active');
   }
@@ -260,6 +261,7 @@
     resetAddModalFields();
     document.getElementById('add-modal-title').childNodes[0].nodeValue = 'Edit Shift Type ';
     document.getElementById('add-shift-save').textContent = 'Save changes';
+    document.getElementById('delete-type-btn').style.display = '';
     document.getElementById('shift-name').value = type.name;
     document.getElementById('shift-desc').value = type.description || '';
     if (type.slots.length) {
@@ -274,6 +276,22 @@
   document.getElementById('add-modal-close').addEventListener('click', function () { addModal.classList.remove('active'); });
   addModal.addEventListener('click', function (e) { if (e.target === addModal) addModal.classList.remove('active'); });
   document.getElementById('add-slot-row-btn').addEventListener('click', function () { addSlotRow('', ''); });
+
+  document.getElementById('delete-type-btn').addEventListener('click', async function () {
+    if (!editingName) return;
+    if (!confirm('Delete ALL "' + editingName + '" shifts across all days? This cannot be undone.')) return;
+    var msg = document.getElementById('add-msg');
+    msg.textContent = 'Deleting...'; msg.style.color = '#888';
+    var typeShifts = shifts.filter(function (s) { return s.Name === editingName; });
+    for (var i = 0; i < typeShifts.length; i++) {
+      await JH.apiFetch('/api/shifts', { action: 'delete', shiftId: typeShifts[i].ShiftID });
+    }
+    addModal.classList.remove('active');
+    editingName = null;
+    editingOriginalSlots = [];
+    resetAddModalFields();
+    await reload();
+  });
 
   function shiftIdFor(name, date, startTime, endTime) {
     var base = slugify(name) + '-' + date;

@@ -28,8 +28,12 @@ access: general
     .shift-grid td:first-child { text-align: left; font-weight: 700; color: var(--accent); font-family: var(--heading); font-size: 0.88rem; min-width: 140px; white-space: nowrap; }
     .role-name-btn { background: none; border: none; color: inherit; font: inherit; cursor: pointer; padding: 0; text-align: left; }
     .role-name-btn:hover { text-decoration: underline; }
-    .edit-type-btn { background: none; border: none; color: var(--text-muted); cursor: pointer; opacity: 0.5; font-size: 0.8rem; padding: 2px 4px; }
-    .edit-type-btn:hover { color: var(--accent); opacity: 1; }
+    .edit-type-btn { background: none; border: none; color: var(--text-muted); cursor: pointer; opacity: 0.7; font-size: 0.95rem; padding: 2px 5px; border-radius: 4px; }
+    .edit-type-btn:hover { color: var(--accent); opacity: 1; background: rgba(232,168,76,0.1); }
+    .delete-type-btn { background: none; border: none; color: var(--text-muted); cursor: pointer; opacity: 0.7; font-size: 1.1rem; line-height: 1; padding: 2px 6px; border-radius: 4px; }
+    .delete-type-btn:hover { color: #f44336; opacity: 1; background: rgba(244,67,54,0.1); }
+    .btn-danger { padding: 0.45rem 1rem; background: transparent; border: 1px solid #c04040; border-radius: 6px; color: #e06868; font-family: var(--heading); font-size: 0.85rem; font-weight: 600; cursor: pointer; margin-right: auto; }
+    .btn-danger:hover { background: #c04040; color: #fff; }
     .slot-group { display: flex; flex-direction: column; gap: 3px; padding: 4px 0; border-top: 1px dashed var(--border); }
     .slot-group:first-child { border-top: none; padding-top: 0; }
     .slot-time { font-family: var(--heading); font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
@@ -119,6 +123,7 @@ access: general
       <button type="button" id="add-slot-row-btn" class="add-slot-row-btn">+ Add another slot</button>
     </div>
     <div class="modal-actions">
+      <button type="button" id="delete-type-btn" class="btn-danger" style="display:none">Delete shift type</button>
       <button id="add-shift-save" class="btn-primary">Create for all days</button>
       <span id="add-msg" class="msg"></span>
     </div>
