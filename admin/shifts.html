@@ -30,6 +30,15 @@ access: general
     .role-name-btn:hover { text-decoration: underline; }
     .edit-type-btn { background: none; border: none; color: var(--text-muted); cursor: pointer; opacity: 0.5; font-size: 0.8rem; padding: 2px 4px; }
     .edit-type-btn:hover { color: var(--accent); opacity: 1; }
+    .slot-group { display: flex; flex-direction: column; gap: 3px; padding: 4px 0; border-top: 1px dashed var(--border); }
+    .slot-group:first-child { border-top: none; padding-top: 0; }
+    .slot-time { font-family: var(--heading); font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+    .slot-row { display: grid; grid-template-columns: 1fr 1fr auto; gap: 6px; align-items: center; margin-bottom: 6px; }
+    .slot-row input { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-family: var(--body); font-size: 0.85rem; padding: 7px 10px; }
+    .slot-row-remove { background: none; border: none; color: var(--text-muted); font-size: 1.1rem; cursor: pointer; padding: 4px 8px; }
+    .slot-row-remove:hover { color: #f44336; }
+    .add-slot-row-btn { background: none; border: 1px dashed var(--border); border-radius: 6px; color: var(--accent); font-family: var(--heading); font-size: 0.78rem; font-weight: 600; padding: 6px 10px; cursor: pointer; }
+    .add-slot-row-btn:hover { border-color: var(--accent); }
     .desc-body { font-size: 0.88rem; color: var(--text); line-height: 1.5; white-space: pre-wrap; }
     .desc-meta { font-size: 0.78rem; color: var(--text-muted); margin-bottom: 12px; }
     .desc-empty { font-style: italic; color: var(--text-muted); }
@@ -105,11 +114,9 @@ access: general
       <textarea id="shift-desc" placeholder="What does this shift involve?"></textarea>
     </div>
     <div class="field">
-      <label>Time slot</label>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-        <input id="shift-start" type="text" placeholder="Start HH:MM">
-        <input id="shift-end" type="text" placeholder="End HH:MM">
-      </div>
+      <label>Time slots</label>
+      <div id="slots-list"></div>
+      <button type="button" id="add-slot-row-btn" class="add-slot-row-btn">+ Add another slot</button>
     </div>
     <div class="modal-actions">
       <button id="add-shift-save" class="btn-primary">Create for all days</button>

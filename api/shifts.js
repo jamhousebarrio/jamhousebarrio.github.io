@@ -90,7 +90,7 @@ export default async function handler(req, res) {
 
     if (action === 'rename-type') {
       if (!auth.admin) return res.status(401).json({ error: 'Admin required' });
-      const { oldName, newName, description, startTime, endTime } = payload;
+      const { oldName, newName, description } = payload;
       if (!oldName || !newName) return res.status(400).json({ error: 'oldName and newName required' });
       const rows = await getRows(sheets, spreadsheetId);
       if (!rows.length) return res.status(404).json({ error: 'No shifts' });
@@ -98,9 +98,6 @@ export default async function handler(req, res) {
       headers = await ensureColumn(sheets, spreadsheetId, headers, 'Description');
       const nameCol = headers.indexOf('Name');
       const descCol = headers.indexOf('Description');
-      const startCol = headers.indexOf('StartTime');
-      const endCol = headers.indexOf('EndTime');
-      // Re-fetch rows in case a column was added
       const rows2 = await getRows(sheets, spreadsheetId);
       const updates = [];
       for (let i = 1; i < rows2.length; i++) {
@@ -115,18 +112,6 @@ export default async function handler(req, res) {
             values: [[description || '']],
           });
         }
-        if (startCol !== -1 && startTime !== undefined) {
-          updates.push({
-            range: `${TAB}!${String.fromCharCode(65 + startCol)}${i + 1}`,
-            values: [[startTime || '']],
-          });
-        }
-        if (endCol !== -1 && endTime !== undefined) {
-          updates.push({
-            range: `${TAB}!${String.fromCharCode(65 + endCol)}${i + 1}`,
-            values: [[endTime || '']],
-          });
-        }
       }
       if (updates.length) {
         await sheets.spreadsheets.values.batchUpdate({
@@ -135,6 +120,39 @@ export default async function handler(req, res) {
         });
       }
       return res.status(200).json({ success: true, updated: updates.length });
+    }
+
+    if (action === 'delete-slot') {
+      if (!auth.admin) return res.status(401).json({ error: 'Admin required' });
+      const { name, startTime, endTime } = payload;
+      if (!name) return res.status(400).json({ error: 'name required' });
+      const rows = await getRows(sheets, spreadsheetId);
+      if (!rows.length) return res.status(404).json({ error: 'No shifts' });
+      const headers = rows[0];
+      const nameCol = headers.indexOf('Name');
+      const startCol = headers.indexOf('StartTime');
+      const endCol = headers.indexOf('EndTime');
+      const metaRes = await sheets.spreadsheets.get({ spreadsheetId, fields: 'sheets.properties' });
+      const sheet = metaRes.data.sheets.find(s => s.properties.title === TAB);
+      if (!sheet) return res.status(500).json({ error: `${TAB} tab not found` });
+      const rowsToDelete = [];
+      for (let i = 1; i < rows.length; i++) {
+        if ((rows[i][nameCol] || '') !== name) continue;
+        if ((rows[i][startCol] || '') !== (startTime || '')) continue;
+        if ((rows[i][endCol] || '') !== (endTime || '')) continue;
+        rowsToDelete.push(i);
+      }
+      // Delete from bottom up so indices stay valid
+      rowsToDelete.sort((a, b) => b - a);
+      const requests = rowsToDelete.map(idx => ({
+        deleteDimension: {
+          range: { sheetId: sheet.properties.sheetId, dimension: 'ROWS', startIndex: idx, endIndex: idx + 1 },
+        },
+      }));
+      if (requests.length) {
+        await sheets.spreadsheets.batchUpdate({ spreadsheetId, requestBody: { requests } });
+      }
+      return res.status(200).json({ success: true, deleted: requests.length });
     }
 
     if (action === 'assign') {
