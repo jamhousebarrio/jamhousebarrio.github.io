@@ -721,6 +721,18 @@
   function buildPrintHtml() {
     function esc(s) { return (s == null ? '' : String(s)).replace(/[&<>"]/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]; }); }
 
+    // Map whatever name is stored in AssignedTo (playa or legal) back to playa name.
+    var playaLookup = {};
+    approvedMembers.forEach(function (m) {
+      var playa = JH.val(m, 'Playa Name');
+      var legal = JH.val(m, 'Name');
+      var best = playa || legal;
+      if (!best) return;
+      if (playa) playaLookup[playa.toLowerCase().trim()] = best;
+      if (legal) playaLookup[legal.toLowerCase().trim()] = best;
+    });
+    function toPlaya(p) { return playaLookup[(p || '').toLowerCase().trim()] || p; }
+
     // Build one row per (role, slot) keyed by start time so the grid mirrors the on-screen layout.
     var types = getShiftTypes();
     var rows = [];
@@ -787,7 +799,7 @@
           var cls = people.length ? 'day filled' : 'day';
           body += '<td class="' + cls + '">';
           if (people.length) {
-            body += people.map(function (p) { return '<span class="name">' + esc(p) + '</span>'; }).join('');
+            body += people.map(function (p) { return '<span class="name">' + esc(toPlaya(p)) + '</span>'; }).join('');
           }
           body += '</td>';
         });
