@@ -716,6 +716,91 @@
     if (row) openVolModal(row.dataset.name);
   });
 
+  // ── Print / PDF export ──────────────────────────────────────────────────
+
+  function buildPrintHtml() {
+    var byDate = {};
+    EVENT_DATES.forEach(function (d) { byDate[d] = []; });
+    shifts.forEach(function (s) {
+      if (!s.Date || !byDate[s.Date]) return;
+      byDate[s.Date].push(s);
+    });
+    EVENT_DATES.forEach(function (d) {
+      byDate[d].sort(function (a, b) {
+        var ta = (a.StartTime || '').localeCompare(b.StartTime || '');
+        if (ta !== 0) return ta;
+        return (a.Name || '').localeCompare(b.Name || '');
+      });
+    });
+
+    var css = '\
+      @page { size: A4 portrait; margin: 14mm; }\
+      * { box-sizing: border-box; }\
+      body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #111; margin: 0; line-height: 1.35; }\
+      h1 { font-size: 22pt; margin: 0 0 4mm; letter-spacing: -0.01em; }\
+      h2 { font-size: 14pt; margin: 8mm 0 3mm; padding-bottom: 2mm; border-bottom: 2px solid #111; }\
+      .sub { color: #555; font-size: 10pt; margin-bottom: 6mm; }\
+      .day { page-break-before: always; }\
+      .day:first-of-type { page-break-before: auto; }\
+      table { width: 100%; border-collapse: collapse; font-size: 10pt; }\
+      th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid #ccc; vertical-align: top; }\
+      th { font-size: 9pt; text-transform: uppercase; letter-spacing: 0.04em; color: #555; border-bottom: 2px solid #111; background: #f5f5f5; }\
+      td.time { white-space: nowrap; font-variant-numeric: tabular-nums; width: 22mm; }\
+      td.role { font-weight: 600; width: 34mm; }\
+      td.cap { text-align: right; color: #555; width: 14mm; white-space: nowrap; }\
+      td.vols { color: #111; }\
+      .empty { color: #999; font-style: italic; }\
+      .footer { margin-top: 8mm; font-size: 8pt; color: #888; text-align: right; }\
+    ';
+
+    function esc(s) { return (s == null ? '' : String(s)).replace(/[&<>"]/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]; }); }
+
+    var body = '<h1>JamHouse — Volunteer Schedule</h1>';
+    body += '<div class="sub">Elsewhere 2026 · event days July 7 – 12</div>';
+
+    EVENT_DATES.forEach(function (d) {
+      var list = byDate[d];
+      body += '<div class="day">';
+      body += '<h2>' + esc(JH.formatDateLong(d)) + '</h2>';
+      if (!list.length) {
+        body += '<p class="empty">No shifts scheduled.</p>';
+      } else {
+        body += '<table><thead><tr><th>Time</th><th>Role</th><th>Volunteers</th><th>Cap</th></tr></thead><tbody>';
+        list.forEach(function (s) {
+          var timeLabel = s.StartTime ? (JH.to24h(s.StartTime) + (s.EndTime ? ' – ' + JH.to24h(s.EndTime) : '')) : '';
+          var people = (s.AssignedTo || '').split(',').map(function (p) { return p.trim(); }).filter(Boolean);
+          var max = parseInt(s.MaxPerSlot || '', 10);
+          var capCell = !isNaN(max) && max > 0 ? (people.length + '/' + max) : (people.length ? String(people.length) : '');
+          var volsHtml = people.length ? esc(people.join(', ')) : '<span class="empty">— unfilled —</span>';
+          body += '<tr>';
+          body += '<td class="time">' + esc(timeLabel) + '</td>';
+          body += '<td class="role">' + esc(s.Name || '') + '</td>';
+          body += '<td class="vols">' + volsHtml + '</td>';
+          body += '<td class="cap">' + esc(capCell) + '</td>';
+          body += '</tr>';
+        });
+        body += '</tbody></table>';
+      }
+      body += '</div>';
+    });
+
+    body += '<div class="footer">Printed ' + new Date().toLocaleDateString('en-GB') + ' · jamhouse.space</div>';
+
+    return '<!DOCTYPE html><html><head><meta charset="utf-8"><title>JamHouse Shifts</title><style>' + css + '</style></head><body>' + body + '</body></html>';
+  }
+
+  document.getElementById('print-shifts-btn').addEventListener('click', function () {
+    var html = buildPrintHtml();
+    var w = window.open('', '_blank');
+    if (!w) { alert('Popup blocked — allow popups for this site to print.'); return; }
+    w.document.open();
+    w.document.write(html);
+    w.document.close();
+    w.focus();
+    // Give the browser a tick to lay out before the print dialog.
+    setTimeout(function () { try { w.print(); } catch (e) {} }, 300);
+  });
+
   async function reload() {
     await Promise.all([fetchShifts(), fetchLogistics()]);
     renderStats();
