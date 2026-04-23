@@ -1,5 +1,5 @@
 (async function() {
-  const LABELS = ['kitchen', 'stage', 'shower', 'public space', 'private space', 'tent space', 'people', 'other'];
+  const LABELS = ['kitchen', 'stage', 'shower', 'tools', 'private space', 'tent space', 'people', 'other'];
   const BUCKET = 'build-photos';
   const MAX_BYTES = 10 * 1024 * 1024; // 10 MB per file
 
