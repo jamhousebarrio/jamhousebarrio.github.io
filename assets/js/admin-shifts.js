@@ -530,7 +530,7 @@
     if (entry.strikeDays) stats.push('<strong>' + entry.strikeDays + 'd</strong> strike');
     if (entry.eventHours) stats.push('<strong>' + fmtHours(entry.eventHours) + '</strong> event');
     if (!stats.length) stats.push('<em style="opacity:0.6">no contribution logged</em>');
-    return '<div class="lb-row' + rankClass + '">' +
+    return '<div class="lb-row vol-open-btn' + rankClass + '" data-name="' + JH.esc(entry.name) + '" title="Click for breakdown">' +
       '<div class="lb-rank">' + rank + '</div>' +
       '<div class="lb-name">' + JH.esc(entry.name) + '</div>' +
       '<div class="lb-stats">' + stats.join(' · ') + '</div>' +
@@ -546,9 +546,12 @@
       return;
     }
     var sorted = entries.slice().sort(function (a, b) { return b.score - a.score; });
-    var split = Math.ceil(sorted.length / 2);
-    var top = sorted.slice(0, split);
-    var bottom = sorted.slice(split).reverse();
+    var contributors = sorted.filter(function (e) { return e.score > 0; });
+    var zeros = sorted.filter(function (e) { return e.score === 0; });
+    var split = Math.ceil(contributors.length / 2);
+    var top = contributors.slice(0, split);
+    var bottomContribs = contributors.slice(split).reverse();
+    var bottom = zeros.concat(bottomContribs);
 
     var html = '<div class="lb-grid">';
     html += '<div class="lb-col top"><h3>Top volunteers</h3><div class="lb-list">';
@@ -560,6 +563,115 @@
     html += '</div>';
     wrap.innerHTML = html;
   }
+
+  // ── Volunteer detail popover ────────────────────────────────────────────
+
+  var volModal = document.getElementById('vol-modal');
+
+  function enumerateDays(from, to) {
+    var out = [];
+    if (!from || !to || to < from) return out;
+    var cur = new Date(from.getTime());
+    while (cur <= to) {
+      out.push(new Date(cur.getTime()));
+      cur = new Date(cur.getTime() + 86400000);
+    }
+    return out;
+  }
+
+  function fmtDay(dt) {
+    var iso = dt.toISOString().slice(0, 10);
+    return JH.formatDateLong ? JH.formatDateLong(iso) : iso;
+  }
+
+  function fmtNoOrgDay(s) {
+    var dt = parseDate(s);
+    return dt ? fmtDay(dt) : s;
+  }
+
+  function shiftsForMember(member) {
+    var playaKey = norm(JH.val(member, 'Playa Name'));
+    var legalKey = norm(JH.val(member, 'Name'));
+    return shifts.filter(function (s) {
+      if (!s.AssignedTo) return false;
+      var names = (s.AssignedTo || '').split(',').map(norm).filter(Boolean);
+      return names.indexOf(playaKey) !== -1 || (legalKey && legalKey !== playaKey && names.indexOf(legalKey) !== -1);
+    }).sort(function (a, b) {
+      if (a.Date !== b.Date) return (a.Date || '').localeCompare(b.Date || '');
+      return (a.StartTime || '').localeCompare(b.StartTime || '');
+    });
+  }
+
+  function openVolModal(name) {
+    var member = approvedMembers.find(function (m) { return displayName(m) === name; });
+    if (!member) return;
+    document.getElementById('vol-modal-title').childNodes[0].nodeValue = name + ' ';
+
+    var log = logisticsFor(name) || logisticsFor(JH.val(member, 'Name'));
+    var arr = log ? parseDate(log.ArrivalDate) : null;
+    var dep = log ? parseDate(log.DepartureDate) : null;
+
+    var lastSetup = new Date(MAIN_START.getTime() - 86400000);
+    var firstStrike = new Date(MAIN_END.getTime() + 86400000);
+    var setupDays = (arr && arr < MAIN_START) ? enumerateDays(arr, lastSetup) : [];
+    var strikeDays = (dep && dep > MAIN_END) ? enumerateDays(firstStrike, dep) : [];
+
+    var noorg = log ? (log.NoOrgDates || '').split(',').map(function (x) { return x.trim(); }).filter(Boolean) : [];
+    var memberShifts = shiftsForMember(member);
+
+    function section(title, bodyHtml, metaHtml) {
+      var html = '<div class="vol-section"><h4>' + JH.esc(title) + (metaHtml ? ' <span style="color:var(--accent)">' + metaHtml + '</span>' : '') + '</h4>';
+      html += '<div class="vol-list">' + bodyHtml + '</div></div>';
+      return html;
+    }
+
+    var body = '';
+    body += section(
+      'Build / setup days',
+      setupDays.length ? setupDays.map(function (d) { return JH.esc(fmtDay(d)); }).join('<br>') : '<span class="muted">No setup days logged.</span>',
+      setupDays.length ? setupDays.length + 'd' : ''
+    );
+
+    body += section(
+      'NoOrg days',
+      noorg.length ? noorg.map(function (d) { return JH.esc(fmtNoOrgDay(d)); }).join('<br>') : '<span class="muted">None.</span>',
+      noorg.length ? noorg.length + 'd' : ''
+    );
+
+    var eventShifts = memberShifts.filter(function (s) {
+      var dt = parseDate(s.Date);
+      return dt && dt >= MAIN_START && dt <= MAIN_END;
+    });
+    var eventHours = eventShifts.reduce(function (sum, s) { return sum + durationHours(s.StartTime, s.EndTime); }, 0);
+    var eventBody = eventShifts.length
+      ? eventShifts.map(function (s) {
+          var t = slotLabel(s.StartTime, s.EndTime) || '—';
+          return '<div class="vol-shift-row"><span>' + JH.esc(s.Name || '') + '</span><span class="vol-shift-time">' + JH.esc(t) + '</span><span class="vol-shift-date">' + JH.esc(JH.formatDateLong(s.Date)) + '</span></div>';
+        }).join('')
+      : '<span class="muted">No event shifts signed up for.</span>';
+    body += section(
+      'Event shifts',
+      eventBody,
+      eventHours ? fmtHours(eventHours) : ''
+    );
+
+    body += section(
+      'Strike days',
+      strikeDays.length ? strikeDays.map(function (d) { return JH.esc(fmtDay(d)); }).join('<br>') : '<span class="muted">No strike days logged.</span>',
+      strikeDays.length ? strikeDays.length + 'd' : ''
+    );
+
+    document.getElementById('vol-modal-body').innerHTML = body;
+    volModal.classList.add('active');
+  }
+
+  document.getElementById('vol-modal-close').addEventListener('click', function () { volModal.classList.remove('active'); });
+  volModal.addEventListener('click', function (e) { if (e.target === volModal) volModal.classList.remove('active'); });
+
+  document.getElementById('leaderboard-content').addEventListener('click', function (e) {
+    var row = e.target.closest('.vol-open-btn');
+    if (row) openVolModal(row.dataset.name);
+  });
 
   async function reload() {
     await Promise.all([fetchShifts(), fetchLogistics()]);

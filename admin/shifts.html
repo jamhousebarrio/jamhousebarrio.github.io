@@ -69,7 +69,8 @@ access: general
     .lb-col h3 { font-family: var(--heading); font-size: 0.92rem; margin: 0 0 10px; color: var(--accent); text-transform: uppercase; letter-spacing: 0.05em; }
     .lb-col.bottom h3 { color: #c88; }
     .lb-list { display: flex; flex-direction: column; gap: 6px; }
-    .lb-row { display: grid; grid-template-columns: 28px 1fr auto; gap: 10px; align-items: center; padding: 8px 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; }
+    .lb-row { display: grid; grid-template-columns: 28px 1fr auto; gap: 10px; align-items: center; padding: 8px 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; transition: border-color 0.15s, background 0.15s; }
+    .lb-row:hover { border-color: var(--accent); background: var(--surface2); }
     .lb-rank { font-family: var(--heading); font-weight: 700; color: var(--text-muted); font-size: 0.88rem; text-align: center; }
     .lb-row.top-1 .lb-rank { color: #e8c547; }
     .lb-row.top-2 .lb-rank { color: #b8bcc3; }
@@ -77,6 +78,13 @@ access: general
     .lb-name { font-family: var(--heading); font-weight: 600; font-size: 0.9rem; }
     .lb-stats { font-size: 0.75rem; color: var(--text-muted); white-space: nowrap; font-family: var(--body); }
     .lb-stats strong { color: var(--text); font-weight: 600; }
+    .vol-section { margin-top: 12px; }
+    .vol-section h4 { font-family: var(--heading); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin: 0 0 6px; }
+    .vol-list { display: flex; flex-direction: column; gap: 3px; font-size: 0.85rem; color: var(--text); }
+    .vol-list .muted { color: var(--text-muted); font-style: italic; }
+    .vol-shift-row { display: grid; grid-template-columns: 1fr auto auto; gap: 10px; padding: 4px 0; }
+    .vol-shift-row .vol-shift-time { color: var(--text-muted); font-size: 0.8rem; }
+    .vol-shift-row .vol-shift-date { color: var(--text-muted); font-size: 0.8rem; }
     .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 100; justify-content: center; align-items: center; }
     .modal-overlay.active { display: flex; }
     .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; max-width: 440px; width: 90%; padding: 24px; display: flex; flex-direction: column; gap: 12px; overflow: visible; }
@@ -147,6 +155,14 @@ access: general
       <button id="add-shift-save" class="btn-primary">Create for all days</button>
       <span id="add-msg" class="msg"></span>
     </div>
+  </div>
+</div>
+
+<!-- Volunteer detail popover -->
+<div class="modal-overlay" id="vol-modal">
+  <div class="modal" style="max-width:500px">
+    <h2 id="vol-modal-title">Contributor <button class="modal-close" id="vol-modal-close">&times;</button></h2>
+    <div id="vol-modal-body"></div>
   </div>
 </div>
 
