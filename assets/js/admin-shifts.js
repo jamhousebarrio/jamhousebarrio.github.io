@@ -160,7 +160,7 @@
             if (isFull) {
               html += '<span class="shift-full-tag">Full' + (maxNum ? ' (' + maxNum + ')' : '') + '</span>';
               if (isAdmin) {
-                html += '<button class="signup-btn assign-btn" data-id="' + JH.esc(s.ShiftID) + '" data-name="' + JH.esc(type.name) + '" data-date="' + JH.esc(date) + '" title="Override cap">+ Override</button>';
+                html += '<button class="signup-btn assign-btn override-btn" data-id="' + JH.esc(s.ShiftID) + '" data-name="' + JH.esc(type.name) + '" data-date="' + JH.esc(date) + '" title="Override cap (admin only)">+ Override</button>';
               }
             } else {
               var capNote = (!isNaN(maxNum) && maxNum > 0) ? ' (' + people.length + '/' + maxNum + ')' : '';
@@ -187,7 +187,15 @@
     if (btn) { openEditModal(btn.dataset.name); return; }
 
     btn = e.target.closest('.assign-btn');
-    if (btn) { openAssignModal(btn.dataset.id, btn.dataset.name, btn.dataset.date); return; }
+    if (btn) {
+      var isOverride = btn.classList.contains('override-btn');
+      if (isOverride) {
+        if (!isAdmin) return;
+        if (!confirm('This shift is already at capacity. Override and add another volunteer anyway?')) return;
+      }
+      openAssignModal(btn.dataset.id, btn.dataset.name, btn.dataset.date, isOverride);
+      return;
+    }
 
     btn = e.target.closest('.remove-person-btn');
     if (btn) {
@@ -437,10 +445,12 @@
 
   var assignModal = document.getElementById('assign-modal');
   var assignShiftId = null;
+  var assignOverride = false;
 
-  function openAssignModal(shiftId, shiftName, date) {
+  function openAssignModal(shiftId, shiftName, date, override) {
     assignShiftId = shiftId;
-    document.getElementById('assign-info').textContent = shiftName + ' — ' + JH.formatDateLong(date);
+    assignOverride = !!override;
+    document.getElementById('assign-info').textContent = shiftName + ' — ' + JH.formatDateLong(date) + (override ? '  (override — cap exceeded)' : '');
     var sel = document.getElementById('assign-select');
     sel.innerHTML = '<option value="">Select volunteer...</option>';
     var myName = JH.currentUser.name;
@@ -484,12 +494,15 @@
     existing.push(name);
     var combined = existing.join(', ');
 
-    var r = await JH.apiFetch('/api/shifts', { action: 'assign', shiftId: assignShiftId, memberName: combined });
+    var body = { action: 'assign', shiftId: assignShiftId, memberName: combined };
+    if (assignOverride && isAdmin) body.override = true;
+    var r = await JH.apiFetch('/api/shifts', body);
     if (!r.ok) {
       var errText = 'Failed.';
       try { var j = await r.json(); if (j && j.error) errText = j.error; } catch (e) {}
       msg.textContent = errText; msg.style.color = '#f44336'; return;
     }
+    assignOverride = false;
 
     assignModal.classList.remove('active');
     msg.textContent = '';

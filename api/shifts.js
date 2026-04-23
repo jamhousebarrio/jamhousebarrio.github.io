@@ -191,7 +191,7 @@ export default async function handler(req, res) {
     }
 
     if (action === 'assign') {
-      const { shiftId, memberName } = payload;
+      const { shiftId, memberName, override } = payload;
       if (!shiftId || !memberName) return res.status(400).json({ error: 'shiftId and memberName required' });
       const rows = await getRows(sheets, spreadsheetId);
       if (!rows.length) return res.status(404).json({ error: 'Shifts tab not found or empty' });
@@ -206,8 +206,10 @@ export default async function handler(req, res) {
         const maxNum = parseInt(maxRaw, 10);
         if (!isNaN(maxNum) && maxNum > 0) {
           const names = (memberName || '').split(',').map(s => s.trim()).filter(Boolean);
-          if (names.length > maxNum && !auth.admin) {
-            return res.status(409).json({ error: 'This shift is full' });
+          if (names.length > maxNum) {
+            // Over cap: admins can override, but only with explicit override flag.
+            if (!auth.admin) return res.status(409).json({ error: 'This shift is full' });
+            if (!override) return res.status(409).json({ error: 'This shift is full — admins must pass override:true' });
           }
         }
       }
