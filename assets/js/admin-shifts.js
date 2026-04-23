@@ -742,20 +742,23 @@
     var css = '\
       @page { size: A4 landscape; margin: 10mm; }\
       * { box-sizing: border-box; }\
-      body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #111; margin: 0; line-height: 1.3; }\
+      body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #111; margin: 0; line-height: 1.4; }\
       h1 { font-size: 16pt; margin: 0 0 2mm; letter-spacing: -0.01em; }\
       .sub { color: #555; font-size: 9pt; margin-bottom: 4mm; }\
       table { width: 100%; border-collapse: collapse; font-size: 9pt; table-layout: fixed; }\
-      th, td { padding: 4px 6px; border: 1px solid #999; vertical-align: top; }\
+      th, td { padding: 4px 6px; border: 1px solid #bbb; vertical-align: top; }\
+      th, td.day, td.time { border-right: 2px solid #111; }\
+      td.role { border-right: 2px solid #111; }\
+      th:last-child, td.day:last-child { border-right: 1px solid #bbb; }\
+      tr.role-start td { border-top: 2px solid #111; }\
       th { background: #111; color: #fff; font-weight: 600; font-size: 8.5pt; text-transform: uppercase; letter-spacing: 0.04em; }\
       th.time-head, th.role-head { background: #444; }\
       td.role { font-weight: 600; width: 32mm; }\
       td.time { white-space: nowrap; font-variant-numeric: tabular-nums; width: 22mm; color: #333; font-size: 8.5pt; }\
-      td.day { min-height: 16mm; height: 16mm; font-size: 9pt; }\
+      td.day { min-height: 18mm; height: 18mm; font-size: 9pt; }\
       td.day.filled { background: #f6f6f6; }\
-      .cap-tag { font-size: 7.5pt; color: #888; display: block; margin-top: 1mm; }\
+      td.day .name { display: block; }\
       .footer { margin-top: 4mm; font-size: 7.5pt; color: #888; display: flex; justify-content: space-between; }\
-      .empty-row td { height: 18mm; }\
     ';
 
     var body = '<h1>JamHouse — Volunteer Schedule</h1>';
@@ -770,20 +773,21 @@
       dayCols.forEach(function (c) { body += '<th>' + esc(c.label) + '</th>'; });
       body += '</tr></thead><tbody>';
 
+      var prevName = null;
       rows.forEach(function (r) {
         var timeLabel = r.slot.startTime ? (JH.to24h(r.slot.startTime) + (r.slot.endTime ? ' – ' + JH.to24h(r.slot.endTime) : '')) : '';
-        var maxNum = parseInt(r.slot.maxPerSlot || '', 10);
-        body += '<tr>';
-        body += '<td class="role">' + esc(r.name) + '</td>';
+        var isNewRole = r.name !== prevName;
+        prevName = r.name;
+        body += '<tr' + (isNewRole ? ' class="role-start"' : '') + '>';
+        body += '<td class="role">' + (isNewRole ? esc(r.name) : '') + '</td>';
         body += '<td class="time">' + esc(timeLabel) + '</td>';
         dayCols.forEach(function (c) {
           var s = r.slot.shiftsByDate[c.iso];
           var people = s ? (s.AssignedTo || '').split(',').map(function (p) { return p.trim(); }).filter(Boolean) : [];
           var cls = people.length ? 'day filled' : 'day';
           body += '<td class="' + cls + '">';
-          body += people.length ? esc(people.join(', ')) : '';
-          if (!isNaN(maxNum) && maxNum > 0) {
-            body += '<span class="cap-tag">' + people.length + '/' + maxNum + '</span>';
+          if (people.length) {
+            body += people.map(function (p) { return '<span class="name">' + esc(p) + '</span>'; }).join('');
           }
           body += '</td>';
         });
