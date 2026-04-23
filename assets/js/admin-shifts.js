@@ -71,17 +71,17 @@
     var types = {};
     shifts.forEach(function (s) {
       var name = s.Name || 'Unknown';
-      if (!types[name]) types[name] = { name: name, description: '', maxPerSlot: '', slots: [], slotIdx: {} };
+      if (!types[name]) types[name] = { name: name, description: '', slots: [], slotIdx: {} };
       var t = types[name];
       if (!t.description && s.Description) t.description = s.Description;
-      if (!t.maxPerSlot && s.MaxPerSlot) t.maxPerSlot = s.MaxPerSlot;
       var k = slotKey(s.StartTime, s.EndTime);
       var slot = t.slotIdx[k];
       if (!slot) {
-        slot = { key: k, startTime: s.StartTime || '', endTime: s.EndTime || '', label: slotLabel(s.StartTime, s.EndTime), shiftsByDate: {} };
+        slot = { key: k, startTime: s.StartTime || '', endTime: s.EndTime || '', maxPerSlot: s.MaxPerSlot || '', label: slotLabel(s.StartTime, s.EndTime), shiftsByDate: {} };
         t.slots.push(slot);
         t.slotIdx[k] = slot;
       }
+      if (!slot.maxPerSlot && s.MaxPerSlot) slot.maxPerSlot = s.MaxPerSlot;
       slot.shiftsByDate[s.Date] = s;
     });
     Object.keys(types).forEach(function (k) {
@@ -250,22 +250,25 @@
   var editingName = null;
   var editingOriginalSlots = [];
 
-  function addSlotRow(startVal, endVal) {
+  function addSlotRow(startVal, endVal, maxVal) {
     var row = document.createElement('div');
     row.className = 'slot-row';
     row.innerHTML = '<input type="text" class="slot-start" placeholder="Start HH:MM">' +
                     '<input type="text" class="slot-end" placeholder="End HH:MM">' +
+                    '<input type="number" min="1" step="1" class="slot-max" placeholder="Max">' +
                     '<button type="button" class="slot-row-remove" title="Remove slot">&times;</button>';
     slotsList.appendChild(row);
     var startEl = row.querySelector('.slot-start');
     var endEl = row.querySelector('.slot-end');
+    var maxEl = row.querySelector('.slot-max');
     if (startVal) startEl.value = startVal;
     if (endVal) endEl.value = endVal;
+    if (maxVal) maxEl.value = maxVal;
     JH.initTime(startEl);
     JH.initTime(endEl);
     row.querySelector('.slot-row-remove').addEventListener('click', function () {
       if (slotsList.children.length <= 1) {
-        startEl.value = ''; endEl.value = '';
+        startEl.value = ''; endEl.value = ''; maxEl.value = '';
         return;
       }
       row.remove();
@@ -278,8 +281,10 @@
     rows.forEach(function (r) {
       var s = r.querySelector('.slot-start').value.trim();
       var e = r.querySelector('.slot-end').value.trim();
+      var mRaw = r.querySelector('.slot-max').value.trim();
+      var mVal = mRaw === '' ? '' : String(Math.max(1, parseInt(mRaw, 10) || 0));
       if (!s && !e) return;
-      out.push({ startTime: s, endTime: e, key: slotKey(s, e) });
+      out.push({ startTime: s, endTime: e, maxPerSlot: mVal, key: slotKey(s, e) });
     });
     return out;
   }
@@ -287,7 +292,6 @@
   function resetAddModalFields() {
     document.getElementById('shift-name').value = '';
     document.getElementById('shift-desc').value = '';
-    document.getElementById('shift-max').value = '';
     document.getElementById('add-msg').textContent = '';
     slotsList.innerHTML = '';
   }
@@ -299,7 +303,7 @@
     document.getElementById('add-modal-title').childNodes[0].nodeValue = 'Add Shift Type ';
     document.getElementById('add-shift-save').textContent = 'Create for all days';
     document.getElementById('delete-type-btn').style.display = 'none';
-    addSlotRow('', '');
+    addSlotRow('', '', '');
     addModal.classList.add('active');
   }
 
@@ -308,7 +312,7 @@
     if (!type) return;
     editingName = name;
     editingOriginalSlots = type.slots.map(function (s) {
-      return { startTime: s.startTime, endTime: s.endTime, key: slotKey(s.startTime, s.endTime) };
+      return { startTime: s.startTime, endTime: s.endTime, maxPerSlot: s.maxPerSlot || '', key: slotKey(s.startTime, s.endTime) };
     });
     resetAddModalFields();
     document.getElementById('add-modal-title').childNodes[0].nodeValue = 'Edit Shift Type ';
@@ -316,11 +320,10 @@
     document.getElementById('delete-type-btn').style.display = '';
     document.getElementById('shift-name').value = type.name;
     document.getElementById('shift-desc').value = type.description || '';
-    document.getElementById('shift-max').value = type.maxPerSlot || '';
     if (type.slots.length) {
-      type.slots.forEach(function (s) { addSlotRow(s.startTime, s.endTime); });
+      type.slots.forEach(function (s) { addSlotRow(s.startTime, s.endTime, s.maxPerSlot || ''); });
     } else {
-      addSlotRow('', '');
+      addSlotRow('', '', '');
     }
     addModal.classList.add('active');
   }
@@ -328,7 +331,7 @@
   document.getElementById('add-shift-btn').addEventListener('click', openAddModal);
   document.getElementById('add-modal-close').addEventListener('click', function () { addModal.classList.remove('active'); });
   addModal.addEventListener('click', function (e) { if (e.target === addModal) addModal.classList.remove('active'); });
-  document.getElementById('add-slot-row-btn').addEventListener('click', function () { addSlotRow('', ''); });
+  document.getElementById('add-slot-row-btn').addEventListener('click', function () { addSlotRow('', '', ''); });
 
   document.getElementById('delete-type-btn').addEventListener('click', async function () {
     if (!editingName) return;
@@ -355,8 +358,6 @@
   document.getElementById('add-shift-save').addEventListener('click', async function () {
     var name = document.getElementById('shift-name').value.trim();
     var desc = document.getElementById('shift-desc').value.trim();
-    var maxRaw = document.getElementById('shift-max').value.trim();
-    var maxPerSlot = maxRaw === '' ? '' : String(Math.max(1, parseInt(maxRaw, 10) || 0));
     var newSlots = readSlotRows();
     var msg = document.getElementById('add-msg');
 
@@ -371,12 +372,14 @@
           oldName: editingName,
           newName: name,
           description: desc,
-          maxPerSlot: maxPerSlot,
         });
-        var oldKeys = editingOriginalSlots.map(function (s) { return s.key; });
-        var newKeys = newSlots.map(function (s) { return s.key; });
-        var removed = editingOriginalSlots.filter(function (s) { return newKeys.indexOf(s.key) === -1; });
-        var added = newSlots.filter(function (s) { return oldKeys.indexOf(s.key) === -1; });
+        var oldByKey = {};
+        editingOriginalSlots.forEach(function (s) { oldByKey[s.key] = s; });
+        var newByKey = {};
+        newSlots.forEach(function (s) { newByKey[s.key] = s; });
+        var removed = editingOriginalSlots.filter(function (s) { return !newByKey[s.key]; });
+        var added = newSlots.filter(function (s) { return !oldByKey[s.key]; });
+        var kept = newSlots.filter(function (s) { return oldByKey[s.key]; });
         for (var i = 0; i < removed.length; i++) {
           await JH.apiFetch('/api/shifts', {
             action: 'delete-slot', name: name, startTime: removed[i].startTime, endTime: removed[i].endTime,
@@ -389,8 +392,19 @@
             await JH.apiFetch('/api/shifts', {
               action: 'create',
               shiftId: shiftIdFor(name, date, slot.startTime, slot.endTime),
-              name: name, description: desc, maxPerSlot: maxPerSlot,
+              name: name, description: desc, maxPerSlot: slot.maxPerSlot,
               date: date, startTime: slot.startTime, endTime: slot.endTime,
+            });
+          }
+        }
+        for (var k = 0; k < kept.length; k++) {
+          var newSlot = kept[k];
+          var oldSlot = oldByKey[newSlot.key];
+          if ((oldSlot.maxPerSlot || '') !== (newSlot.maxPerSlot || '')) {
+            await JH.apiFetch('/api/shifts', {
+              action: 'update-slot-max',
+              name: name, startTime: newSlot.startTime, endTime: newSlot.endTime,
+              maxPerSlot: newSlot.maxPerSlot,
             });
           }
         }
@@ -402,7 +416,7 @@
             await JH.apiFetch('/api/shifts', {
               action: 'create',
               shiftId: shiftIdFor(name, date2, slot2.startTime, slot2.endTime),
-              name: name, description: desc, maxPerSlot: maxPerSlot,
+              name: name, description: desc, maxPerSlot: slot2.maxPerSlot,
               date: date2, startTime: slot2.startTime, endTime: slot2.endTime,
             });
           }

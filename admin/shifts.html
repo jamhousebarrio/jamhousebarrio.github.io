@@ -37,7 +37,7 @@ access: general
     .slot-group { display: flex; flex-direction: column; gap: 3px; padding: 4px 0; border-top: 1px dashed var(--border); }
     .slot-group:first-child { border-top: none; padding-top: 0; }
     .slot-time { font-family: var(--heading); font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
-    .slot-row { display: grid; grid-template-columns: 1fr 1fr auto; gap: 6px; align-items: center; margin-bottom: 6px; }
+    .slot-row { display: grid; grid-template-columns: 1fr 1fr 72px auto; gap: 6px; align-items: center; margin-bottom: 6px; }
     .slot-row input { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-family: var(--body); font-size: 0.85rem; padding: 7px 10px; }
     .slot-row-remove { background: none; border: none; color: var(--text-muted); font-size: 1.1rem; cursor: pointer; padding: 4px 8px; }
     .slot-row-remove:hover { color: #f44336; }
@@ -147,13 +147,10 @@ access: general
       <textarea id="shift-desc" placeholder="What does this shift involve?"></textarea>
     </div>
     <div class="field">
-      <label>Time slots</label>
+      <label>Time slots (start · end · max)</label>
       <div id="slots-list"></div>
       <button type="button" id="add-slot-row-btn" class="add-slot-row-btn">+ Add another slot</button>
-    </div>
-    <div class="field">
-      <label>Max volunteers per shift</label>
-      <input id="shift-max" type="number" min="1" step="1" placeholder="Leave blank for unlimited">
+      <div class="form-hint" style="font-size:0.75rem;color:var(--text-muted);margin-top:4px">Leave Max blank for unlimited.</div>
     </div>
     <div class="modal-actions">
       <button type="button" id="delete-type-btn" class="btn-danger" style="display:none">Delete shift type</button>

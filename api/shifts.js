@@ -92,16 +92,14 @@ export default async function handler(req, res) {
 
     if (action === 'rename-type') {
       if (!auth.admin) return res.status(401).json({ error: 'Admin required' });
-      const { oldName, newName, description, maxPerSlot } = payload;
+      const { oldName, newName, description } = payload;
       if (!oldName || !newName) return res.status(400).json({ error: 'oldName and newName required' });
       const rows = await getRows(sheets, spreadsheetId);
       if (!rows.length) return res.status(404).json({ error: 'No shifts' });
       let headers = rows[0];
       headers = await ensureColumn(sheets, spreadsheetId, headers, 'Description');
-      headers = await ensureColumn(sheets, spreadsheetId, headers, 'MaxPerSlot');
       const nameCol = headers.indexOf('Name');
       const descCol = headers.indexOf('Description');
-      const maxCol = headers.indexOf('MaxPerSlot');
       const rows2 = await getRows(sheets, spreadsheetId);
       const updates = [];
       for (let i = 1; i < rows2.length; i++) {
@@ -116,12 +114,39 @@ export default async function handler(req, res) {
             values: [[description || '']],
           });
         }
-        if (maxCol !== -1 && maxPerSlot !== undefined) {
-          updates.push({
-            range: `${TAB}!${String.fromCharCode(65 + maxCol)}${i + 1}`,
-            values: [[maxPerSlot === null || maxPerSlot === '' ? '' : String(maxPerSlot)]],
-          });
-        }
+      }
+      if (updates.length) {
+        await sheets.spreadsheets.values.batchUpdate({
+          spreadsheetId,
+          requestBody: { valueInputOption: 'RAW', data: updates },
+        });
+      }
+      return res.status(200).json({ success: true, updated: updates.length });
+    }
+
+    if (action === 'update-slot-max') {
+      if (!auth.admin) return res.status(401).json({ error: 'Admin required' });
+      const { name, startTime, endTime, maxPerSlot } = payload;
+      if (!name) return res.status(400).json({ error: 'name required' });
+      const rows = await getRows(sheets, spreadsheetId);
+      if (!rows.length) return res.status(404).json({ error: 'No shifts' });
+      let headers = rows[0];
+      headers = await ensureColumn(sheets, spreadsheetId, headers, 'MaxPerSlot');
+      const nameCol = headers.indexOf('Name');
+      const startCol = headers.indexOf('StartTime');
+      const endCol = headers.indexOf('EndTime');
+      const maxCol = headers.indexOf('MaxPerSlot');
+      const rows2 = await getRows(sheets, spreadsheetId);
+      const newVal = maxPerSlot === null || maxPerSlot === undefined || maxPerSlot === '' ? '' : String(maxPerSlot);
+      const updates = [];
+      for (let i = 1; i < rows2.length; i++) {
+        if ((rows2[i][nameCol] || '') !== name) continue;
+        if ((rows2[i][startCol] || '') !== (startTime || '')) continue;
+        if ((rows2[i][endCol] || '') !== (endTime || '')) continue;
+        updates.push({
+          range: `${TAB}!${String.fromCharCode(65 + maxCol)}${i + 1}`,
+          values: [[newVal]],
+        });
       }
       if (updates.length) {
         await sheets.spreadsheets.values.batchUpdate({
