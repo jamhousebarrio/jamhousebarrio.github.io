@@ -1,9 +1,11 @@
-import { getSheets } from './_lib/sheets.js';
 import { authenticateRequest } from './_lib/auth.js';
+
+const TAB = 'ShiftData';
+const BASE_HEADERS = ['ShiftID', 'Name', 'Description', 'Date', 'StartTime', 'EndTime', 'AssignedTo'];
 
 async function getRows(sheets, spreadsheetId) {
   try {
-    const res = await sheets.spreadsheets.values.get({ spreadsheetId, range: 'ShiftData' });
+    const res = await sheets.spreadsheets.values.get({ spreadsheetId, range: TAB });
     return res.data.values || [];
   } catch (e) { return []; }
 }
@@ -18,6 +20,23 @@ function parseShifts(rows) {
   }).filter(r => r.ShiftID);
 }
 
+async function ensureColumn(sheets, spreadsheetId, headers, name) {
+  if (headers.indexOf(name) !== -1) return headers;
+  const colIdx = headers.length;
+  const colLetter = String.fromCharCode(65 + colIdx);
+  await sheets.spreadsheets.values.update({
+    spreadsheetId,
+    range: `${TAB}!${colLetter}1`,
+    valueInputOption: 'RAW',
+    requestBody: { values: [[name]] },
+  });
+  return headers.concat(name);
+}
+
+function buildRow(headers, fields) {
+  return headers.map(h => fields[h] !== undefined ? fields[h] : '');
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
@@ -28,7 +47,6 @@ export default async function handler(req, res) {
     const spreadsheetId = auth.spreadsheetId;
     const sheets = auth.sheets;
 
-    // No action = fetch all shifts
     if (!action) {
       const rows = await getRows(sheets, spreadsheetId);
       return res.status(200).json({ shifts: parseShifts(rows) });
@@ -36,33 +54,87 @@ export default async function handler(req, res) {
 
     if (action === 'create') {
       if (!auth.admin) return res.status(401).json({ error: 'Admin required' });
-      const { shiftId, name, date, startTime, endTime } = payload;
+      const { shiftId, name, description, date, startTime, endTime } = payload;
       if (!shiftId || !name || !date) return res.status(400).json({ error: 'shiftId, name, date required' });
+      const fields = {
+        ShiftID: shiftId,
+        Name: name,
+        Description: description || '',
+        Date: date,
+        StartTime: startTime || '',
+        EndTime: endTime || '',
+        AssignedTo: '',
+      };
       const existing = await getRows(sheets, spreadsheetId);
       if (!existing.length) {
-        // Tab may not exist — create it first
         try {
           await sheets.spreadsheets.batchUpdate({
             spreadsheetId,
-            requestBody: { requests: [{ addSheet: { properties: { title: 'ShiftData' } } }] },
+            requestBody: { requests: [{ addSheet: { properties: { title: TAB } } }] },
           });
-        } catch (e) {
-          // Tab already exists, ignore
-        }
+        } catch (e) { /* tab exists */ }
         await sheets.spreadsheets.values.update({
-          spreadsheetId, range: 'ShiftData!A1', valueInputOption: 'RAW',
-          requestBody: { values: [
-            ['ShiftID', 'Name', 'Date', 'StartTime', 'EndTime', 'AssignedTo'],
-            [shiftId, name, date, startTime || '', endTime || '', ''],
-          ] },
+          spreadsheetId, range: `${TAB}!A1`, valueInputOption: 'RAW',
+          requestBody: { values: [BASE_HEADERS, buildRow(BASE_HEADERS, fields)] },
         });
-      } else {
-        await sheets.spreadsheets.values.append({
-          spreadsheetId, range: 'ShiftData', valueInputOption: 'RAW',
-          requestBody: { values: [[shiftId, name, date, startTime || '', endTime || '', '']] },
+        return res.status(200).json({ success: true });
+      }
+      let headers = existing[0];
+      headers = await ensureColumn(sheets, spreadsheetId, headers, 'Description');
+      await sheets.spreadsheets.values.append({
+        spreadsheetId, range: TAB, valueInputOption: 'RAW',
+        requestBody: { values: [buildRow(headers, fields)] },
+      });
+      return res.status(200).json({ success: true });
+    }
+
+    if (action === 'rename-type') {
+      if (!auth.admin) return res.status(401).json({ error: 'Admin required' });
+      const { oldName, newName, description, startTime, endTime } = payload;
+      if (!oldName || !newName) return res.status(400).json({ error: 'oldName and newName required' });
+      const rows = await getRows(sheets, spreadsheetId);
+      if (!rows.length) return res.status(404).json({ error: 'No shifts' });
+      let headers = rows[0];
+      headers = await ensureColumn(sheets, spreadsheetId, headers, 'Description');
+      const nameCol = headers.indexOf('Name');
+      const descCol = headers.indexOf('Description');
+      const startCol = headers.indexOf('StartTime');
+      const endCol = headers.indexOf('EndTime');
+      // Re-fetch rows in case a column was added
+      const rows2 = await getRows(sheets, spreadsheetId);
+      const updates = [];
+      for (let i = 1; i < rows2.length; i++) {
+        if ((rows2[i][nameCol] || '') !== oldName) continue;
+        updates.push({
+          range: `${TAB}!${String.fromCharCode(65 + nameCol)}${i + 1}`,
+          values: [[newName]],
+        });
+        if (descCol !== -1 && description !== undefined) {
+          updates.push({
+            range: `${TAB}!${String.fromCharCode(65 + descCol)}${i + 1}`,
+            values: [[description || '']],
+          });
+        }
+        if (startCol !== -1 && startTime !== undefined) {
+          updates.push({
+            range: `${TAB}!${String.fromCharCode(65 + startCol)}${i + 1}`,
+            values: [[startTime || '']],
+          });
+        }
+        if (endCol !== -1 && endTime !== undefined) {
+          updates.push({
+            range: `${TAB}!${String.fromCharCode(65 + endCol)}${i + 1}`,
+            values: [[endTime || '']],
+          });
+        }
+      }
+      if (updates.length) {
+        await sheets.spreadsheets.values.batchUpdate({
+          spreadsheetId,
+          requestBody: { valueInputOption: 'RAW', data: updates },
         });
       }
-      return res.status(200).json({ success: true });
+      return res.status(200).json({ success: true, updated: updates.length });
     }
 
     if (action === 'assign') {
@@ -77,7 +149,7 @@ export default async function handler(req, res) {
       if (rowIdx === -1) return res.status(404).json({ error: 'Shift not found' });
       const colLetter = String.fromCharCode(65 + assignedCol);
       await sheets.spreadsheets.values.update({
-        spreadsheetId, range: `ShiftData!${colLetter}${rowIdx + 1}`,
+        spreadsheetId, range: `${TAB}!${colLetter}${rowIdx + 1}`,
         valueInputOption: 'RAW', requestBody: { values: [[memberName]] },
       });
       return res.status(200).json({ success: true });
@@ -96,7 +168,7 @@ export default async function handler(req, res) {
       if (rowIdx === -1) return res.status(404).json({ error: 'Shift not found' });
       const colLetter = String.fromCharCode(65 + assignedCol);
       await sheets.spreadsheets.values.update({
-        spreadsheetId, range: `ShiftData!${colLetter}${rowIdx + 1}`,
+        spreadsheetId, range: `${TAB}!${colLetter}${rowIdx + 1}`,
         valueInputOption: 'RAW', requestBody: { values: [['']] },
       });
       return res.status(200).json({ success: true });
@@ -113,8 +185,8 @@ export default async function handler(req, res) {
       const rowIdx = rows.findIndex((r, i) => i > 0 && r[idCol] === shiftId);
       if (rowIdx === -1) return res.status(404).json({ error: 'Shift not found' });
       const metaRes = await sheets.spreadsheets.get({ spreadsheetId, fields: 'sheets.properties' });
-      const sheet = metaRes.data.sheets.find(s => s.properties.title === 'ShiftData');
-      if (!sheet) return res.status(500).json({ error: 'ShiftData tab not found' });
+      const sheet = metaRes.data.sheets.find(s => s.properties.title === TAB);
+      if (!sheet) return res.status(500).json({ error: `${TAB} tab not found` });
       await sheets.spreadsheets.batchUpdate({
         spreadsheetId,
         requestBody: { requests: [{ deleteDimension: { range: {

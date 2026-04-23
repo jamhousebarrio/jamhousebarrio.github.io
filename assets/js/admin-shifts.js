@@ -9,8 +9,6 @@
   });
 
   var shifts = [];
-
-  // Event days: July 7-12
   var EVENT_DATES = ['2026-07-07', '2026-07-08', '2026-07-09', '2026-07-10', '2026-07-11', '2026-07-12'];
 
   async function fetchShifts() {
@@ -20,17 +18,20 @@
     shifts = data.shifts || [];
   }
 
-  // Group shifts by name (shift type)
   function getShiftTypes() {
     var types = {};
     shifts.forEach(function (s) {
       var key = s.Name || 'Unknown';
       if (!types[key]) {
-        types[key] = { name: key, time: '', shifts: {} };
+        types[key] = { name: key, time: '', startTime: '', endTime: '', description: '', shifts: {} };
       }
-      // Use the time from first shift found
       if (!types[key].time && s.StartTime) {
         types[key].time = JH.to24h(s.StartTime) + (s.EndTime ? ' - ' + JH.to24h(s.EndTime) : '');
+        types[key].startTime = s.StartTime;
+        types[key].endTime = s.EndTime || '';
+      }
+      if (!types[key].description && s.Description) {
+        types[key].description = s.Description;
       }
       types[key].shifts[s.Date] = s;
     });
@@ -72,16 +73,20 @@
     html += '</tr></thead><tbody>';
 
     types.forEach(function (type) {
+      var nameEsc = JH.esc(type.name);
       html += '<tr>';
-      html += '<td>' + JH.esc(type.name);
-      if (isAdmin) html += ' <button class="remove-btn delete-type-btn" data-name="' + JH.esc(type.name) + '" title="Delete all shifts of this type">&times;</button>';
+      html += '<td>';
+      html += '<button class="role-name-btn role-desc-btn" data-name="' + nameEsc + '" title="Click for description">' + nameEsc + '</button>';
+      if (isAdmin) {
+        html += ' <button class="edit-type-btn" data-name="' + nameEsc + '" title="Edit shift type">&#9998;</button>';
+        html += ' <button class="remove-btn delete-type-btn" data-name="' + nameEsc + '" title="Delete all shifts of this type">&times;</button>';
+      }
       html += '</td>';
       html += '<td>' + JH.esc(type.time) + '</td>';
 
       EVENT_DATES.forEach(function (date) {
         var s = type.shifts[date];
         html += '<td><div class="shift-cell">';
-
         if (!s) {
           html += '<span class="no-shift">&mdash;</span>';
         } else {
@@ -93,10 +98,8 @@
             }
             html += '</span>';
           });
-          // Always show sign up button (can add more people)
           html += '<button class="signup-btn assign-btn" data-id="' + JH.esc(s.ShiftID) + '" data-name="' + JH.esc(type.name) + '" data-date="' + JH.esc(date) + '">+ Sign Up</button>';
         }
-
         html += '</div></td>';
       });
 
@@ -107,9 +110,20 @@
     wrap.innerHTML = html;
   }
 
-  // Event delegation — single listener on container, never accumulates
   document.getElementById('shifts-wrap').addEventListener('click', async function (e) {
-    var btn = e.target.closest('.assign-btn');
+    var btn = e.target.closest('.role-desc-btn');
+    if (btn) {
+      openDescModal(btn.dataset.name);
+      return;
+    }
+
+    btn = e.target.closest('.edit-type-btn');
+    if (btn) {
+      openEditModal(btn.dataset.name);
+      return;
+    }
+
+    btn = e.target.closest('.assign-btn');
     if (btn) {
       openAssignModal(btn.dataset.id, btn.dataset.name, btn.dataset.date);
       return;
@@ -146,49 +160,114 @@
     }
   });
 
-  // ── Add shift type modal ──────────────────────────────────────────────────
+  // ── Description popover ─────────────────────────────────────────────────
+
+  var descModal = document.getElementById('desc-modal');
+  function openDescModal(name) {
+    var type = getShiftTypes().find(function (t) { return t.name === name; });
+    document.getElementById('desc-modal-title').childNodes[0].nodeValue = name + ' ';
+    document.getElementById('desc-modal-meta').textContent = type && type.time ? type.time : '';
+    var body = document.getElementById('desc-modal-body');
+    if (type && type.description) {
+      body.className = 'desc-body';
+      body.textContent = type.description;
+    } else {
+      body.className = 'desc-body desc-empty';
+      body.textContent = 'No description yet.' + (isAdmin ? ' Click the pencil next to the name to add one.' : '');
+    }
+    descModal.classList.add('active');
+  }
+  document.getElementById('desc-modal-close').addEventListener('click', function () { descModal.classList.remove('active'); });
+  descModal.addEventListener('click', function (e) { if (e.target === descModal) descModal.classList.remove('active'); });
+
+  // ── Add / edit shift type modal ─────────────────────────────────────────
 
   if (isAdmin) document.getElementById('add-shift-btn').style.display = '';
 
   var addModal = document.getElementById('add-modal');
-  document.getElementById('add-shift-btn').addEventListener('click', function () {
+  var editingName = null;
+
+  function resetAddModalFields() {
+    document.getElementById('shift-name').value = '';
+    document.getElementById('shift-desc').value = '';
+    document.getElementById('shift-start').value = '';
+    document.getElementById('shift-end').value = '';
+    document.getElementById('add-msg').textContent = '';
+  }
+
+  function openAddModal() {
+    editingName = null;
+    resetAddModalFields();
+    document.getElementById('add-modal-title').childNodes[0].nodeValue = 'Add Shift Type ';
+    document.getElementById('add-shift-save').textContent = 'Create for all days';
     addModal.classList.add('active');
     JH.initTime(document.getElementById('shift-start'));
     JH.initTime(document.getElementById('shift-end'));
-  });
-  document.getElementById('add-modal-close').addEventListener('click', function () {
-    addModal.classList.remove('active');
-  });
-  addModal.addEventListener('click', function (e) {
-    if (e.target === addModal) addModal.classList.remove('active');
-  });
+  }
+
+  function openEditModal(name) {
+    var type = getShiftTypes().find(function (t) { return t.name === name; });
+    if (!type) return;
+    editingName = name;
+    resetAddModalFields();
+    document.getElementById('add-modal-title').childNodes[0].nodeValue = 'Edit Shift Type ';
+    document.getElementById('add-shift-save').textContent = 'Save changes';
+    document.getElementById('shift-name').value = type.name;
+    document.getElementById('shift-desc').value = type.description || '';
+    document.getElementById('shift-start').value = type.startTime || '';
+    document.getElementById('shift-end').value = type.endTime || '';
+    addModal.classList.add('active');
+    JH.initTime(document.getElementById('shift-start'));
+    JH.initTime(document.getElementById('shift-end'));
+  }
+
+  document.getElementById('add-shift-btn').addEventListener('click', openAddModal);
+  document.getElementById('add-modal-close').addEventListener('click', function () { addModal.classList.remove('active'); });
+  addModal.addEventListener('click', function (e) { if (e.target === addModal) addModal.classList.remove('active'); });
 
   document.getElementById('add-shift-save').addEventListener('click', async function () {
     var name = document.getElementById('shift-name').value.trim();
+    var desc = document.getElementById('shift-desc').value.trim();
     var start = document.getElementById('shift-start').value;
     var end = document.getElementById('shift-end').value;
     var msg = document.getElementById('add-msg');
 
     if (!name) { msg.textContent = 'Name required'; msg.style.color = '#f44336'; return; }
-    msg.textContent = 'Creating...'; msg.style.color = '#888';
+    msg.textContent = 'Saving...'; msg.style.color = '#888';
 
-    // Create a shift for each event day
-    for (var i = 0; i < EVENT_DATES.length; i++) {
-      var date = EVENT_DATES[i];
-      var shiftId = name.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + date;
-      await JH.apiFetch('/api/shifts', { action: 'create', shiftId: shiftId, name: name, date: date, startTime: start || '', endTime: end || '' });
+    if (editingName) {
+      var r = await JH.apiFetch('/api/shifts', {
+        action: 'rename-type',
+        oldName: editingName,
+        newName: name,
+        description: desc,
+        startTime: start || '',
+        endTime: end || '',
+      });
+      if (!r.ok) { msg.textContent = 'Failed'; msg.style.color = '#f44336'; return; }
+    } else {
+      for (var i = 0; i < EVENT_DATES.length; i++) {
+        var date = EVENT_DATES[i];
+        var shiftId = name.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + date;
+        await JH.apiFetch('/api/shifts', {
+          action: 'create',
+          shiftId: shiftId,
+          name: name,
+          description: desc,
+          date: date,
+          startTime: start || '',
+          endTime: end || '',
+        });
+      }
     }
 
     addModal.classList.remove('active');
-    document.getElementById('shift-name').value = '';
-    document.getElementById('shift-desc').value = '';
-    document.getElementById('shift-start').value = '';
-    document.getElementById('shift-end').value = '';
-    msg.textContent = '';
+    editingName = null;
+    resetAddModalFields();
     await reload();
   });
 
-  // ── Assign modal ──────────────────────────────────────────────────────────
+  // ── Assign modal ────────────────────────────────────────────────────────
 
   var assignModal = document.getElementById('assign-modal');
   var assignShiftId = null;
@@ -233,7 +312,6 @@
     if (!name) { msg.textContent = 'Pick a name'; msg.style.color = '#f44336'; return; }
     msg.textContent = 'Saving...'; msg.style.color = '#888';
 
-    // Append to existing assignees
     var s = shifts.find(function (sh) { return sh.ShiftID === assignShiftId; });
     var existing = s ? (s.AssignedTo || '').split(',').map(function (p) { return p.trim(); }).filter(Boolean) : [];
     if (existing.indexOf(name) !== -1) { msg.textContent = 'Already assigned'; msg.style.color = '#ff9800'; return; }
@@ -247,8 +325,6 @@
     msg.textContent = '';
     await reload();
   });
-
-  // ── Reload ────────────────────────────────────────────────────────────────
 
   async function reload() {
     await fetchShifts();
