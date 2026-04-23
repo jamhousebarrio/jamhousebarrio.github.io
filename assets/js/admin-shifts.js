@@ -9,13 +9,45 @@
   });
 
   var shifts = [];
+  var logistics = [];
   var EVENT_DATES = ['2026-07-07', '2026-07-08', '2026-07-09', '2026-07-10', '2026-07-11', '2026-07-12'];
+  var MAIN_START = parseDate('2026-07-07');
+  var MAIN_END = parseDate('2026-07-12');
 
   async function fetchShifts() {
     var r = await JH.apiFetch('/api/shifts', {});
     if (!r.ok) return;
     var data = await r.json();
     shifts = data.shifts || [];
+  }
+
+  async function fetchLogistics() {
+    var r = await JH.apiFetch('/api/logistics', {});
+    if (!r.ok) { logistics = []; return; }
+    var data = await r.json();
+    logistics = data.logistics || [];
+  }
+
+  function parseDate(s) {
+    if (!s) return null;
+    var parts = s.split('-');
+    if (parts.length !== 3) return null;
+    var dt = new Date(Date.UTC(+parts[0], +parts[1] - 1, +parts[2]));
+    return isNaN(dt.getTime()) ? null : dt;
+  }
+
+  function daysInclusive(from, to) {
+    if (!from || !to || to < from) return 0;
+    return Math.floor((to - from) / 86400000) + 1;
+  }
+
+  function durationHours(start, end) {
+    if (!start || !end) return 0;
+    var sp = start.split(':'); var ep = end.split(':');
+    if (sp.length < 2 || ep.length < 2) return 0;
+    var mins = (+ep[0] * 60 + +ep[1]) - (+sp[0] * 60 + +sp[1]);
+    if (mins <= 0) mins += 24 * 60;
+    return mins / 60;
   }
 
   function slotKey(start, end) { return (start || '') + '|' + (end || ''); }
@@ -422,10 +454,102 @@
     await reload();
   });
 
+  // ── Contribution leaderboard ────────────────────────────────────────────
+
+  function displayName(m) {
+    return JH.val(m, 'Playa Name') || JH.val(m, 'Name') || '';
+  }
+
+  function logisticsFor(name) {
+    var lower = (name || '').toLowerCase().trim();
+    if (!lower) return null;
+    return logistics.find(function (l) {
+      return (l.MemberName || '').toLowerCase().trim() === lower;
+    }) || null;
+  }
+
+  function computeContributions() {
+    var eventHoursByName = {};
+    shifts.forEach(function (s) {
+      if (!s.AssignedTo || !s.Date) return;
+      var dt = parseDate(s.Date);
+      if (!dt || dt < MAIN_START || dt > MAIN_END) return;
+      var hours = durationHours(s.StartTime, s.EndTime);
+      if (hours <= 0) return;
+      (s.AssignedTo || '').split(',').map(function (p) { return p.trim(); }).filter(Boolean).forEach(function (person) {
+        eventHoursByName[person] = (eventHoursByName[person] || 0) + hours;
+      });
+    });
+
+    return approvedMembers.map(function (m) {
+      var name = displayName(m);
+      if (!name) return null;
+      var log = logisticsFor(name) || logisticsFor(JH.val(m, 'Name'));
+      var arr = log ? parseDate(log.ArrivalDate) : null;
+      var dep = log ? parseDate(log.DepartureDate) : null;
+      var setupDays = 0, strikeDays = 0;
+      if (arr && arr < MAIN_START) {
+        var lastSetup = new Date(MAIN_START.getTime() - 86400000);
+        setupDays = daysInclusive(arr, lastSetup);
+      }
+      if (dep && dep > MAIN_END) {
+        var firstStrike = new Date(MAIN_END.getTime() + 86400000);
+        strikeDays = daysInclusive(firstStrike, dep);
+      }
+      var eventHours = eventHoursByName[name] || 0;
+      var score = (setupDays + strikeDays) * 8 + eventHours;
+      return { name: name, setupDays: setupDays, strikeDays: strikeDays, eventHours: eventHours, score: score };
+    }).filter(Boolean);
+  }
+
+  function fmtHours(h) {
+    if (!h) return '0h';
+    return (h % 1 === 0 ? h : h.toFixed(1)) + 'h';
+  }
+
+  function renderRow(entry, rank, isTop) {
+    var rankClass = isTop && rank <= 3 ? ' top-' + rank : '';
+    var stats = [];
+    if (entry.setupDays) stats.push('<strong>' + entry.setupDays + 'd</strong> setup');
+    if (entry.strikeDays) stats.push('<strong>' + entry.strikeDays + 'd</strong> strike');
+    if (entry.eventHours) stats.push('<strong>' + fmtHours(entry.eventHours) + '</strong> event');
+    if (!stats.length) stats.push('<em style="opacity:0.6">no contribution logged</em>');
+    return '<div class="lb-row' + rankClass + '">' +
+      '<div class="lb-rank">' + rank + '</div>' +
+      '<div class="lb-name">' + JH.esc(entry.name) + '</div>' +
+      '<div class="lb-stats">' + stats.join(' · ') + '</div>' +
+      '</div>';
+  }
+
+  function renderLeaderboard() {
+    var wrap = document.getElementById('leaderboard-content');
+    if (!wrap) return;
+    var entries = computeContributions();
+    if (!entries.length) {
+      wrap.innerHTML = '<div class="empty-state">No approved members yet.</div>';
+      return;
+    }
+    var sorted = entries.slice().sort(function (a, b) { return b.score - a.score; });
+    var take = Math.min(5, Math.floor(sorted.length / 2) || 1);
+    var top = sorted.slice(0, take);
+    var bottom = sorted.slice(-take).reverse();
+
+    var html = '<div class="lb-grid">';
+    html += '<div class="lb-col top"><h3>Top volunteers</h3><div class="lb-list">';
+    top.forEach(function (e, i) { html += renderRow(e, i + 1, true); });
+    html += '</div></div>';
+    html += '<div class="lb-col bottom"><h3>Needs encouragement</h3><div class="lb-list">';
+    bottom.forEach(function (e, i) { html += renderRow(e, i + 1, false); });
+    html += '</div></div>';
+    html += '</div>';
+    wrap.innerHTML = html;
+  }
+
   async function reload() {
-    await fetchShifts();
+    await Promise.all([fetchShifts(), fetchLogistics()]);
     renderStats();
     renderGrid();
+    renderLeaderboard();
   }
 
   await reload();
