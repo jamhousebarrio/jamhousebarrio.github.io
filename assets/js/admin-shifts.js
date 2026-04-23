@@ -566,12 +566,8 @@
       return;
     }
     var sorted = entries.slice().sort(function (a, b) { return b.score - a.score; });
-    var contributors = sorted.filter(function (e) { return e.score > 0; });
-    var zeros = sorted.filter(function (e) { return e.score === 0; });
-    var split = Math.ceil(contributors.length / 2);
-    var top = contributors.slice(0, split);
-    var bottomContribs = contributors.slice(split).reverse();
-    var bottom = zeros.concat(bottomContribs);
+    var top = sorted.filter(function (e) { return e.score > 0; });
+    var bottom = sorted.filter(function (e) { return e.score === 0; });
 
     var html = '<div class="lb-grid">';
     html += '<div class="lb-col top"><h3>Top volunteers</h3><div class="lb-list">';
