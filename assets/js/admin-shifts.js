@@ -530,9 +530,9 @@
       return;
     }
     var sorted = entries.slice().sort(function (a, b) { return b.score - a.score; });
-    var take = Math.min(5, Math.floor(sorted.length / 2) || 1);
-    var top = sorted.slice(0, take);
-    var bottom = sorted.slice(-take).reverse();
+    var split = Math.ceil(sorted.length / 2);
+    var top = sorted.slice(0, split);
+    var bottom = sorted.slice(split).reverse();
 
     var html = '<div class="lb-grid">';
     html += '<div class="lb-col top"><h3>Top volunteers</h3><div class="lb-list">';
