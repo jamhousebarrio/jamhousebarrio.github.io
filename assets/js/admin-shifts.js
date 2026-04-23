@@ -30,10 +30,18 @@
 
   function parseDate(s) {
     if (!s) return null;
-    var parts = s.split('-');
-    if (parts.length !== 3) return null;
-    var dt = new Date(Date.UTC(+parts[0], +parts[1] - 1, +parts[2]));
-    return isNaN(dt.getTime()) ? null : dt;
+    s = s.toString().trim();
+    var m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+    if (m) {
+      var dt = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3]));
+      return isNaN(dt.getTime()) ? null : dt;
+    }
+    m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (m) {
+      var dt2 = new Date(Date.UTC(+m[3], +m[2] - 1, +m[1]));
+      return isNaN(dt2.getTime()) ? null : dt2;
+    }
+    return null;
   }
 
   function daysInclusive(from, to) {
@@ -468,22 +476,28 @@
     }) || null;
   }
 
+  function norm(s) { return (s || '').toString().toLowerCase().trim(); }
+
   function computeContributions() {
-    var eventHoursByName = {};
+    // Accumulate hours under the lowercased/trimmed AssignedTo name so lookup
+    // is resilient to casing and whitespace differences.
+    var hoursByKey = {};
     shifts.forEach(function (s) {
       if (!s.AssignedTo || !s.Date) return;
       var dt = parseDate(s.Date);
       if (!dt || dt < MAIN_START || dt > MAIN_END) return;
       var hours = durationHours(s.StartTime, s.EndTime);
       if (hours <= 0) return;
-      (s.AssignedTo || '').split(',').map(function (p) { return p.trim(); }).filter(Boolean).forEach(function (person) {
-        eventHoursByName[person] = (eventHoursByName[person] || 0) + hours;
+      (s.AssignedTo || '').split(',').map(function (p) { return norm(p); }).filter(Boolean).forEach(function (key) {
+        hoursByKey[key] = (hoursByKey[key] || 0) + hours;
       });
     });
 
     return approvedMembers.map(function (m) {
       var name = displayName(m);
       if (!name) return null;
+      var playaKey = norm(JH.val(m, 'Playa Name'));
+      var legalKey = norm(JH.val(m, 'Name'));
       var log = logisticsFor(name) || logisticsFor(JH.val(m, 'Name'));
       var arr = log ? parseDate(log.ArrivalDate) : null;
       var dep = log ? parseDate(log.DepartureDate) : null;
@@ -496,7 +510,9 @@
         var firstStrike = new Date(MAIN_END.getTime() + 86400000);
         strikeDays = daysInclusive(firstStrike, dep);
       }
-      var eventHours = eventHoursByName[name] || 0;
+      var eventHours = 0;
+      if (playaKey && hoursByKey[playaKey]) eventHours += hoursByKey[playaKey];
+      if (legalKey && legalKey !== playaKey && hoursByKey[legalKey]) eventHours += hoursByKey[legalKey];
       var score = (setupDays + strikeDays) * 8 + eventHours;
       return { name: name, setupDays: setupDays, strikeDays: strikeDays, eventHours: eventHours, score: score };
     }).filter(Boolean);
