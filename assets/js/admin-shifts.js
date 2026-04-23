@@ -71,9 +71,10 @@
     var types = {};
     shifts.forEach(function (s) {
       var name = s.Name || 'Unknown';
-      if (!types[name]) types[name] = { name: name, description: '', slots: [], slotIdx: {} };
+      if (!types[name]) types[name] = { name: name, description: '', maxPerSlot: '', slots: [], slotIdx: {} };
       var t = types[name];
       if (!t.description && s.Description) t.description = s.Description;
+      if (!t.maxPerSlot && s.MaxPerSlot) t.maxPerSlot = s.MaxPerSlot;
       var k = slotKey(s.StartTime, s.EndTime);
       var slot = t.slotIdx[k];
       if (!slot) {
@@ -147,6 +148,8 @@
             html += '<span class="no-shift">&mdash;</span>';
           } else {
             var people = (s.AssignedTo || '').split(',').map(function (p) { return p.trim(); }).filter(Boolean);
+            var maxNum = parseInt(s.MaxPerSlot || '', 10);
+            var isFull = !isNaN(maxNum) && maxNum > 0 && people.length >= maxNum;
             people.forEach(function (person) {
               html += '<span class="shift-chip filled">' + JH.esc(person);
               if (isAdmin) {
@@ -154,7 +157,15 @@
               }
               html += '</span>';
             });
-            html += '<button class="signup-btn assign-btn" data-id="' + JH.esc(s.ShiftID) + '" data-name="' + JH.esc(type.name) + '" data-date="' + JH.esc(date) + '">+ Sign Up</button>';
+            if (isFull) {
+              html += '<span class="shift-full-tag">Full' + (maxNum ? ' (' + maxNum + ')' : '') + '</span>';
+              if (isAdmin) {
+                html += '<button class="signup-btn assign-btn" data-id="' + JH.esc(s.ShiftID) + '" data-name="' + JH.esc(type.name) + '" data-date="' + JH.esc(date) + '" title="Override cap">+ Override</button>';
+              }
+            } else {
+              var capNote = (!isNaN(maxNum) && maxNum > 0) ? ' (' + people.length + '/' + maxNum + ')' : '';
+              html += '<button class="signup-btn assign-btn" data-id="' + JH.esc(s.ShiftID) + '" data-name="' + JH.esc(type.name) + '" data-date="' + JH.esc(date) + '">+ Sign Up' + capNote + '</button>';
+            }
           }
           html += '</div></div>';
         });
@@ -276,6 +287,7 @@
   function resetAddModalFields() {
     document.getElementById('shift-name').value = '';
     document.getElementById('shift-desc').value = '';
+    document.getElementById('shift-max').value = '';
     document.getElementById('add-msg').textContent = '';
     slotsList.innerHTML = '';
   }
@@ -304,6 +316,7 @@
     document.getElementById('delete-type-btn').style.display = '';
     document.getElementById('shift-name').value = type.name;
     document.getElementById('shift-desc').value = type.description || '';
+    document.getElementById('shift-max').value = type.maxPerSlot || '';
     if (type.slots.length) {
       type.slots.forEach(function (s) { addSlotRow(s.startTime, s.endTime); });
     } else {
@@ -342,6 +355,8 @@
   document.getElementById('add-shift-save').addEventListener('click', async function () {
     var name = document.getElementById('shift-name').value.trim();
     var desc = document.getElementById('shift-desc').value.trim();
+    var maxRaw = document.getElementById('shift-max').value.trim();
+    var maxPerSlot = maxRaw === '' ? '' : String(Math.max(1, parseInt(maxRaw, 10) || 0));
     var newSlots = readSlotRows();
     var msg = document.getElementById('add-msg');
 
@@ -356,6 +371,7 @@
           oldName: editingName,
           newName: name,
           description: desc,
+          maxPerSlot: maxPerSlot,
         });
         var oldKeys = editingOriginalSlots.map(function (s) { return s.key; });
         var newKeys = newSlots.map(function (s) { return s.key; });
@@ -373,7 +389,7 @@
             await JH.apiFetch('/api/shifts', {
               action: 'create',
               shiftId: shiftIdFor(name, date, slot.startTime, slot.endTime),
-              name: name, description: desc,
+              name: name, description: desc, maxPerSlot: maxPerSlot,
               date: date, startTime: slot.startTime, endTime: slot.endTime,
             });
           }
@@ -386,7 +402,7 @@
             await JH.apiFetch('/api/shifts', {
               action: 'create',
               shiftId: shiftIdFor(name, date2, slot2.startTime, slot2.endTime),
-              name: name, description: desc,
+              name: name, description: desc, maxPerSlot: maxPerSlot,
               date: date2, startTime: slot2.startTime, endTime: slot2.endTime,
             });
           }
@@ -455,7 +471,11 @@
     var combined = existing.join(', ');
 
     var r = await JH.apiFetch('/api/shifts', { action: 'assign', shiftId: assignShiftId, memberName: combined });
-    if (!r.ok) { msg.textContent = 'Failed.'; msg.style.color = '#f44336'; return; }
+    if (!r.ok) {
+      var errText = 'Failed.';
+      try { var j = await r.json(); if (j && j.error) errText = j.error; } catch (e) {}
+      msg.textContent = errText; msg.style.color = '#f44336'; return;
+    }
 
     assignModal.classList.remove('active');
     msg.textContent = '';

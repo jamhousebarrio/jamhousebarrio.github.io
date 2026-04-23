@@ -1,7 +1,7 @@
 import { authenticateRequest } from './_lib/auth.js';
 
 const TAB = 'ShiftData';
-const BASE_HEADERS = ['ShiftID', 'Name', 'Description', 'Date', 'StartTime', 'EndTime', 'AssignedTo'];
+const BASE_HEADERS = ['ShiftID', 'Name', 'Description', 'Date', 'StartTime', 'EndTime', 'AssignedTo', 'MaxPerSlot'];
 
 async function getRows(sheets, spreadsheetId) {
   try {
@@ -54,7 +54,7 @@ export default async function handler(req, res) {
 
     if (action === 'create') {
       if (!auth.admin) return res.status(401).json({ error: 'Admin required' });
-      const { shiftId, name, description, date, startTime, endTime } = payload;
+      const { shiftId, name, description, date, startTime, endTime, maxPerSlot } = payload;
       if (!shiftId || !name || !date) return res.status(400).json({ error: 'shiftId, name, date required' });
       const fields = {
         ShiftID: shiftId,
@@ -64,6 +64,7 @@ export default async function handler(req, res) {
         StartTime: startTime || '',
         EndTime: endTime || '',
         AssignedTo: '',
+        MaxPerSlot: maxPerSlot === undefined || maxPerSlot === null || maxPerSlot === '' ? '' : String(maxPerSlot),
       };
       const existing = await getRows(sheets, spreadsheetId);
       if (!existing.length) {
@@ -81,6 +82,7 @@ export default async function handler(req, res) {
       }
       let headers = existing[0];
       headers = await ensureColumn(sheets, spreadsheetId, headers, 'Description');
+      headers = await ensureColumn(sheets, spreadsheetId, headers, 'MaxPerSlot');
       await sheets.spreadsheets.values.append({
         spreadsheetId, range: TAB, valueInputOption: 'RAW',
         requestBody: { values: [buildRow(headers, fields)] },
@@ -90,14 +92,16 @@ export default async function handler(req, res) {
 
     if (action === 'rename-type') {
       if (!auth.admin) return res.status(401).json({ error: 'Admin required' });
-      const { oldName, newName, description } = payload;
+      const { oldName, newName, description, maxPerSlot } = payload;
       if (!oldName || !newName) return res.status(400).json({ error: 'oldName and newName required' });
       const rows = await getRows(sheets, spreadsheetId);
       if (!rows.length) return res.status(404).json({ error: 'No shifts' });
       let headers = rows[0];
       headers = await ensureColumn(sheets, spreadsheetId, headers, 'Description');
+      headers = await ensureColumn(sheets, spreadsheetId, headers, 'MaxPerSlot');
       const nameCol = headers.indexOf('Name');
       const descCol = headers.indexOf('Description');
+      const maxCol = headers.indexOf('MaxPerSlot');
       const rows2 = await getRows(sheets, spreadsheetId);
       const updates = [];
       for (let i = 1; i < rows2.length; i++) {
@@ -110,6 +114,12 @@ export default async function handler(req, res) {
           updates.push({
             range: `${TAB}!${String.fromCharCode(65 + descCol)}${i + 1}`,
             values: [[description || '']],
+          });
+        }
+        if (maxCol !== -1 && maxPerSlot !== undefined) {
+          updates.push({
+            range: `${TAB}!${String.fromCharCode(65 + maxCol)}${i + 1}`,
+            values: [[maxPerSlot === null || maxPerSlot === '' ? '' : String(maxPerSlot)]],
           });
         }
       }
@@ -163,8 +173,19 @@ export default async function handler(req, res) {
       const headers = rows[0];
       const idCol = headers.indexOf('ShiftID');
       const assignedCol = headers.indexOf('AssignedTo');
+      const maxCol = headers.indexOf('MaxPerSlot');
       const rowIdx = rows.findIndex((r, i) => i > 0 && r[idCol] === shiftId);
       if (rowIdx === -1) return res.status(404).json({ error: 'Shift not found' });
+      if (maxCol !== -1) {
+        const maxRaw = rows[rowIdx][maxCol] || '';
+        const maxNum = parseInt(maxRaw, 10);
+        if (!isNaN(maxNum) && maxNum > 0) {
+          const names = (memberName || '').split(',').map(s => s.trim()).filter(Boolean);
+          if (names.length > maxNum && !auth.admin) {
+            return res.status(409).json({ error: 'This shift is full' });
+          }
+        }
+      }
       const colLetter = String.fromCharCode(65 + assignedCol);
       await sheets.spreadsheets.values.update({
         spreadsheetId, range: `${TAB}!${colLetter}${rowIdx + 1}`,
