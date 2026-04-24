@@ -202,3 +202,41 @@ Authentication uses Supabase Auth with JWT-based sessions:
 - JWTs are verified server-side using the EC public key
 - Admin vs. member access is determined by a flag in the members sheet
 - New users must change their password on first login
+
+---
+
+## Permissions
+
+Two roles: **admin** (has the `Admin` flag set in the members sheet) and **member** (approved, logged in, no flag). Non-authenticated visitors only see the public marketing site + the application form.
+
+### Pages
+
+| Page | Admins | Members |
+|---|---|---|
+| `/admin/applications` | ✓ | hidden from sidebar |
+| `/admin/demographics` (Approved Members) | ✓ | ✓ |
+| `/admin/budget` | ✓ | ✓ (see below) |
+| `/admin/shifts` | ✓ | ✓ |
+| `/admin/inventory` | ✓ | ✓ |
+| `/admin/logistics` | ✓ | ✓ |
+| `/admin/meals` | ✓ | ✓ |
+| `/admin/drinks` | ✓ | ✓ |
+| `/admin/events` | ✓ | ✓ |
+| `/admin/roles` | ✓ | ✓ |
+| `/admin/timeline` | ✓ | ✓ |
+| `/admin/build` | ✓ | ✓ |
+| `/admin/info` (Useful Info) | ✓ | ✓ |
+| `/admin/profile` | ✓ | ✓ |
+
+### Data and actions within shared pages
+
+- **Budget**: members see category totals, budget items, and shopping requests. Per-member fee contributions (who paid how much) and the total collected are **admin-only**. Members can submit shopping requests; only admins can approve/reject them.
+- **Inventory**: item CRUD (add / edit / delete) is **admin-only**. The build photo gallery is open to all — any member can upload; edit labels and delete are restricted to the uploader or an admin.
+- **Shifts**: members can sign up and cancel their own shifts. Creating/editing shift types, assigning others, overriding a full slot, and all leaderboard admin actions are **admin-only**.
+- **Members**: everyone can read the roster. Updating a member record requires admin, *except* the `Profile` page, where each member can update their own personal info and password. The `Admin` flag itself can only be set by an admin.
+- **Meals / Drinks / Events / Roles / Timeline / Logistics**: reads are open to all members; writes are **admin-only** (except member-self logistics entries).
+- **Applications / Invites / Account management** (`/api/auth`, `/api/register`): the application form is public. All admin actions (invite, disable, password-reset, list users) are **admin-only**.
+
+Enforcement happens in two places:
+1. **Server-side** — every `/api/*.js` endpoint verifies the caller's JWT and checks `auth.admin` before any write action. Client-side hiding is cosmetic only; the server is the source of truth.
+2. **Sidebar** — `admin-auth.js` hides nav items marked `access: 'admin'` for non-admins. Admin-gated UI controls inside shared pages check `JH.isAdmin()` before rendering.
