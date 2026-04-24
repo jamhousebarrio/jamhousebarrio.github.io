@@ -72,6 +72,11 @@ export default async function handler(req, res) {
         feeMembers.push(obj);
       });
 
+      // Per-member fee contributions are admin-only
+      const feesPayload = isWrite
+        ? { expected: totalExpected, paid: totalPaid, members: feeMembers, feeHeaders: feeHeaders }
+        : { expected: totalExpected, paid: 0, members: [], feeHeaders: [] };
+
       let shoppingRequests = [];
       try {
         const srRes = await sheets.spreadsheets.values.get({
@@ -95,7 +100,7 @@ export default async function handler(req, res) {
       return res.status(200).json({
         items,
         headers,
-        fees: { expected: totalExpected, paid: totalPaid, members: feeMembers, feeHeaders: feeHeaders },
+        fees: feesPayload,
         sheetUrl,
         shoppingRequests,
       });

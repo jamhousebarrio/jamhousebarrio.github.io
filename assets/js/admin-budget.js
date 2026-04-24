@@ -590,6 +590,11 @@
   if (isAdmin) {
     var feesPanel = document.getElementById('fees-panel');
     if (feesPanel) feesPanel.style.display = '';
+  } else {
+    var committedCard = document.getElementById('stat-committed');
+    if (committedCard && committedCard.closest('.stat-card')) {
+      committedCard.closest('.stat-card').style.display = 'none';
+    }
   }
 
   // Build fee lookup from Barrio Fee tab by member name
@@ -771,6 +776,8 @@
     });
   }
 
-  renderFeeProgress();
-  renderFeesTable();
+  if (isAdmin) {
+    renderFeeProgress();
+    renderFeesTable();
+  }
 })();
