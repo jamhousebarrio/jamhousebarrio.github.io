@@ -34,8 +34,7 @@ async function writeManifest(data) {
   const key = process.env.SUPABASE_SECRET_KEY;
 
   if (!url || !key) {
-    console.warn('[home-photos] No Supabase env — writing empty manifest.');
-    await writeManifest(Object.fromEntries(BEATS.map(b => [b, []])));
+    console.warn('[home-photos] No Supabase env — leaving existing manifest in place.');
     return;
   }
 
