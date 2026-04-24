@@ -3,6 +3,11 @@ _site/
 .jekyll-cache/
 vendor/
 
+# photos live in Supabase Storage; keep them out of the repo
+images/*
+!images/favicon.svg
+assets/images/
+
 # secrets & local tooling
 .env
 .env.*
