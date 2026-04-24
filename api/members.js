@@ -1,6 +1,8 @@
 import { colToLetter, getSheetId } from './_lib/sheets.js';
 import { authenticateRequest } from './_lib/auth.js';
 
+const ALLOWED_STATUSES = ['Pending', 'Review', 'Vibe Check', 'Team Discussion', 'On-boarding', 'Approved', 'Rejected'];
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -73,6 +75,9 @@ export default async function handler(req, res) {
       const { row, status } = payload;
       if (!row || !status) {
         return res.status(400).json({ error: 'Row and status are required' });
+      }
+      if (!ALLOWED_STATUSES.includes(status)) {
+        return res.status(400).json({ error: 'Invalid status', allowed: ALLOWED_STATUSES });
       }
       const col = headers.indexOf('Status');
       if (col === -1) {

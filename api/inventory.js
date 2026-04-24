@@ -3,24 +3,17 @@ import { authenticateRequest } from './_lib/auth.js';
 
 const PHOTO_TAB = 'BuildPhotos';
 const PHOTO_HEADERS = ['Id', 'Url', 'Labels', 'UploadedBy', 'UploadedAt'];
-const LEGACY_PHOTO_COUNT = 26;
 const PHOTO_BUCKET = 'build-photos';
-const LEGACY_PHOTO_PREFIX =
-  `${process.env.SUPABASE_URL || ''}/storage/v1/object/public/${PHOTO_BUCKET}/build-`;
 
-async function ensurePhotosSeeded(sheets, spreadsheetId) {
+async function ensurePhotosTab(sheets, spreadsheetId) {
   const rows = await safeGet(sheets, spreadsheetId, PHOTO_TAB);
   if (rows.length > 0) return;
   await ensureTab(sheets, spreadsheetId, PHOTO_TAB);
-  const legacy = [];
-  for (let i = 1; i <= LEGACY_PHOTO_COUNT; i++) {
-    legacy.push([`legacy-${i}`, `${LEGACY_PHOTO_PREFIX}${i}.jpg`, '', 'legacy', '2025-07-01']);
-  }
   await sheets.spreadsheets.values.update({
     spreadsheetId,
     range: `${PHOTO_TAB}!A1`,
     valueInputOption: 'RAW',
-    requestBody: { values: [PHOTO_HEADERS, ...legacy] },
+    requestBody: { values: [PHOTO_HEADERS] },
   });
 }
 
@@ -48,7 +41,7 @@ export default async function handler(req, res) {
 
     // ── Build Photos (any authenticated member) ───────────────────────────
     if (action === 'photo-list') {
-      await ensurePhotosSeeded(sheets, spreadsheetId);
+      await ensurePhotosTab(sheets, spreadsheetId);
       const rows = await safeGet(sheets, spreadsheetId, PHOTO_TAB);
       const photos = toObjects(rows).map(p => ({
         id: p.Id,
@@ -63,7 +56,7 @@ export default async function handler(req, res) {
     if (action === 'photo-add') {
       const { url, labels } = payload;
       if (!url) return res.status(400).json({ error: 'url required' });
-      await ensurePhotosSeeded(sheets, spreadsheetId);
+      await ensurePhotosTab(sheets, spreadsheetId);
       const labelsStr = Array.isArray(labels) ? labels.join(',') : (labels || '');
       const newId = `p-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
       const now = new Date().toISOString();

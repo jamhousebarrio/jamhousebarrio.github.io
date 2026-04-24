@@ -16,7 +16,7 @@ export default async function handler(req, res) {
   if (!b.name || !b.email) {
     return res.status(400).json({ error: "Name and Email are required" });
   }
-  if (!b.email.includes('@') || !b.email.includes('.')) {
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(b.email)) {
     return res.status(400).json({ error: "Invalid email format" });
   }
 

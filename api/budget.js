@@ -235,6 +235,10 @@ export default async function handler(req, res) {
       const statusCol = reqHeaders.indexOf('Status');
       const rowIdx = reqRows.findIndex((r, i) => i > 0 && r[idCol] === requestId);
       if (rowIdx === -1) return res.status(404).json({ error: 'Request not found' });
+      const currentStatus = (reqRows[rowIdx][statusCol] || '').toLowerCase().trim();
+      if (currentStatus !== 'pending' && currentStatus !== '') {
+        return res.status(409).json({ error: `Request is already ${currentStatus}`, currentStatus });
+      }
       const cl = String.fromCharCode(65 + statusCol);
       await sheets.spreadsheets.values.update({
         spreadsheetId,
