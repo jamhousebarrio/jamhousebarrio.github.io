@@ -25,7 +25,7 @@ access: general
     <div class="subtitle">Manage your account and personal info</div>
   </div>
 
-  <div class="panel" id="password-section">
+  <div class="panel panel-form" id="password-section">
     <h2>Change Password</h2>
     <div id="pw-banner" style="display:none;background:rgba(232,168,76,0.12);border:1px solid var(--accent);color:var(--accent);padding:10px 14px;border-radius:6px;margin-bottom:16px;font-size:0.9rem;">
       Please set a new password to continue
@@ -43,49 +43,57 @@ access: general
         <label for="confirm-password">Confirm New Password</label>
         <input type="password" id="confirm-password" placeholder="Repeat new password">
       </div>
-      <button type="submit" class="btn">Update Password</button>
-      <div id="pw-msg" style="margin-top:10px;font-size:0.88rem;"></div>
+      <div class="form-actions">
+        <button type="submit" class="btn">Update Password</button>
+        <div id="pw-msg" class="form-msg"></div>
+      </div>
     </form>
   </div>
 
-  <div class="panel">
-    <h2>Personal Info</h2>
-    <div id="admin-badge" style="display:none;margin-bottom:16px;padding:8px 14px;border-radius:6px;font-size:0.88rem;font-weight:500;"></div>
+  <div class="panel panel-form">
+    <div class="panel-header">
+      <h2>Personal Info</h2>
+      <span id="admin-badge" style="display:none;padding:4px 12px;border-radius:999px;font-size:0.75rem;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;"></span>
+    </div>
     <form id="info-form">
-      <div class="form-group">
-        <label for="info-name">Name</label>
-        <input type="text" id="info-name" placeholder="Full name">
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="info-name">Name</label>
+          <input type="text" id="info-name" placeholder="Full name">
+        </div>
+        <div class="form-group">
+          <label for="info-playa-name">Playa Name</label>
+          <input type="text" id="info-playa-name" placeholder="Your burn name">
+        </div>
+        <div class="form-group">
+          <label for="info-email">Email</label>
+          <input type="email" id="info-email" placeholder="Email address">
+        </div>
+        <div class="form-group">
+          <label for="info-phone">Phone</label>
+          <input type="text" id="info-phone" placeholder="Phone number">
+        </div>
+        <div class="form-group">
+          <label for="info-location">Location</label>
+          <input type="text" id="info-location" placeholder="City, Country">
+        </div>
+        <div class="form-group">
+          <label for="info-nationality">Nationality</label>
+          <input type="text" id="info-nationality" placeholder="Nationality">
+        </div>
+        <div class="form-group">
+          <label for="info-gender">Gender</label>
+          <input type="text" id="info-gender" placeholder="Gender">
+        </div>
+        <div class="form-group">
+          <label for="info-age">Age</label>
+          <input type="text" id="info-age" placeholder="Age">
+        </div>
       </div>
-      <div class="form-group">
-        <label for="info-playa-name">Playa Name</label>
-        <input type="text" id="info-playa-name" placeholder="Your burn name">
+      <div class="form-actions">
+        <button type="submit" class="btn">Save Changes</button>
+        <div id="info-msg" class="form-msg"></div>
       </div>
-      <div class="form-group">
-        <label for="info-email">Email</label>
-        <input type="email" id="info-email" placeholder="Email address">
-      </div>
-      <div class="form-group">
-        <label for="info-phone">Phone</label>
-        <input type="text" id="info-phone" placeholder="Phone number">
-      </div>
-      <div class="form-group">
-        <label for="info-location">Location</label>
-        <input type="text" id="info-location" placeholder="City, Country">
-      </div>
-      <div class="form-group">
-        <label for="info-nationality">Nationality</label>
-        <input type="text" id="info-nationality" placeholder="Nationality">
-      </div>
-      <div class="form-group">
-        <label for="info-gender">Gender</label>
-        <input type="text" id="info-gender" placeholder="Gender">
-      </div>
-      <div class="form-group">
-        <label for="info-age">Age</label>
-        <input type="text" id="info-age" placeholder="Age">
-      </div>
-      <button type="submit" class="btn">Save Changes</button>
-      <div id="info-msg" style="margin-top:10px;font-size:0.88rem;"></div>
     </form>
   </div>
 </div>

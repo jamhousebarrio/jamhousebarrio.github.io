@@ -208,7 +208,47 @@ table tbody tr:nth-child(even) td { background: rgba(255,255,255,0.012); }
 .btn-danger:hover, .btn-danger-sm:hover { text-decoration: underline; opacity: 1; color: #e74c3c; }
 .btn-sm { font-size: 0.75rem; padding: 0.35rem 0.8rem; }
 
+/* Generic primary button (used on forms) */
+.btn {
+  padding: 10px 24px; background: var(--accent); border: none; border-radius: var(--radius-sm);
+  color: var(--bg); font-family: var(--heading); font-size: 0.88rem; font-weight: 700;
+  cursor: pointer; transition: all 0.15s; letter-spacing: 0.02em;
+}
+.btn:hover { background: var(--accent-dim); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(232,168,76,0.2); }
+.btn:active { transform: translateY(0); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+
 /* ═══════════════════════════════════════ FORMS ═══════════════════════════════════════ */
+.panel-form { max-width: 760px; }
+.form-group { margin-bottom: 14px; }
+.form-group label {
+  display: block; font-family: var(--heading); font-size: 0.72rem; font-weight: 600;
+  color: var(--text-muted); margin-bottom: 6px; letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.form-group input[type="text"],
+.form-group input[type="email"],
+.form-group input[type="password"],
+.form-group input[type="tel"],
+.form-group input[type="number"],
+.form-group select,
+.form-group textarea {
+  width: 100%; padding: 10px 14px; font-size: 0.92rem;
+  background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  color: var(--text); font-family: var(--body);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+  outline: none; border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow-subtle);
+}
+.form-group input::placeholder { color: var(--text-muted); opacity: 0.55; }
+.form-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0 20px; }
+@media (max-width: 640px) { .form-grid { grid-template-columns: 1fr; } }
+.form-actions { display: flex; align-items: center; gap: 16px; margin-top: 12px; flex-wrap: wrap; }
+.form-msg { font-size: 0.85rem; color: var(--text-muted); min-height: 1em; }
+
+/* ═══════════════════════════════════════ FILTERS ═══════════════════════════════════════ */
 .filter-row { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; flex-wrap: wrap; }
 .filter-row select, .filter-row input {
   background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm);
