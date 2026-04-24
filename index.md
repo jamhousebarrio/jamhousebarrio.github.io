@@ -11,9 +11,8 @@ body_class: page-home
     <p>Some of us are seasoned musicians, some are honorable groupies. What unites us is how much we love the music.</p>
   </div>
   <div class="beat-photos">
-    {% assign photos = site.static_files | where_exp: "f", "f.path contains '/assets/images/home/who/'" | where_exp: "f", "f.extname != '.gitkeep'" %}
-    {% for photo in photos %}
-      <img src="{{ photo.path }}" alt="JamHouse moment" loading="lazy" class="beat-photo">
+    {% for photo in site.data.home_photos.who %}
+      <img src="{{ photo }}" alt="JamHouse moment" loading="lazy" class="beat-photo">
     {% endfor %}
   </div>
 </section>
@@ -32,9 +31,8 @@ body_class: page-home
     </ul>
   </div>
   <div class="beat-photos">
-    {% assign photos = site.static_files | where_exp: "f", "f.path contains '/assets/images/home/what/'" | where_exp: "f", "f.extname != '.gitkeep'" %}
-    {% for photo in photos %}
-      <img src="{{ photo.path }}" alt="JamHouse moment" loading="lazy" class="beat-photo">
+    {% for photo in site.data.home_photos.what %}
+      <img src="{{ photo }}" alt="JamHouse moment" loading="lazy" class="beat-photo">
     {% endfor %}
   </div>
 </section>
@@ -47,9 +45,8 @@ body_class: page-home
     <p class="beat-footnote">JamHouse is part of <a href="https://nobodies.team">Elsewhere 2026</a> — a participatory burn event in the Aragon desert, July 2026.</p>
   </div>
   <div class="beat-photos">
-    {% assign photos = site.static_files | where_exp: "f", "f.path contains '/assets/images/home/join/'" | where_exp: "f", "f.extname != '.gitkeep'" %}
-    {% for photo in photos %}
-      <img src="{{ photo.path }}" alt="JamHouse moment" loading="lazy" class="beat-photo">
+    {% for photo in site.data.home_photos.join %}
+      <img src="{{ photo }}" alt="JamHouse moment" loading="lazy" class="beat-photo">
     {% endfor %}
   </div>
 </section>

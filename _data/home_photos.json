@@ -1,0 +1,16 @@
+{
+  "who": [
+    "https://gtyogyuwuwuxorchfhbo.supabase.co/storage/v1/object/public/home-photos/who/who_we_are_1.jpg",
+    "https://gtyogyuwuwuxorchfhbo.supabase.co/storage/v1/object/public/home-photos/who/who_we_are_2.jpg"
+  ],
+  "what": [
+    "https://gtyogyuwuwuxorchfhbo.supabase.co/storage/v1/object/public/home-photos/what/what_happens_here_1.jpg",
+    "https://gtyogyuwuwuxorchfhbo.supabase.co/storage/v1/object/public/home-photos/what/what_happens_here_2.jpg"
+  ],
+  "join": [
+    "https://gtyogyuwuwuxorchfhbo.supabase.co/storage/v1/object/public/home-photos/join/join_us_1.jpg",
+    "https://gtyogyuwuwuxorchfhbo.supabase.co/storage/v1/object/public/home-photos/join/join_us_2.jpg",
+    "https://gtyogyuwuwuxorchfhbo.supabase.co/storage/v1/object/public/home-photos/join/join_us_3.jpg",
+    "https://gtyogyuwuwuxorchfhbo.supabase.co/storage/v1/object/public/home-photos/join/join_us_4.jpg"
+  ]
+}

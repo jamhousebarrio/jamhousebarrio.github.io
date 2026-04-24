@@ -4,8 +4,10 @@ import { authenticateRequest } from './_lib/auth.js';
 const PHOTO_TAB = 'BuildPhotos';
 const PHOTO_HEADERS = ['Id', 'Url', 'Labels', 'UploadedBy', 'UploadedAt'];
 const LEGACY_PHOTO_COUNT = 26;
-const LEGACY_PHOTO_PREFIX = '/assets/images/build-2025/build-';
+const OLD_LEGACY_PHOTO_PREFIX = '/assets/images/build-2025/build-';
 const PHOTO_BUCKET = 'build-photos';
+const LEGACY_PHOTO_PREFIX =
+  `${process.env.SUPABASE_URL || ''}/storage/v1/object/public/${PHOTO_BUCKET}/build-`;
 
 async function ensurePhotosSeeded(sheets, spreadsheetId) {
   const rows = await safeGet(sheets, spreadsheetId, PHOTO_TAB);
@@ -137,6 +139,32 @@ export default async function handler(req, res) {
     // ── Inventory write actions require admin ─────────────────────────────
     if (!auth.admin) {
       return res.status(401).json({ error: 'Admin required' });
+    }
+
+    // One-shot: rewrite BuildPhotos rows whose URL still points at the
+    // legacy in-repo path, pointing them at the Supabase public URL instead.
+    if (action === 'photo-migrate-legacy') {
+      const rows = await safeGet(sheets, spreadsheetId, PHOTO_TAB);
+      if (!rows.length) return res.status(200).json({ ok: true, migrated: 0, note: 'no rows' });
+      const headers = rows[0];
+      const urlCol = headers.indexOf('Url');
+      if (urlCol === -1) return res.status(500).json({ error: 'Url column missing' });
+      const updates = [];
+      rows.slice(1).forEach((r, i) => {
+        const u = r[urlCol] || '';
+        if (u.startsWith(OLD_LEGACY_PHOTO_PREFIX)) {
+          const newUrl = LEGACY_PHOTO_PREFIX + u.slice(OLD_LEGACY_PHOTO_PREFIX.length);
+          const colLetter = String.fromCharCode(65 + urlCol);
+          updates.push({ range: `${PHOTO_TAB}!${colLetter}${i + 2}`, values: [[newUrl]] });
+        }
+      });
+      if (updates.length) {
+        await sheets.spreadsheets.values.batchUpdate({
+          spreadsheetId,
+          requestBody: { valueInputOption: 'RAW', data: updates },
+        });
+      }
+      return res.status(200).json({ ok: true, migrated: updates.length });
     }
 
     switch (action) {

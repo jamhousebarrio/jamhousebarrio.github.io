@@ -1,5 +1,6 @@
 {
   "framework": "jekyll",
+  "buildCommand": "node scripts/build-home-photos-manifest.mjs && bundle exec jekyll build",
   "rewrites": [
     { "source": "/admin", "destination": "/admin.html" },
     { "source": "/admin/applications", "destination": "/admin/applications.html" },
