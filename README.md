@@ -128,7 +128,7 @@ Set these in Vercel (or a local `.env`):
 |---|---|
 | `SUPABASE_URL` | Supabase project URL |
 | `SUPABASE_ANON_KEY` | Public key (used in frontend) |
-| `SUPABASE_SERVICE_ROLE_KEY` | Secret key (server-side only, for user management) |
+| `SUPABASE_SECRET_KEY` | Supabase `sb_secret_…` key (server-side only, for user management) |
 | `SUPABASE_JWT_PUBLIC_KEY` | EC public key (JWK JSON) for verifying JWTs |
 | `SHEET_ID` | Google Sheet ID for members and all operational tabs |
 | `BUDGET_SHEET_ID` | Google Sheet ID for budget data |

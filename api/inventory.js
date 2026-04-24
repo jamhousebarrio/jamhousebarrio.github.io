@@ -25,7 +25,7 @@ async function ensurePhotosSeeded(sheets, spreadsheetId) {
 
 async function deleteStorageObject(path) {
   const base = process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const key = process.env.SUPABASE_SECRET_KEY;
   if (!base || !key || !path) return false;
   const res = await fetch(`${base}/storage/v1/object/${PHOTO_BUCKET}/${path}`, {
     method: 'DELETE',

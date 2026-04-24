@@ -3,7 +3,7 @@ import { verifyToken, getMemberByEmail, isAdmin } from './_lib/auth.js';
 import { getSheets } from './_lib/sheets.js';
 
 function getSupabaseAdmin() {
-  return createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, {
+  return createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SECRET_KEY, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 }

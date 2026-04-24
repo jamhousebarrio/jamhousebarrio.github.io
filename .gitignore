@@ -1,12 +1,14 @@
 node_modules/
 _site/
 .jekyll-cache/
-.vercel
-.env
-.env*.local
-
 vendor/
+
+# secrets & local tooling
+.env
+.env.*
+!.env.example
+.vercel/
+.claude/
+.superpowers/
 .worktrees/
-.claude/worktrees/
 .playwright-mcp/
-*.png

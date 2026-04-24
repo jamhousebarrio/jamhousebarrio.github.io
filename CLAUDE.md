@@ -68,7 +68,7 @@ vercel.json                     # URL rewrites & framework config
 ## Environment Variables (Vercel)
 - `SUPABASE_URL` — Supabase project URL
 - `SUPABASE_ANON_KEY` — Public key (used in frontend, hardcoded in `supabase-client.js`)
-- `SUPABASE_SERVICE_ROLE_KEY` — Secret key (server-side only, for `/api/auth.js`)
+- `SUPABASE_SECRET_KEY` — Supabase `sb_secret_…` key (server-side only, for `/api/auth.js`)
 - `SUPABASE_JWT_PUBLIC_KEY` — EC public key (JWK JSON) for verifying JWTs (ES256)
 - `SHEET_ID` — Members Google Sheet ID (also used for: Inventory, MemberLogistics, Meals, MealIngredients, ShiftData, DrinksSnacks, Events, Roles, Timeline tabs)
 - `BUDGET_SHEET_ID` — Budget Google Sheet ID (Budget, Total, Barrio Fee, ShoppingRequests tabs)
@@ -135,8 +135,8 @@ npm install
 cat > .env << 'EOF'
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_ANON_KEY=your_anon_key
-SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
-SUPABASE_JWT_SECRET=your_jwt_secret
+SUPABASE_SECRET_KEY=your_secret_key
+SUPABASE_JWT_PUBLIC_KEY={"kty":"EC",...}
 SHEET_ID=your_members_sheet_id
 BUDGET_SHEET_ID=your_budget_sheet_id
 GOOGLE_SERVICE_ACCOUNT_KEY={"type":"service_account",...}
