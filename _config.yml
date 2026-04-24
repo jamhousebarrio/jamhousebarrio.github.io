@@ -1,3 +1,16 @@
 title: JamHouse 2026
 description: Live music barrio at Elsewhere, Spain
 url: https://jamhousebarrio.github.io
+
+exclude:
+  - api/
+  - docs/
+  - scripts/
+  - node_modules/
+  - vendor/
+  - dev-server.mjs
+  - package.json
+  - package-lock.json
+  - vercel.json
+  - README.md
+  - CLAUDE.md
