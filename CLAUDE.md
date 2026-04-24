@@ -60,7 +60,8 @@ assets/
   js/admin-timeline.js          # Timeline page logic
   js/admin-profile.js           # Profile page logic
 scripts/
-  migrate-auth.js               # One-time Supabase account migration
+  upload-photos.mjs             # One-shot uploader for photos to Supabase Storage
+  build-home-photos-manifest.mjs # Vercel pre-build step for homepage photo manifest
 dev-server.mjs                  # Local development server
 vercel.json                     # URL rewrites & framework config
 ```

@@ -110,8 +110,6 @@ assets/
 scripts/
   upload-photos.mjs             # One-shot uploader for site/build/home photos to Supabase
   build-home-photos-manifest.mjs # Vercel pre-build step: writes _data/home_photos.json
-  migrate-auth.js               # One-time Supabase account migration (historical)
-  fix-phone-column.js           # One-time phone-column migration (historical)
 ```
 
 ---
