@@ -203,15 +203,13 @@
       var person = btn.dataset.person;
       var shiftId = btn.dataset.id;
       if (!confirm('Remove ' + person + ' from this shift?')) return;
-      var s = shifts.find(function (sh) { return sh.ShiftID === shiftId; });
-      if (!s) return;
-      var people = (s.AssignedTo || '').split(',').map(function (p) { return p.trim(); }).filter(Boolean);
-      var updated = people.filter(function (p) { return p !== person; }).join(', ');
-      var action = updated ? 'assign' : 'unassign';
-      var body = { action: action, shiftId: shiftId };
-      if (updated) body.memberName = updated;
-      var r = await JH.apiFetch('/api/shifts', body);
-      if (!r.ok) { alert('Failed.'); return; }
+      var r = await JH.apiFetch('/api/shifts', { action: 'remove-assignee', shiftId: shiftId, memberName: person });
+      if (!r.ok) {
+        var msg = 'Failed.';
+        try { var j = await r.json(); if (j && j.error) msg = j.error; } catch (e) {}
+        alert(msg);
+        return;
+      }
       await reload();
       return;
     }
@@ -488,13 +486,7 @@
     if (!name) { msg.textContent = 'Pick a name'; msg.style.color = '#f44336'; return; }
     msg.textContent = 'Saving...'; msg.style.color = '#888';
 
-    var s = shifts.find(function (sh) { return sh.ShiftID === assignShiftId; });
-    var existing = s ? (s.AssignedTo || '').split(',').map(function (p) { return p.trim(); }).filter(Boolean) : [];
-    if (existing.indexOf(name) !== -1) { msg.textContent = 'Already assigned'; msg.style.color = '#ff9800'; return; }
-    existing.push(name);
-    var combined = existing.join(', ');
-
-    var body = { action: 'assign', shiftId: assignShiftId, memberName: combined };
+    var body = { action: 'add-assignee', shiftId: assignShiftId, memberName: name };
     if (assignOverride && isAdmin) body.override = true;
     var r = await JH.apiFetch('/api/shifts', body);
     if (!r.ok) {
