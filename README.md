@@ -29,7 +29,8 @@ It's not a corporate product. It's a website built by friends, for friends, to a
 - **Admin: Events** — event calendar for July 7-12
 - **Admin: Roles & Leads** — role assignments and lead management
 - **Admin: Timeline** — setup timeline grid with task drag-drop
-- **Admin: Build Guide** — build/setup reference
+- **Admin: Build Guide** — build/setup reference, plus a shared photo gallery backed by Supabase Storage
+- **Admin: Useful Info** — communications panels, reference links, and shared docs for members
 - **Admin: Profile** — password change and personal info
 
 ---
@@ -45,6 +46,7 @@ It's not a corporate product. It's a website built by friends, for friends, to a
 | Date/Time pickers | Flatpickr |
 | Backend | Vercel serverless functions (Node.js) |
 | Data | Google Sheets via `@googleapis/sheets` + `google-auth-library` |
+| Media | Supabase Storage (homepage + site assets + build gallery photos) |
 | Hosting | Vercel (auto-deploys on push to `main`) |
 
 ---
@@ -68,7 +70,10 @@ admin/
   roles.html                    # Roles & leads assignment
   timeline.html                 # Setup timeline grid with task drag-drop
   profile.html                  # User profile: password change, personal info
-  build.html                    # Build guide
+  build.html                    # Build guide + shared photo gallery
+  info.html                     # Useful info / communications / references
+_data/
+  home_photos.json              # Homepage photo URLs (regenerated from Supabase)
 api/
   _lib/sheets.js                # Shared Google Sheets helpers
   _lib/auth.js                  # JWT verification, member lookup, admin check
@@ -101,6 +106,12 @@ assets/
   js/admin-shifts.js            # Shifts page logic
   js/admin-timeline.js          # Timeline page logic
   js/admin-profile.js           # Profile page logic
+  js/admin-info.js              # Useful Info page logic
+scripts/
+  upload-photos.mjs             # One-shot uploader for site/build/home photos to Supabase
+  build-home-photos-manifest.mjs # Vercel pre-build step: writes _data/home_photos.json
+  migrate-auth.js               # One-time Supabase account migration (historical)
+  fix-phone-column.js           # One-time phone-column migration (historical)
 ```
 
 ---
@@ -142,11 +153,32 @@ The app uses two Google Sheets:
 
 **Budget sheet** (`BUDGET_SHEET_ID`) — tabs: Total, Budget, Barrio Fee, ShoppingRequests
 
+### Photos (Supabase Storage)
+
+Photos are **not** tracked in git. Three public buckets:
+
+- `site-assets` — `hero.jpg`, `recruitment-process.jpg`
+- `build-photos` — gallery photos on `admin/build`, also shown on `admin/inventory`
+- `home-photos` — `who/`, `what/`, `join/` subfolders feeding the homepage clusters
+
+To add/change photos:
+
+```bash
+# Upload local files (idempotent, upserts) — requires SUPABASE_SECRET_KEY in .env
+node scripts/upload-photos.mjs
+
+# Regenerate the homepage manifest from the live bucket
+node scripts/build-home-photos-manifest.mjs
+git add _data/home_photos.json && git commit -m "Home: refresh photo manifest"
+```
+
 ---
 
 ## Deployment
 
-Vercel auto-deploys on every push to `main`. No manual steps needed. URL rewrites (e.g. `/admin` → `/admin.html`) are defined in `vercel.json`.
+Vercel auto-deploys on every push to `main`. The build command (set in `vercel.json`) runs `scripts/build-home-photos-manifest.mjs` before `bundle exec jekyll build`, so homepage photo clusters stay in sync with the `home-photos` bucket on every deploy (if `SUPABASE_URL` + `SUPABASE_SECRET_KEY` are available in Vercel's build env; otherwise the committed `_data/home_photos.json` is used as-is).
+
+URL rewrites (e.g. `/admin` → `/admin.html`) are defined in `vercel.json`.
 
 ---
 
