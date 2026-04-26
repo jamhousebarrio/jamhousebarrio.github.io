@@ -38,9 +38,6 @@
     budgetedEl.textContent = eur(s.budgeted);
     budgetedEl.style.color = s.budgeted > s.eventBudget ? '#f44336' : '#4caf50';
     document.getElementById('stat-spent').textContent = eur(s.spent);
-    // Committed = total fees paid
-    var committedEl = document.getElementById('stat-committed');
-    if (committedEl) committedEl.textContent = eur(typeof feePaid !== 'undefined' ? feePaid : fees.paid);
     // Barrio Fees Received (from new Sheet1 tracking)
     var feesRecvEl = document.getElementById('stat-fees-received');
     if (feesRecvEl) {
@@ -56,10 +53,10 @@
         feesRecvEl.textContent = eur(total);
       }).catch(function() {});
     }
-    var remainingEl = document.getElementById('stat-remaining');
-    var remaining = s.eventBudget - s.spent;
-    remainingEl.textContent = eur(remaining);
-    remainingEl.style.color = remaining < 0 ? '#f44336' : '#ff9800';
+    var headroomEl = document.getElementById('stat-headroom');
+    var headroom = s.eventBudget - s.budgeted;
+    headroomEl.textContent = eur(headroom);
+    headroomEl.style.color = headroom < 0 ? '#f44336' : '#ff9800';
   }
   updateStats();
 
@@ -605,11 +602,6 @@
   if (isAdmin) {
     var feesPanel = document.getElementById('fees-panel');
     if (feesPanel) feesPanel.style.display = '';
-  } else {
-    var committedCard = document.getElementById('stat-committed');
-    if (committedCard && committedCard.closest('.stat-card')) {
-      committedCard.closest('.stat-card').style.display = 'none';
-    }
   }
 
   // Build fee lookup from Barrio Fee tab by member name
