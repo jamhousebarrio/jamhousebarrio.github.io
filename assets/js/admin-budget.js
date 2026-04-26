@@ -41,6 +41,21 @@
     // Committed = total fees paid
     var committedEl = document.getElementById('stat-committed');
     if (committedEl) committedEl.textContent = eur(typeof feePaid !== 'undefined' ? feePaid : fees.paid);
+    // Barrio Fees Received (from new Sheet1 tracking)
+    var feesRecvEl = document.getElementById('stat-fees-received');
+    if (feesRecvEl) {
+      JH.apiFetch('/api/members', { action: 'fee-fetch' }).then(function(res) {
+        if (!res.ok) return;
+        return res.json();
+      }).then(function(d) {
+        if (!d || !d.roster) return;
+        var total = 0;
+        d.roster.forEach(function(r) {
+          if (r.fee_received) total += parseFloat(r.fee_total_sent) || 0;
+        });
+        feesRecvEl.textContent = eur(total);
+      }).catch(function() {});
+    }
     var remainingEl = document.getElementById('stat-remaining');
     var remaining = s.eventBudget - s.spent;
     remainingEl.textContent = eur(remaining);
