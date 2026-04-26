@@ -3,6 +3,10 @@
   if (!members) return;
 
   var EXPECTED = 280;
+  var LOW_INCOME = 180;
+  function targetFor(rec) {
+    return ((rec.low_income_status || '').toLowerCase() === 'approved') ? LOW_INCOME : EXPECTED;
+  }
   var sentInput = document.getElementById('sent-amount');
   var sentStatus = document.getElementById('sent-status');
   var liInput = document.getElementById('li-justification');
@@ -25,20 +29,22 @@
   function renderMyStatus(me) {
     var sent = me.fee_total_sent || 0;
     var received = me.fee_received;
+    var target = targetFor(me);
+    var liNote = target === LOW_INCOME ? ' (low income — €180)' : '';
     if (!sent) {
-      setStatus(sentStatus, 'status-grey', 'Not sent yet');
+      setStatus(sentStatus, 'status-grey', 'Not sent yet' + liNote);
       return;
     }
     if (!received) {
-      setStatus(sentStatus, 'status-yellow', '€' + sent + ' sent — awaiting confirmation');
+      setStatus(sentStatus, 'status-yellow', '€' + sent + ' sent — awaiting confirmation' + liNote);
       return;
     }
-    if (sent === EXPECTED) {
-      setStatus(sentStatus, 'status-green', '✓ €' + sent + ' received — fully paid');
-    } else if (sent < EXPECTED) {
-      setStatus(sentStatus, 'status-yellow', '✓ €' + sent + ' received — €' + (EXPECTED - sent) + ' still outstanding');
+    if (sent === target) {
+      setStatus(sentStatus, 'status-green', '✓ €' + sent + ' received — fully paid' + liNote);
+    } else if (sent < target) {
+      setStatus(sentStatus, 'status-yellow', '✓ €' + sent + ' received — €' + (target - sent) + ' still outstanding' + liNote);
     } else {
-      setStatus(sentStatus, 'status-green', '✓ €' + sent + ' received — paid with €' + (sent - EXPECTED) + ' extra. Thank you!');
+      setStatus(sentStatus, 'status-green', '✓ €' + sent + ' received — paid with €' + (sent - target) + ' extra. Thank you!' + liNote);
     }
   }
 
@@ -62,31 +68,32 @@
 
   function rosterRowClass(r) {
     if (r.fee_received) return 'row-green';
-    if ((r.low_income_status || '').toLowerCase() === 'approved') return '';
+    var target = targetFor(r);
     if (!r.fee_total_sent) return 'row-grey';
-    if (r.fee_total_sent < EXPECTED) return 'row-red';
+    if (r.fee_total_sent < target) return 'row-red';
     return 'row-green';
   }
 
   function rosterStatusText(r) {
     var sent = r.fee_total_sent || 0;
     var liApproved = (r.low_income_status || '').toLowerCase() === 'approved';
-    if (!sent && liApproved) return '🎟 Low income approved';
-    if (!sent) return '—';
+    var target = targetFor(r);
+    var liBadge = liApproved ? ' <span class="badge badge-li">🎟 €' + LOW_INCOME + '</span>' : '';
+    if (!sent) return '—' + liBadge;
     var extra = '';
-    if (sent > EXPECTED) extra = ' <span class="badge badge-extra">+€' + (sent - EXPECTED) + '</span>';
-    else if (sent < EXPECTED) extra = ' <span class="badge" style="background:rgba(244,67,54,0.18);color:#f06b60;">-€' + (EXPECTED - sent) + '</span>';
-    var liBadge = liApproved ? ' <span class="badge badge-li">🎟</span>' : '';
+    if (sent > target) extra = ' <span class="badge badge-extra">+€' + (sent - target) + '</span>';
+    else if (sent < target) extra = ' <span class="badge" style="background:rgba(244,67,54,0.18);color:#f06b60;">-€' + (target - sent) + '</span>';
     if (r.fee_received) return '✓ Received' + extra + liBadge;
     return 'Sent, awaiting' + extra + liBadge;
   }
 
   function renderRoster(roster) {
     var tbody = document.querySelector('#roster-table tbody');
-    var totalSent = 0, totalReceived = 0;
+    var totalSent = 0, totalReceived = 0, totalExpected = 0;
     var html = '';
     roster.forEach(function(r) {
       totalSent += r.fee_total_sent || 0;
+      totalExpected += targetFor(r);
       if (r.fee_received) totalReceived += r.fee_total_sent || 0;
       html += '<tr class="' + rosterRowClass(r) + '" data-row="' + r._row + '">' +
         '<td>' + esc(r.name) + '</td>' +
@@ -99,7 +106,7 @@
     tbody.innerHTML = html || '<tr><td colspan="5" style="color:var(--text-muted);">No approved members.</td></tr>';
     document.getElementById('t-sent').textContent = '€' + totalSent;
     document.getElementById('t-received').textContent = '€' + totalReceived;
-    document.getElementById('t-status').textContent = 'Outstanding: €' + Math.max(0, EXPECTED * roster.length - totalReceived);
+    document.getElementById('t-status').textContent = 'Outstanding: €' + Math.max(0, totalExpected - totalReceived);
 
     tbody.querySelectorAll('.recv-cb').forEach(function(cb) {
       cb.addEventListener('change', async function() {
@@ -171,6 +178,7 @@
     if (!res.ok) { sentStatus.textContent = 'Failed to load'; return; }
     var data = await res.json();
     EXPECTED = data.expected || 280;
+    LOW_INCOME = data.low_income_fee || 180;
     if (data.me) {
       sentInput.value = data.me.fee_total_sent || '';
       renderMyStatus(data.me);

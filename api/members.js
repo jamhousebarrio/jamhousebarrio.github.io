@@ -3,6 +3,7 @@ import { authenticateRequest } from './_lib/auth.js';
 
 const ALLOWED_STATUSES = ['Pending', 'Review', 'Vibe Check', 'Team Discussion', 'On-boarding', 'Approved', 'Rejected'];
 const BARRIO_FEE = 280;
+const LOW_INCOME_FEE = 180;
 const FEE_COLUMNS = ['fee_total_sent', 'fee_received', 'low_income_request', 'low_income_status'];
 
 async function tgSend(text) {
@@ -66,20 +67,18 @@ export default async function handler(req, res) {
       const headers = rows[0];
       const statusCol = headers.indexOf('Status');
       const recvCol = headers.indexOf('fee_received');
-      const liStatusCol = headers.indexOf('low_income_status');
       const outstanding = [];
       for (let i = 1; i < rows.length; i++) {
         const row = rows[i];
         if (((row[statusCol] || '').toLowerCase()) !== 'approved') continue;
         const received = ((row[recvCol] || '').toString().toUpperCase() === 'TRUE');
-        const liApproved = ((row[liStatusCol] || '').toString().toLowerCase() === 'approved');
-        if (received || liApproved) continue;
+        if (received) continue;
         const m = {};
         headers.forEach((h, j) => { m[h] = row[j] || ''; });
         outstanding.push(displayName(m));
       }
       if (outstanding.length) {
-        await tgSend('🔔 *Weekly barrio fee reminder*\nStill outstanding: ' + outstanding.join(', ') + '\nPlease send to the bank details on the Fee Paid page.');
+        await tgSend('🔔 *Weekly barrio fee reminder*\nStill outstanding: ' + outstanding.join(', ') + '\nBank details & status: [Fee Paid page](https://jamhouse.space/admin/fee-paid)');
       }
       return res.status(200).json({ outstanding: outstanding.length });
     } catch (e) {
@@ -157,7 +156,7 @@ export default async function handler(req, res) {
           });
         }
       }
-      return res.status(200).json({ expected: BARRIO_FEE, me: myFee, roster, admin: auth.admin });
+      return res.status(200).json({ expected: BARRIO_FEE, low_income_fee: LOW_INCOME_FEE, me: myFee, roster, admin: auth.admin });
     }
 
     // ── Fee: member saves total sent ─────────────────────────────────────
