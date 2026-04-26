@@ -1,11 +1,15 @@
 {
   "framework": "jekyll",
   "buildCommand": "node scripts/build-home-photos-manifest.mjs && bundle exec jekyll build",
+  "crons": [
+    { "path": "/api/members?cron=chase", "schedule": "0 10 * * 6" }
+  ],
   "rewrites": [
     { "source": "/admin", "destination": "/admin.html" },
     { "source": "/admin/applications", "destination": "/admin/applications.html" },
     { "source": "/admin/demographics", "destination": "/admin/demographics.html" },
     { "source": "/admin/budget", "destination": "/admin/budget.html" },
+    { "source": "/admin/fee-paid", "destination": "/admin/fee-paid.html" },
     { "source": "/admin/shifts", "destination": "/admin/shifts.html" },
     { "source": "/admin/inventory", "destination": "/admin/inventory.html" },
     { "source": "/admin/logistics", "destination": "/admin/logistics.html" },

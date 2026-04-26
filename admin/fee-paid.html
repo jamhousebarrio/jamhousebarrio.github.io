@@ -1,0 +1,122 @@
+---
+layout: none
+title: Fee Paid - JamHouse Admin
+access: general
+---
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Fee Paid - JamHouse Admin</title>
+  <meta name="access" content="general">
+  <link rel="icon" type="image/svg+xml" href="/images/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/admin.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/assets/js/supabase-client.js"></script>
+  <style>
+    .bank-details { background: var(--surface2); padding: 14px 18px; border-radius: 6px; border: 1px solid var(--border); margin: 12px 0; font-family: 'JetBrains Mono', monospace; font-size: 0.92rem; line-height: 1.7; }
+    .bank-details strong { color: var(--accent); display: inline-block; min-width: 130px; }
+    .status-line { padding: 10px 14px; border-radius: 6px; margin-top: 12px; font-size: 0.95rem; font-weight: 500; }
+    .status-grey { background: rgba(255,255,255,0.04); color: var(--text-muted); border: 1px solid var(--border); }
+    .status-yellow { background: rgba(232,168,76,0.12); color: var(--accent); border: 1px solid rgba(232,168,76,0.3); }
+    .status-green { background: rgba(76,175,80,0.12); color: #6dcf72; border: 1px solid rgba(76,175,80,0.3); }
+    .status-red { background: rgba(244,67,54,0.12); color: #f06b60; border: 1px solid rgba(244,67,54,0.3); }
+    .fee-table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+    .fee-table th, .fee-table td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--border); font-size: 0.92rem; }
+    .fee-table th { color: var(--text-muted); font-weight: 500; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; }
+    .fee-table tr.row-grey { background: rgba(255,255,255,0.02); }
+    .fee-table tr.row-red td:first-child { border-left: 3px solid #f06b60; }
+    .fee-table tr.row-green td:first-child { border-left: 3px solid #6dcf72; }
+    .fee-table tr.row-grey td:first-child { border-left: 3px solid #555; }
+    .fee-table tfoot td { font-weight: 600; border-top: 2px solid var(--border); border-bottom: none; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 0.78rem; margin-left: 6px; }
+    .badge-extra { background: rgba(76,175,80,0.18); color: #6dcf72; }
+    .badge-li { background: rgba(232,168,76,0.18); color: var(--accent); }
+    .li-card { background: var(--surface2); padding: 14px; border-radius: 6px; border: 1px solid var(--border); margin-bottom: 10px; }
+    .li-card .who { font-weight: 600; margin-bottom: 6px; }
+    .li-card .just { color: var(--text-muted); margin-bottom: 10px; white-space: pre-wrap; font-size: 0.9rem; }
+    .li-actions { display: flex; gap: 8px; }
+    .btn-sm { padding: 6px 12px; font-size: 0.85rem; }
+    .btn-decline { background: transparent; color: #f06b60; border: 1px solid #f06b60; }
+    .text-help { color: var(--text-muted); font-size: 0.88rem; margin-bottom: 12px; line-height: 1.5; }
+  </style>
+</head>
+<body>
+<nav class="sidebar"></nav>
+<div class="main">
+  <div class="page-header">
+    <h1><span class="icon">&#128176;</span> Fee Paid</h1>
+    <div class="subtitle">Barrio fee — €280 per person</div>
+  </div>
+
+  <div class="panel">
+    <h2>Payment Instructions</h2>
+    <p class="text-help">Your contribution covers shared infrastructure: power, sound, kitchen, communal meals and barrio build materials.</p>
+    <p class="text-help"><strong>Please send the full €280 in a single transfer if at all possible</strong> — it keeps bank fees down and makes reconciliation easier for everyone. Only split into multiple transfers if absolutely necessary; in that case, come back here and update your total each time you send more.</p>
+    <div class="bank-details">
+      <div><strong>Account holder:</strong> Ilias Fanteev</div>
+      <div><strong>IBAN:</strong> BE34 9671 9337 2290</div>
+      <div><strong>BIC:</strong> TRWIBEB1XXX</div>
+      <div><strong>Wise's address:</strong> Rue du Trône 100, 3rd floor, Brussels 1050, Belgium</div>
+    </div>
+    <p class="text-help">Use your <strong>playa name</strong> as the transfer reference so we can match it up.</p>
+  </div>
+
+  <div class="panel">
+    <h2>Total Fee Sent</h2>
+    <p class="text-help">Enter the cumulative total you've transferred so far. If you send a follow-up payment, return and update the total — the admin will reconfirm.</p>
+    <form id="sent-form" style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
+      <div class="form-group" style="flex:1;min-width:180px;margin:0;">
+        <label for="sent-amount">Total fee sent (€)</label>
+        <input type="number" id="sent-amount" min="0" step="0.01" placeholder="0">
+      </div>
+      <button type="submit" class="btn">Save</button>
+    </form>
+    <div id="sent-status" class="status-line status-grey">Loading…</div>
+  </div>
+
+  <div class="panel">
+    <h2>Low Income Ticket Request</h2>
+    <p class="text-help">If €280 is genuinely a barrier for you, you can request a reduced fee. Please explain your situation — this stays confidential and is only seen by the barrio admins. We'll review and get back to you privately.</p>
+    <form id="li-form">
+      <div class="form-group">
+        <textarea id="li-justification" rows="4" placeholder="Explain your situation…" style="width:100%;resize:vertical;"></textarea>
+      </div>
+      <div style="display:flex;gap:10px;">
+        <button type="submit" class="btn" id="li-submit">Submit request</button>
+        <button type="button" class="btn btn-decline" id="li-withdraw" style="display:none;">Withdraw request</button>
+      </div>
+    </form>
+    <div id="li-status" class="status-line status-grey" style="display:none;"></div>
+  </div>
+
+  <div class="panel admin-only" style="display:none;">
+    <h2>Low income requests</h2>
+    <p class="text-help">Review pending requests. Approve to grant the reduced fee, or decline. Approved/declined entries remain visible.</p>
+    <div id="li-list"><em style="color:var(--text-muted);">No requests yet.</em></div>
+  </div>
+
+  <div class="panel admin-only" style="display:none;">
+    <h2>All approved members</h2>
+    <p class="text-help">Tick <strong>Received</strong> once the bank confirms. If a member updates their amount afterwards, the tick auto-clears and you'll need to confirm again.</p>
+    <div style="overflow-x:auto;">
+      <table class="fee-table" id="roster-table">
+        <thead>
+          <tr><th>Name</th><th>Playa Name</th><th>Sent (€)</th><th>Status</th><th>Received</th></tr>
+        </thead>
+        <tbody></tbody>
+        <tfoot>
+          <tr><td colspan="2">Totals</td><td id="t-sent">€0</td><td id="t-status"></td><td id="t-received">€0</td></tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script src="/assets/js/admin-auth.js"></script>
+<script src="/assets/js/admin-fee-paid.js"></script>
+</body>
+</html>
