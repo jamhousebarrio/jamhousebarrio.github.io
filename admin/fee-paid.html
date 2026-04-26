@@ -17,8 +17,9 @@ access: general
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="/assets/js/supabase-client.js"></script>
   <style>
-    .bank-details { background: var(--surface2); padding: 14px 18px; border-radius: 6px; border: 1px solid var(--border); margin: 12px 0; font-family: 'JetBrains Mono', monospace; font-size: 0.92rem; line-height: 1.7; }
-    .bank-details strong { color: var(--accent); display: inline-block; min-width: 130px; }
+    .bank-details { background: var(--surface2); padding: 14px 18px; border-radius: 6px; border: 1px solid var(--border); margin: 12px 0; font-family: 'JetBrains Mono', monospace; font-size: 0.92rem; line-height: 1.7; display: grid; grid-template-columns: max-content 1fr; column-gap: 16px; row-gap: 4px; }
+    .bank-details strong { color: var(--accent); }
+    .admin-divider { margin: 32px 0 18px; padding: 10px 14px; background: rgba(232,168,76,0.08); border-left: 3px solid var(--accent); border-radius: 4px; color: var(--accent); font-weight: 600; font-size: 0.95rem; letter-spacing: 0.5px; text-transform: uppercase; }
     .status-line { padding: 10px 14px; border-radius: 6px; margin-top: 12px; font-size: 0.95rem; font-weight: 500; }
     .status-grey { background: rgba(255,255,255,0.04); color: var(--text-muted); border: 1px solid var(--border); }
     .status-yellow { background: rgba(232,168,76,0.12); color: var(--accent); border: 1px solid rgba(232,168,76,0.3); }
@@ -57,10 +58,10 @@ access: general
     <p class="text-help">Your contribution covers shared infrastructure: power, sound, kitchen, communal meals and barrio build materials.</p>
     <p class="text-help"><strong>Please send the full €280 in a single transfer if at all possible</strong> — it keeps bank fees down and makes reconciliation easier for everyone. Only split into multiple transfers if absolutely necessary; in that case, come back here and update your total each time you send more.</p>
     <div class="bank-details">
-      <div><strong>Account holder:</strong> Ilias Fanteev</div>
-      <div><strong>IBAN:</strong> BE34 9671 9337 2290</div>
-      <div><strong>BIC:</strong> TRWIBEB1XXX</div>
-      <div><strong>Wise's address:</strong> Rue du Trône 100, 3rd floor, Brussels 1050, Belgium</div>
+      <strong>Account holder:</strong><span>Ilias Fanteev</span>
+      <strong>IBAN:</strong><span>BE34 9671 9337 2290</span>
+      <strong>BIC:</strong><span>TRWIBEB1XXX</span>
+      <strong>Wise's address:</strong><span>Rue du Trône 100, 3rd floor, Brussels 1050, Belgium</span>
     </div>
     <p class="text-help">Use your <strong>playa name</strong> as the transfer reference so we can match it up.</p>
   </div>
@@ -92,6 +93,8 @@ access: general
     </form>
     <div id="li-status" class="status-line status-grey" style="display:none;"></div>
   </div>
+
+  <div class="admin-divider admin-only" style="display:none;">⚙ Admin section — visible only to admins</div>
 
   <div class="panel admin-only" style="display:none;">
     <h2>Low income requests</h2>
