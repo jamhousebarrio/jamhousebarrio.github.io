@@ -98,7 +98,7 @@
       html += '<tr class="' + rosterRowClass(r) + '" data-row="' + r._row + '">' +
         '<td>' + esc(r.name) + '</td>' +
         '<td>' + esc(r.playa_name) + '</td>' +
-        '<td>€' + (r.fee_total_sent || 0) + '</td>' +
+        '<td>€<input type="number" class="sent-input" min="0" step="0.01" value="' + (r.fee_total_sent || 0) + '" style="width:80px;background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:4px;padding:3px 6px;font-family:inherit;font-size:0.92rem;"></td>' +
         '<td>' + rosterStatusText(r) + '</td>' +
         '<td><input type="checkbox" class="recv-cb" ' + (r.fee_received ? 'checked' : '') + '></td>' +
         '</tr>';
@@ -107,6 +107,26 @@
     document.getElementById('t-sent').textContent = '€' + totalSent;
     document.getElementById('t-received').textContent = '€' + totalReceived;
     document.getElementById('t-status').textContent = 'Outstanding: €' + Math.max(0, totalExpected - totalReceived);
+
+    tbody.querySelectorAll('.sent-input').forEach(function(inp) {
+      var original = inp.value;
+      inp.addEventListener('change', async function() {
+        var row = parseInt(inp.closest('tr').getAttribute('data-row'));
+        var amount = parseFloat(inp.value);
+        if (!isFinite(amount) || amount < 0) { inp.value = original; alert('Enter a valid amount'); return; }
+        inp.disabled = true;
+        try {
+          var res = await JH.apiFetch('/api/members', { action: 'admin-update-fee-sent', row: row, amount: amount });
+          if (!res.ok) throw new Error('Failed');
+          await load();
+        } catch (e) {
+          inp.value = original;
+          alert('Failed to update');
+        } finally {
+          inp.disabled = false;
+        }
+      });
+    });
 
     tbody.querySelectorAll('.recv-cb').forEach(function(cb) {
       cb.addEventListener('change', async function() {

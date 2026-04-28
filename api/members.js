@@ -238,6 +238,28 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true });
     }
 
+    // ── Fee: admin updates total sent amount ─────────────────────────────
+    if (action === 'admin-update-fee-sent') {
+      const { row } = payload;
+      const amount = parseFloat(payload.amount);
+      if (!row) return res.status(400).json({ error: 'Row required' });
+      if (!isFinite(amount) || amount < 0) return res.status(400).json({ error: 'Invalid amount' });
+      const r = await sheets.spreadsheets.values.get({ spreadsheetId, range: 'Sheet1!1:1' });
+      let hdrs = (r.data.values || [[]])[0] || [];
+      hdrs = await ensureFeeColumns(sheets, spreadsheetId, hdrs);
+      const cur = await sheets.spreadsheets.values.get({ spreadsheetId, range: 'Sheet1!' + row + ':' + row });
+      const curRow = (cur.data.values || [[]])[0] || [];
+      const sentCol = hdrs.indexOf('fee_total_sent');
+      const recvCol = hdrs.indexOf('fee_received');
+      const oldAmount = parseFloat(curRow[sentCol]) || 0;
+      await writeCell(sheets, spreadsheetId, hdrs, row, 'fee_total_sent', amount);
+      const wasReceived = ((curRow[recvCol] || '').toString().toUpperCase() === 'TRUE');
+      if (wasReceived && oldAmount !== amount) {
+        await writeCell(sheets, spreadsheetId, hdrs, row, 'fee_received', 'FALSE');
+      }
+      return res.status(200).json({ success: true });
+    }
+
     // ── Fee: admin reviews low income request ────────────────────────────
     if (action === 'review-low-income') {
       const { row, decision } = payload;
