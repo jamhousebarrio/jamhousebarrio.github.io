@@ -1,0 +1,530 @@
+---
+layout: none
+title: Meal Plan - JamHouse Admin
+access: general
+---
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Meal Plan - JamHouse Admin</title>
+  <meta name="access" content="general">
+  <link rel="icon" type="image/svg+xml" href="/images/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/admin.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/assets/js/supabase-client.js"></script>
+  <style>
+    .jh-wrap * { box-sizing: border-box; }
+
+    .jh-wrap {
+      font-family: 'DM Sans', sans-serif;
+      font-weight: 300;
+      background: #0E0E0E;
+      min-height: calc(100vh - 60px);
+      padding: 2rem 1.5rem;
+      color: #F5F0E8;
+    }
+
+    .jh-header {
+      text-align: center;
+      margin-bottom: 2.5rem;
+    }
+
+    .jh-camp-name {
+      font-family: 'Playfair Display', serif;
+      font-style: italic;
+      font-size: clamp(28px, 5vw, 42px);
+      color: #F5F0E8;
+      letter-spacing: 0.02em;
+      margin: 0 0 4px;
+    }
+
+    .jh-event-name {
+      font-size: 12px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: #888;
+      margin: 0;
+    }
+
+    .jh-nav {
+      display: flex;
+      gap: 6px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 2.5rem;
+    }
+
+    .jh-nav-btn {
+      background: transparent;
+      border: 0.5px solid #2A2A2A;
+      border-radius: 99px;
+      padding: 6px 14px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 12px;
+      font-weight: 400;
+      color: #666;
+      cursor: pointer;
+      transition: all 0.2s;
+      letter-spacing: 0.03em;
+    }
+
+    .jh-nav-btn:hover {
+      border-color: #444;
+      color: #aaa;
+    }
+
+    .jh-nav-btn.active {
+      color: #0E0E0E;
+      font-weight: 500;
+    }
+
+    .jh-card {
+      max-width: 720px;
+      margin: 0 auto;
+      border-radius: 16px;
+      overflow: hidden;
+      border: 0.5px solid #2A2A2A;
+      animation: jh-fade 0.3s ease;
+    }
+
+    @keyframes jh-fade {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .jh-card-header {
+      padding: 2rem 2.5rem 1.5rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .jh-card-header-bg {
+      position: absolute;
+      inset: 0;
+      opacity: 0.08;
+      background: radial-gradient(ellipse at 80% 20%, currentColor 0%, transparent 70%);
+    }
+
+    .jh-night-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1.25rem;
+      position: relative;
+    }
+
+    .jh-night-badge {
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 4px 12px;
+      border-radius: 99px;
+      border: 0.5px solid;
+    }
+
+    .jh-theme-badge {
+      font-size: 11px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #666;
+    }
+
+    .jh-emoji {
+      font-size: 36px;
+      margin-bottom: 0.75rem;
+      display: block;
+      position: relative;
+    }
+
+    .jh-main-title {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(22px, 4vw, 32px);
+      font-weight: 600;
+      color: #F5F0E8;
+      margin: 0 0 0.75rem;
+      line-height: 1.2;
+      position: relative;
+    }
+
+    .jh-main-desc {
+      font-size: 14px;
+      color: #999;
+      line-height: 1.7;
+      margin: 0;
+      position: relative;
+      max-width: 560px;
+    }
+
+    .jh-card-body {
+      padding: 1.5rem 2.5rem;
+      background: #141414;
+      border-top: 0.5px solid #2A2A2A;
+    }
+
+    .jh-options-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 1.5rem;
+    }
+
+    .jh-option {
+      padding: 10px 14px;
+      border-radius: 10px;
+      border: 0.5px solid #2A2A2A;
+    }
+
+    .jh-option-label {
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin: 0 0 4px;
+    }
+
+    .jh-option-text {
+      font-size: 13px;
+      color: #ccc;
+      margin: 0;
+      line-height: 1.4;
+    }
+
+    .jh-section-title {
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #555;
+      margin: 0 0 10px;
+    }
+
+    .jh-sides {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 1.5rem;
+    }
+
+    .jh-side-tag {
+      font-size: 12px;
+      padding: 4px 12px;
+      border-radius: 99px;
+      background: #1E1E1E;
+      border: 0.5px solid #2E2E2E;
+      color: #aaa;
+    }
+
+    .jh-divider {
+      height: 0.5px;
+      background: #2A2A2A;
+      margin: 1.5rem 0;
+    }
+
+    .jh-dessert {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 1rem;
+      align-items: start;
+    }
+
+    .jh-dessert-icon {
+      font-size: 24px;
+      margin-top: 2px;
+    }
+
+    .jh-dessert-label {
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #ED93B1;
+      margin: 0 0 4px;
+    }
+
+    .jh-dessert-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 17px;
+      color: #F5F0E8;
+      margin: 0 0 6px;
+      line-height: 1.3;
+    }
+
+    .jh-dessert-desc {
+      font-size: 13px;
+      color: #888;
+      line-height: 1.6;
+      margin: 0 0 6px;
+    }
+
+    .jh-dessert-note {
+      font-size: 11px;
+      color: #ED93B1;
+      opacity: 0.8;
+      margin: 0;
+    }
+
+    .jh-card-footer {
+      padding: 1rem 2.5rem;
+      background: #0E0E0E;
+      border-top: 0.5px solid #2A2A2A;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .jh-footer-text {
+      font-size: 11px;
+      color: #444;
+      letter-spacing: 0.06em;
+    }
+
+    .jh-footer-time {
+      font-size: 12px;
+      color: #666;
+      font-weight: 500;
+    }
+
+    .jh-finale-banner {
+      text-align: center;
+      padding: 8px;
+      font-size: 11px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      font-weight: 500;
+    }
+
+    @media (max-width: 600px) {
+      .jh-wrap { padding: 1.25rem 1rem; }
+      .jh-card-header { padding: 1.5rem 1.25rem 1.25rem; }
+      .jh-card-body { padding: 1.25rem; }
+      .jh-card-footer { padding: 0.875rem 1.25rem; }
+      .jh-options-row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+<nav class="sidebar"></nav>
+
+<div class="main" style="padding:0">
+  <div class="jh-wrap" id="jh-wrap"></div>
+</div>
+
+<script src="/assets/js/admin-auth.js"></script>
+<script>
+var nights = [
+  {
+    night: 1, theme: 'Middle East', emoji: '🌙',
+    color: '#7C6FCD', colorLight: '#EEEDFE', colorBorder: '#AFA9EC',
+    main: {
+      title: 'Smoky Shakshuka Fiesta',
+      description: 'Giant pans of slow-cooked smoky tomato & roasted pepper sauce, spiced lentils, eggs poached directly in the sauce until just set. Served with warm flatbreads straight off the grill.',
+      vegan: 'Full vegan base — eggs optional',
+      meat: '+ Merguez sausage',
+      sides: ['Zhug (green chilli sauce)', 'Whipped labneh', 'Harissa butter', 'Warm flatbreads'],
+    },
+    dessert: {
+      title: 'Cardamom & Orange Blossom Semolina Cake',
+      description: 'Dense, syrup-soaked semolina cake fragrant with cardamom and orange blossom water. Topped with toasted almonds and a dusting of powdered sugar.',
+      note: 'Fully vegan',
+    },
+  },
+  {
+    night: 2, theme: 'Greece', emoji: '🫙',
+    color: '#1E9E78', colorLight: '#E1F5EE', colorBorder: '#5DCAA5',
+    main: {
+      title: 'Pita Gyros Night',
+      description: 'Build-your-own pitas loaded with slow-roasted vegetables, crispy pan-fried falafel, and all the fixings. A toppings bar with everything you need to make it your own.',
+      vegan: 'Crispy falafel',
+      meat: '+ Chicken souvlaki skewers',
+      sides: ['Tzatziki', 'Tahini sauce', 'Pickled red onion', 'Fresh tomato & herbs', 'Warm pitas'],
+    },
+    dessert: {
+      title: 'Honey & Walnut Baklava Bites',
+      description: 'Individual crispy phyllo pastry bites packed with spiced walnut & pistachio filling, drenched in honey and rosewater syrup. One is never enough.',
+      note: 'Fully vegan',
+    },
+  },
+  {
+    night: 3, theme: 'India', emoji: '🪔',
+    color: '#C4511A', colorLight: '#FAECE7', colorBorder: '#F0997B',
+    main: {
+      title: 'The Great Dal & Mango Feast',
+      description: 'A rich, slow-cooked black dal makhani — buttery, smoky, deeply flavourful — served over fragrant basmati rice with all the trimmings for a proper Indian feast.',
+      vegan: 'Full vegan dal',
+      meat: '+ Lamb kofta (pan-seared)',
+      sides: ['Mango chutney', 'Cucumber raita', 'Crispy fried onions', 'Papads', 'Fresh coriander'],
+    },
+    dessert: {
+      title: 'Fudgy Chocolate Brownies',
+      description: 'Dense, intensely chocolatey brownies with a shiny crinkle top and fudgy centre. The kind that make everyone ask for the recipe.',
+      note: 'Vegan option available',
+    },
+  },
+  {
+    night: 4, theme: 'Korea', emoji: '🥢',
+    color: '#B05E0D', colorLight: '#FEF3E7', colorBorder: '#FAC775',
+    main: {
+      title: 'Korean Japchae & Banchan',
+      description: 'Glass sweet potato noodles stir-fried in the wok with sesame oil, colourful vegetables and crispy tofu. Served with a full spread of Korean banchan side dishes.',
+      vegan: 'Crispy tofu japchae',
+      meat: '+ Bulgogi beef',
+      sides: ['Gochujang sauce', 'Pickled daikon', 'Seasoned spinach (sigeumchi)', 'Kimchi-style cabbage', 'Sesame seeds'],
+    },
+    dessert: {
+      title: 'Tiramisù in a Tub',
+      description: 'Classic Italian tiramisù — espresso-soaked savoiardi biscuits layered with silky mascarpone cream, dusted generously with dark cocoa powder. Scooped fresh to order.',
+      note: 'Contains coffee & eggs',
+    },
+  },
+  {
+    night: 5, theme: 'Morocco', emoji: '🏺',
+    color: '#9C2F5B', colorLight: '#FBEAF0', colorBorder: '#ED93B1',
+    main: {
+      title: 'Moroccan Magic Night',
+      description: 'Two slow-cooked tagines side by side — a fragrant chickpea & dried apricot tagine and a meltingly tender slow lamb shoulder — served over fluffy couscous with all the garnishes.',
+      vegan: 'Chickpea & apricot tagine',
+      meat: '+ Slow-cooked lamb shoulder tagine',
+      sides: ['Preserved lemon gremolata', 'Rose harissa', 'Fresh mint', 'Pomegranate seeds', 'Toasted almonds'],
+    },
+    dessert: {
+      title: 'Sticky Medjool Date & Almond Blondies',
+      description: 'Chewy, caramel-rich blondies studded with Medjool dates and toasted almonds, perfumed with cardamom and finished with sea salt flakes. A North African love letter in bar form.',
+      note: 'Fully vegan',
+    },
+  },
+  {
+    night: 6, theme: 'Italy', emoji: '🍝',
+    color: '#3B7A2E', colorLight: '#EAF3DE', colorBorder: '#97C459',
+    main: {
+      title: 'Big Pot Pasta — Three Sauces',
+      description: 'A giant pot of perfectly cooked pasta served with three slow-cooked sauces, each made from scratch and reheated to order. Build your own plate, go back for seconds.',
+      vegan: 'Tomato & white bean ragù  ·  Walnut, sage & brown butter',
+      meat: '+ Slow Bolognese',
+      sides: ['Garlic-parsley butter bread (panini grill)', 'Bitter leaf & lemon salad', 'Chilli flakes', 'Parmesan (optional)'],
+    },
+    dessert: {
+      title: 'Olive Oil & Blood Orange Polenta Cake',
+      description: 'Golden, moist polenta cake made with good olive oil and blood orange zest, soaked in a citrus syrup and topped with candied orange slices. Light enough after pasta.',
+      note: 'Fully vegan',
+    },
+  },
+  {
+    night: 7, theme: 'Grand Finale', emoji: '🔥',
+    color: '#1A6BB5', colorLight: '#E6F1FB', colorBorder: '#85B7EB',
+    isFinale: true,
+    main: {
+      title: 'Persian-Levantine Skewer & Mezze Feast',
+      description: 'The closing night table. Saffron & lemon chicken skewers and halloumi & vegetable skewers, reheated to perfection, served alongside a sprawling mezze spread. The feast that keeps giving.',
+      vegan: 'Halloumi & vegetable skewers + full mezze spread',
+      meat: '+ Saffron & lemon chicken skewers',
+      sides: ['Hummus', 'Baba ganoush', 'Tabbouleh', 'Tahini sauce', 'Pickled red onion', 'Yoghurt & herb dip', 'Warm flatbreads', 'Sumac oil', 'Olives & chilli'],
+    },
+    dessert: {
+      title: 'Honey-Chilli Glazed Fruit Skewers',
+      description: 'Fresh seasonal fruit — strawberry, mango, pineapple, watermelon — brushed with a warm honey, lime & chilli glaze. Served with whipped coconut cream & rosewater dipping sauce, finished with crushed pistachio.',
+      note: 'Fully vegan · The sweetest send-off',
+    },
+  },
+];
+
+var selected = 0;
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function renderCard(n) {
+  var borderColor = n.colorBorder + '44';
+  var headerBg = n.color + '18';
+
+  var finaleBanner = n.isFinale
+    ? '<div class="jh-finale-banner" style="background:' + n.colorLight + '15;color:' + n.color + ';border-bottom:0.5px solid ' + n.colorBorder + '44">\u2736 Grand Finale Night \u2736</div>'
+    : '';
+
+  var sides = n.main.sides.map(function(s) {
+    return '<span class="jh-side-tag">' + esc(s) + '</span>';
+  }).join('');
+
+  return '<div class="jh-card" style="border-color:' + borderColor + '">'
+    + finaleBanner
+    + '<div class="jh-card-header" style="background:' + headerBg + '">'
+    +   '<div class="jh-card-header-bg" style="color:' + n.color + '"></div>'
+    +   '<div class="jh-night-row">'
+    +     '<span class="jh-night-badge" style="color:' + n.color + ';border-color:' + n.colorBorder + '80;background:' + n.colorLight + '15">Night ' + n.night + '</span>'
+    +     '<span class="jh-theme-badge">' + esc(n.theme) + '</span>'
+    +   '</div>'
+    +   '<span class="jh-emoji">' + n.emoji + '</span>'
+    +   '<h2 class="jh-main-title">' + esc(n.main.title) + '</h2>'
+    +   '<p class="jh-main-desc">' + esc(n.main.description) + '</p>'
+    + '</div>'
+    + '<div class="jh-card-body">'
+    +   '<div class="jh-options-row">'
+    +     '<div class="jh-option" style="background:#0E1A0E;border-color:#1A3A1A">'
+    +       '<p class="jh-option-label" style="color:#5DCAA5">🌿 Vegan</p>'
+    +       '<p class="jh-option-text">' + esc(n.main.vegan) + '</p>'
+    +     '</div>'
+    +     '<div class="jh-option" style="background:#1A0E0E;border-color:#3A1A1A">'
+    +       '<p class="jh-option-label" style="color:#F0997B">🥩 Meat option</p>'
+    +       '<p class="jh-option-text">' + esc(n.main.meat) + '</p>'
+    +     '</div>'
+    +   '</div>'
+    +   '<p class="jh-section-title">On the table</p>'
+    +   '<div class="jh-sides">' + sides + '</div>'
+    +   '<div class="jh-divider"></div>'
+    +   '<div class="jh-dessert">'
+    +     '<span class="jh-dessert-icon">🍬</span>'
+    +     '<div>'
+    +       '<p class="jh-dessert-label">Dessert</p>'
+    +       '<h3 class="jh-dessert-title">' + esc(n.dessert.title) + '</h3>'
+    +       '<p class="jh-dessert-desc">' + esc(n.dessert.description) + '</p>'
+    +       '<p class="jh-dessert-note">' + esc(n.dessert.note) + '</p>'
+    +     '</div>'
+    +   '</div>'
+    + '</div>'
+    + '<div class="jh-card-footer">'
+    +   '<span class="jh-footer-text">Jam House · ElseWhere 2026</span>'
+    +   '<span class="jh-footer-time">Dinner · 19:00</span>'
+    + '</div>'
+    + '</div>';
+}
+
+function renderNav() {
+  return nights.map(function(n, i) {
+    var isActive = i === selected;
+    var style = isActive ? 'background:' + n.color + ';border-color:' + n.color : '';
+    var cls = 'jh-nav-btn' + (isActive ? ' active' : '');
+    return '<button class="' + cls + '" style="' + style + '" data-index="' + i + '">'
+      + n.emoji + ' Night ' + n.night + (n.isFinale ? ' \u2605' : '')
+      + '</button>';
+  }).join('');
+}
+
+function render() {
+  var wrap = document.getElementById('jh-wrap');
+  wrap.innerHTML =
+    '<div class="jh-header">'
+    + '<p class="jh-camp-name">Jam House</p>'
+    + '<p class="jh-event-name">ElseWhere 2026 · Evening Meals · 19:00</p>'
+    + '</div>'
+    + '<nav class="jh-nav" aria-label="Select night">' + renderNav() + '</nav>'
+    + renderCard(nights[selected]);
+
+  wrap.querySelectorAll('.jh-nav-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      selected = parseInt(this.dataset.index, 10);
+      render();
+    });
+  });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  JH.authenticate().then(function() { render(); });
+});
+</script>
+</body>
+</html>

@@ -156,6 +156,7 @@ JH.sidebarNav = [
   { href: '/admin/inventory', icon: '&#128722;', text: 'Inventory', access: 'general' },
   { href: '/admin/logistics', icon: '&#9992;', text: 'Logistics', access: 'general' },
   { href: '/admin/meals', icon: '&#127859;', text: 'Meals', access: 'general' },
+  { href: '/admin/menu', icon: '&#127869;', text: 'Meal Plan', access: 'general' },
   { href: '/admin/drinks', icon: '&#127866;', text: 'Drinks & Snacks', access: 'general' },
   { href: '/admin/events', icon: '&#127926;', text: 'Events', access: 'general' },
   { href: '/admin/roles', icon: '&#128101;', text: 'Roles & Leads', access: 'general' },

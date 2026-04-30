@@ -21,6 +21,7 @@
     { "source": "/admin/roles", "destination": "/admin/roles.html" },
     { "source": "/admin/timeline", "destination": "/admin/timeline.html" },
     { "source": "/admin/profile", "destination": "/admin/profile.html" },
-    { "source": "/admin/info", "destination": "/admin/info.html" }
+    { "source": "/admin/info", "destination": "/admin/info.html" },
+    { "source": "/admin/menu", "destination": "/admin/menu.html" }
   ]
 }
