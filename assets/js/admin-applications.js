@@ -85,8 +85,67 @@
   };
   ViewBtnRenderer.prototype.getGui = function() { return this.eGui; };
 
+  function InviteBtnRenderer() {}
+  InviteBtnRenderer.prototype.init = function(params) {
+    this.eGui = document.createElement('span');
+    if (normalizeStatus(params.data.Status) !== 'Approved') return;
+    var btn = document.createElement('button');
+    btn.textContent = 'Invite';
+    btn.style.cssText = 'background:transparent;color:#e8a84c;border:1px solid #e8a84c;border-radius:4px;padding:2px 10px;font-size:0.75rem;font-weight:600;cursor:pointer;font-family:Inter,sans-serif;';
+    btn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      var member = allMembers.find(function(m) { return m._row === params.data._row; });
+      if (member) sendInvite(member);
+    });
+    this.eGui.appendChild(btn);
+  };
+  InviteBtnRenderer.prototype.getGui = function() { return this.eGui; };
+
+  // Shared invite flow — used by status change to Approved AND the Invite button.
+  async function sendInvite(member) {
+    var memberEmail = val(member, 'Email');
+    var memberName = val(member, 'Name') || 'this member';
+    if (!memberEmail) { alert('No email on file for ' + memberName); return; }
+    if (!confirm('Send invite email to ' + memberName + ' at ' + memberEmail + '?')) return;
+    try {
+      var inviteRes = await JH.apiFetch('/api/auth', { action: 'invite', email: memberEmail });
+      if (inviteRes.status === 409) {
+        if (confirm(memberName + ' already has an account. Send them a password reset email instead?')) {
+          var resetRes = await JH.apiFetch('/api/auth', { action: 'resend-invite', email: memberEmail });
+          if (!resetRes.ok) {
+            var resetErr = await resetRes.json().catch(function() { return {}; });
+            if (confirm('Resend failed: ' + (resetErr.error || 'Unknown error') + '\n\nGenerate a one-time recovery link instead?')) {
+              await offerManualLink(memberEmail, memberName, 'recovery');
+            }
+          }
+        }
+      } else if (!inviteRes.ok) {
+        var inviteErr = await inviteRes.json().catch(function() { return {}; });
+        if (confirm('Invite email failed: ' + (inviteErr.error || 'Unknown error') + '\n\nGenerate a one-time invite link you can send manually?')) {
+          await offerManualLink(memberEmail, memberName, 'invite');
+        }
+      } else {
+        alert('Invite email sent to ' + memberEmail);
+      }
+    } catch (inviteEx) {
+      alert('Failed to send invite: ' + inviteEx.message);
+    }
+  }
+
+  async function offerManualLink(email, name, type) {
+    var linkRes = await JH.apiFetch('/api/auth', { action: 'generate-link', email: email, type: type });
+    var linkData = await linkRes.json().catch(function() { return {}; });
+    if (linkRes.ok && linkData.link) {
+      try { await navigator.clipboard.writeText(linkData.link); } catch (e) {}
+      prompt('Link (copied to clipboard) — send to ' + name + ':', linkData.link);
+    } else {
+      alert('Could not generate link: ' + (linkData.error || 'Unknown error'));
+    }
+  }
+
   var columnDefs = [
     { headerName: '', field: '_view', cellRenderer: ViewBtnRenderer, valueGetter: function() { return ''; }, width: 70, maxWidth: 70, sortable: false, filter: false, resizable: false, suppressSizeToFit: true },
+    { headerName: '', field: '_invite', cellRenderer: InviteBtnRenderer, valueGetter: function() { return ''; }, width: 80, maxWidth: 80, sortable: false, filter: false, resizable: false, suppressSizeToFit: true, hide: !isAdmin },
     { field: 'Name', sortable: true, filter: true },
     { field: 'Playa Name', sortable: true, filter: true },
     { field: 'Location', sortable: true, filter: true },
@@ -205,37 +264,11 @@
       member['Status'] = newStatus;
       refreshStats();
 
+      // Refresh the row so the Invite button appears for the new Approved status
+      gridApi.setGridOption('rowData', getRowData());
+
       if (newStatus === 'Approved') {
-        var memberEmail = val(member, 'Email');
-        if (memberEmail && confirm('Send invite email to ' + memberName + ' at ' + memberEmail + '?')) {
-          try {
-            var inviteRes = await JH.apiFetch('/api/auth', { action: 'invite', email: memberEmail });
-            if (inviteRes.status === 409) {
-              // User already has account — offer to resend
-              if (confirm(memberName + ' already has an account. Send them a password reset email instead?')) {
-                var resetRes = await JH.apiFetch('/api/auth', { action: 'resend-invite', email: memberEmail });
-                if (!resetRes.ok) {
-                  var resetErr = await resetRes.json().catch(function() { return {}; });
-                  alert('Resend failed: ' + (resetErr.error || 'Unknown error'));
-                }
-              }
-            } else if (!inviteRes.ok) {
-              var inviteErr = await inviteRes.json().catch(function() { return {}; });
-              if (confirm('Invite email failed: ' + (inviteErr.error || 'Unknown error') + '\n\nGenerate a one-time invite link you can send manually?')) {
-                var linkRes = await JH.apiFetch('/api/auth', { action: 'generate-link', email: memberEmail, type: 'invite' });
-                var linkData = await linkRes.json().catch(function() { return {}; });
-                if (linkRes.ok && linkData.link) {
-                  try { await navigator.clipboard.writeText(linkData.link); } catch (e) {}
-                  prompt('Invite link (copied to clipboard) — send to ' + memberName + ':', linkData.link);
-                } else {
-                  alert('Could not generate link: ' + (linkData.error || 'Unknown error'));
-                }
-              }
-            }
-          } catch (inviteEx) {
-            alert('Failed to send invite: ' + inviteEx.message);
-          }
-        }
+        await sendInvite(member);
       }
 
     } catch (err) {
