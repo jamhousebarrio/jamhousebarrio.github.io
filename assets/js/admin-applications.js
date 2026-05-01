@@ -221,7 +221,16 @@
               }
             } else if (!inviteRes.ok) {
               var inviteErr = await inviteRes.json().catch(function() { return {}; });
-              alert('Invite failed: ' + (inviteErr.error || 'Unknown error'));
+              if (confirm('Invite email failed: ' + (inviteErr.error || 'Unknown error') + '\n\nGenerate a one-time invite link you can send manually?')) {
+                var linkRes = await JH.apiFetch('/api/auth', { action: 'generate-link', email: memberEmail, type: 'invite' });
+                var linkData = await linkRes.json().catch(function() { return {}; });
+                if (linkRes.ok && linkData.link) {
+                  try { await navigator.clipboard.writeText(linkData.link); } catch (e) {}
+                  prompt('Invite link (copied to clipboard) — send to ' + memberName + ':', linkData.link);
+                } else {
+                  alert('Could not generate link: ' + (linkData.error || 'Unknown error'));
+                }
+              }
             }
           } catch (inviteEx) {
             alert('Failed to send invite: ' + inviteEx.message);

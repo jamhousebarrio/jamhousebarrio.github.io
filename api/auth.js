@@ -41,6 +41,40 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true });
     }
 
+    // ── Generate link (returns link directly — bypasses Supabase email) ──
+    if (action === 'generate-link') {
+      const user = verifyToken(req);
+      const sheets = getSheets(true);
+      const result = await getMemberByEmail(sheets, process.env.SHEET_ID, user.email);
+      if (!result || !isAdmin(result.member)) {
+        return res.status(403).json({ error: 'Admin required' });
+      }
+
+      const { email: targetEmail, type: linkType } = payload;
+      if (!targetEmail) return res.status(400).json({ error: 'email required' });
+
+      const supabase = getSupabaseAdmin();
+      const siteUrl = process.env.SITE_URL || 'https://jamhouse.space';
+      const type = linkType || 'invite';
+      const redirectTo = type === 'recovery'
+        ? `${siteUrl}/admin/profile`
+        : `${siteUrl}/admin`;
+      const { data, error } = await supabase.auth.admin.generateLink({
+        type,
+        email: targetEmail,
+        options: { redirectTo, data: { must_change_password: true } },
+      });
+      if (error) {
+        console.error('Generate link error:', error);
+        return res.status(500).json({ error: error.message || 'Failed to generate link' });
+      }
+      return res.status(200).json({
+        success: true,
+        link: data?.properties?.action_link,
+        type,
+      });
+    }
+
     // ── Resend invite (password reset for existing user) ─────────────────
     if (action === 'resend-invite') {
       const user = verifyToken(req);
@@ -114,6 +148,6 @@ export default async function handler(req, res) {
   } catch (e) {
     if (e.status) return res.status(e.status).json({ error: e.message });
     console.error('Auth API error:', e);
-    return res.status(500).json({ error: 'Failed' });
+    return res.status(500).json({ error: e.message || 'Failed', detail: e.stack });
   }
 }

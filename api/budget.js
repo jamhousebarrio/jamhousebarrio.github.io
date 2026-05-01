@@ -288,6 +288,6 @@ export default async function handler(req, res) {
   } catch (e) {
     if (e.status) return res.status(e.status).json({ error: e.message });
     console.error('Budget API error:', e);
-    return res.status(500).json({ error: 'Failed' });
+    return res.status(500).json({ error: e.message || 'Failed', detail: e.stack });
   }
 }
