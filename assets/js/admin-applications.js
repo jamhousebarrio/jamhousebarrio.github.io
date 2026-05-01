@@ -184,6 +184,21 @@
     var member = allMembers.find(function(m) { return m._row === data._row; });
     if (!member) return;
     var oldStatus = val(member, 'Status') || '';
+    var memberName = val(member, 'Name') || 'this member';
+
+    // Demoting away from Approved revokes portal access — confirm first.
+    if (normalizeStatus(oldStatus) === 'Approved' && normalizeStatus(newStatus) !== 'Approved') {
+      var ok = confirm(
+        'Changing ' + memberName + ' from Approved to "' + newStatus + '" will revoke their access to the portal.\n\n' +
+        'Their Supabase account will remain (so re-approving later restores access without a new invite), but they will be locked out until then.\n\n' +
+        'Continue?'
+      );
+      if (!ok) {
+        gridApi.setGridOption('rowData', getRowData());
+        return;
+      }
+    }
+
     try {
       var res = await JH.apiFetch('/api/members', { action: 'update-status', row: data._row, status: newStatus });
       if (!res.ok) throw new Error('Failed');
@@ -192,7 +207,6 @@
 
       if (newStatus === 'Approved') {
         var memberEmail = val(member, 'Email');
-        var memberName = val(member, 'Name');
         if (memberEmail && confirm('Send invite email to ' + memberName + ' at ' + memberEmail + '?')) {
           try {
             var inviteRes = await JH.apiFetch('/api/auth', { action: 'invite', email: memberEmail });

@@ -23,6 +23,8 @@ permalink: /admin
     <div class="sub">Live Music Barrio</div>
     <p class="desc">Member Login</p>
 
+    <div id="redirect-notice" style="display:none;background:rgba(232,168,76,0.1);border:1px solid var(--accent);border-radius:8px;padding:12px 16px;margin-bottom:14px;font-size:0.86rem;line-height:1.45;color:var(--text);"></div>
+
     <!-- Login form -->
     <form id="login-form">
       <input type="email" id="email" placeholder="Email" required>
@@ -109,6 +111,29 @@ permalink: /admin
     el.style.color = color || '';
     el.style.display = 'block';
   }
+  function showNotice(html) {
+    var n = document.getElementById('redirect-notice');
+    n.innerHTML = html;
+    n.style.display = 'block';
+  }
+  function clearHash() {
+    if (window.location.hash) {
+      history.replaceState(null, '', window.location.pathname);
+    }
+  }
+  function escapeHtml(s) {
+    return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+  // Wired to a "Send a fresh link" button inside the notice — opens the
+  // magic-link form so the user can request a new one.
+  document.addEventListener('click', function(e) {
+    if (e.target && e.target.classList && e.target.classList.contains('notice-resend')) {
+      e.preventDefault();
+      showAltForm('magic-form');
+      var pre = e.target.getAttribute('data-email');
+      if (pre) document.getElementById('magic-email').value = pre;
+    }
+  });
   // Returns 'approved' | 'pending' | 'not_found' | 'error'.
   async function checkEmailStatus(email) {
     try {
@@ -209,13 +234,37 @@ permalink: /admin
     }
   });
 
+  // Surface a 403/401 from /api/members in human terms. Reuses the
+  // public check-email endpoint to figure out *why* the email isn't getting in.
+  async function showAuthFailureNotice(email) {
+    var safeEmail = escapeHtml(email || '');
+    try {
+      var r = await fetch('/api/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'check-email', email: email }),
+      });
+      var d = await r.json();
+      if (d.status === 'pending') {
+        showNotice(
+          'Your application is currently being reviewed. ' +
+          'You\'ll be able to log in here once you\'re approved &mdash; we\'ll email you.'
+        );
+        return;
+      }
+      if (d.status === 'not_found') {
+        showNotice(
+          'We don\'t have a record of <strong>' + safeEmail + '</strong> in our applicant list. ' +
+          '<a href="/apply" style="color:var(--accent);font-weight:600;text-decoration:underline;">Apply to JamHouse &rarr;</a>'
+        );
+        return;
+      }
+    } catch (e) { /* fall through to generic message */ }
+    showNotice('We couldn\'t authorize this account. Please try again, or contact a JamHouse admin.');
+  }
+
   async function redirectAfterLogin(session) {
-    // Check must_change_password before anything else
     var user = session.user;
-    if (user && user.user_metadata && user.user_metadata.must_change_password) {
-      window.location.href = '/admin/profile';
-      return;
-    }
     try {
       var res = await fetch('/api/members', {
         method: 'POST',
@@ -225,16 +274,28 @@ permalink: /admin
         },
         body: JSON.stringify({}),
       });
-      if (res.ok) {
-        var data = await res.json();
-        if (data.admin) window.location.href = '/admin/applications';
-        else window.location.href = '/admin/demographics';
-      } else {
-        document.getElementById('login-error').textContent = 'Account not authorized';
-        document.getElementById('login-error').style.display = 'block';
+      if (!res.ok) {
+        // Session is valid at Supabase but Sheet1 rejects this email
+        // (most often: status changed away from Approved after they were
+        // invited / sent a magic link). Sign out so we don't loop, and
+        // tell them why.
+        await sb.auth.signOut();
+        clearHash();
+        await showAuthFailureNotice(user && user.email);
+        return;
       }
+      var data = await res.json();
+      // Only force the password-change detour after we've confirmed the
+      // member is still approved in Sheet1 — otherwise demoted invitees
+      // get stuck in a /admin → /admin/profile redirect loop.
+      if (user && user.user_metadata && user.user_metadata.must_change_password) {
+        window.location.href = '/admin/profile';
+        return;
+      }
+      if (data.admin) window.location.href = '/admin/applications';
+      else window.location.href = '/admin/demographics';
     } catch (ex) {
-      window.location.href = '/admin/demographics';
+      showMessage('login-error', 'Something went wrong');
     }
   }
 
@@ -244,6 +305,26 @@ permalink: /admin
   // link can land here before the hash has been parsed and just see the form.
   (function() {
     if (!sb) return;
+
+    // Expired / invalid magic-link or invite tokens come back as hash params,
+    // e.g. #error=access_denied&error_code=otp_expired. Surface a clear
+    // message + a way to request a fresh link.
+    var hashParams = new URLSearchParams((window.location.hash || '').replace(/^#/, ''));
+    var hashErrCode = hashParams.get('error_code');
+    var hashErr = hashParams.get('error');
+    if (hashErrCode || hashErr) {
+      clearHash();
+      var expired = hashErrCode === 'otp_expired' || hashErr === 'access_denied';
+      var msg = expired
+        ? 'Your login link has expired or has already been used.'
+        : 'There was a problem signing you in (' + escapeHtml(hashErrCode || hashErr) + ').';
+      showNotice(
+        msg + ' Enter your email below to get a fresh login link. ' +
+        '<button type="button" class="notice-resend" style="margin-top:8px;background:var(--accent);color:#000;border:none;border-radius:6px;padding:6px 12px;font-weight:600;cursor:pointer;">Send a fresh link</button>'
+      );
+      return;
+    }
+
     var redirected = false;
     function go(session) {
       if (redirected || !session) return;
