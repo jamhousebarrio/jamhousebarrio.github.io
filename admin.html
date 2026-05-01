@@ -238,19 +238,22 @@ permalink: /admin
     }
   }
 
-  // Auto-redirect if already logged in (or handle magic link callback)
-  (async function() {
+  // Auto-redirect if already logged in (or handle magic link / invite callback).
+  // detectSessionInUrl is async, so we listen for SIGNED_IN as well as checking
+  // any session that's already in storage — otherwise users who click a magic
+  // link can land here before the hash has been parsed and just see the form.
+  (function() {
     if (!sb) return;
-    // Handle hash fragment from magic link / invite
-    var hashParams = new URLSearchParams(window.location.hash.substring(1));
-    if (hashParams.get('access_token')) {
-      // Supabase will handle this via onAuthStateChange
-    }
-    var sessionResult = await sb.auth.getSession();
-    var session = sessionResult.data.session;
-    if (session) {
+    var redirected = false;
+    function go(session) {
+      if (redirected || !session) return;
+      redirected = true;
       redirectAfterLogin(session);
     }
+    sb.auth.onAuthStateChange(function(event, session) {
+      if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') go(session);
+    });
+    sb.auth.getSession().then(function(r) { go(r.data.session); });
   })();
 </script>
 </body>
