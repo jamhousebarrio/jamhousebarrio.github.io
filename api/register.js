@@ -13,6 +13,43 @@ export default async function handler(req, res) {
 
   const b = req.body || {};
 
+  // ── check-email: public lookup used by login forms ──────────────────────
+  // Returns { status: 'approved' | 'pending' | 'not_found' } — never leaks
+  // whether a non-approved row is Pending vs Rejected vs anything else.
+  if (b.action === 'check-email') {
+    if (!b.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(b.email)) {
+      return res.status(400).json({ error: 'Invalid email' });
+    }
+    try {
+      const credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY);
+      const auth = new GoogleAuth({
+        credentials,
+        scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
+      });
+      const sheets = sheetsApi({ version: 'v4', auth });
+      const r = await sheets.spreadsheets.values.get({
+        spreadsheetId: process.env.SHEET_ID,
+        range: 'Sheet1',
+      });
+      const rows = r.data.values || [];
+      if (rows.length < 2) return res.status(200).json({ status: 'not_found' });
+      const headers = rows[0];
+      const emailCol = headers.indexOf('Email');
+      const statusCol = headers.indexOf('Status');
+      const target = b.email.toLowerCase().trim();
+      for (let i = 1; i < rows.length; i++) {
+        if ((rows[i][emailCol] || '').toLowerCase().trim() === target) {
+          const s = (rows[i][statusCol] || '').toLowerCase().trim();
+          return res.status(200).json({ status: s === 'approved' ? 'approved' : 'pending' });
+        }
+      }
+      return res.status(200).json({ status: 'not_found' });
+    } catch (err) {
+      console.error('check-email error:', err);
+      return res.status(500).json({ error: 'Lookup failed' });
+    }
+  }
+
   if (!b.name || !b.email) {
     return res.status(400).json({ error: "Name and Email are required" });
   }

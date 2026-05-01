@@ -102,74 +102,110 @@ permalink: /admin
     document.getElementById('alt-back').style.display = 'none';
   });
 
+  // Shared helpers for the three login forms.
+  function showMessage(elId, html, color) {
+    var el = document.getElementById(elId);
+    el.innerHTML = html;
+    el.style.color = color || '';
+    el.style.display = 'block';
+  }
+  // Returns 'approved' | 'pending' | 'not_found' | 'error'.
+  async function checkEmailStatus(email) {
+    try {
+      var r = await fetch('/api/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'check-email', email: email }),
+      });
+      var d = await r.json();
+      return d.status || 'error';
+    } catch (ex) {
+      return 'error';
+    }
+  }
+  // Returns true if the email is approved (and the caller should proceed
+  // with Supabase auth). Otherwise renders the appropriate message and
+  // returns false so the caller bails out.
+  async function gateByApplicationStatus(email, errId) {
+    var status = await checkEmailStatus(email);
+    if (status === 'approved') return true;
+    if (status === 'not_found') {
+      showMessage(errId,
+        'We don\'t have an application for this email yet. ' +
+        '<a href="/apply" style="color:var(--accent);font-weight:600;text-decoration:underline;">Apply to JamHouse &rarr;</a>'
+      );
+      return false;
+    }
+    if (status === 'pending') {
+      showMessage(errId,
+        'Your application is being reviewed. We\'ll email you once you\'re approved and you\'ll be able to log in here.'
+      );
+      return false;
+    }
+    showMessage(errId, 'Could not verify your application. Please try again later.');
+    return false;
+  }
+
   // Email + password login
   document.getElementById('login-form').addEventListener('submit', async function(e) {
     e.preventDefault();
-    var err = document.getElementById('login-error');
-    err.style.display = 'none';
-    var email = document.getElementById('email').value;
+    document.getElementById('login-error').style.display = 'none';
+    var email = document.getElementById('email').value.trim();
     var password = document.getElementById('password').value;
     try {
+      if (!(await gateByApplicationStatus(email, 'login-error'))) return;
       var result = await sb.auth.signInWithPassword({ email: email, password: password });
       if (result.error) {
-        err.textContent = result.error.message || 'Login failed';
-        err.style.display = 'block';
+        showMessage('login-error', result.error.message || 'Login failed');
         return;
       }
-      // Redirect based on admin status
       redirectAfterLogin(result.data.session);
     } catch (ex) {
-      err.textContent = 'Something went wrong';
-      err.style.display = 'block';
+      showMessage('login-error', 'Something went wrong');
     }
   });
 
   // Password reset
   document.getElementById('reset-form').addEventListener('submit', async function(e) {
     e.preventDefault();
-    var err = document.getElementById('reset-error');
-    err.style.display = 'none';
-    var email = document.getElementById('reset-email').value;
+    document.getElementById('reset-error').style.display = 'none';
+    var email = document.getElementById('reset-email').value.trim();
     try {
+      if (!(await gateByApplicationStatus(email, 'reset-error'))) return;
       var result = await sb.auth.resetPasswordForEmail(email, {
         redirectTo: window.location.origin + '/admin/profile',
       });
       if (result.error) {
-        err.textContent = result.error.message || 'Failed to send reset link';
-        err.style.display = 'block';
+        showMessage('reset-error', result.error.message || 'Failed to send reset link');
         return;
       }
-      err.textContent = 'Check your email for the password reset link!';
-      err.style.color = '#4caf50';
-      err.style.display = 'block';
+      showMessage('reset-error', 'Check your email for the password reset link!', '#4caf50');
     } catch (ex) {
-      err.textContent = 'Something went wrong';
-      err.style.display = 'block';
+      showMessage('reset-error', 'Something went wrong');
     }
   });
 
   // Magic link
   document.getElementById('magic-form').addEventListener('submit', async function(e) {
     e.preventDefault();
-    var err = document.getElementById('magic-error');
-    err.style.display = 'none';
-    var email = document.getElementById('magic-email').value;
+    document.getElementById('magic-error').style.display = 'none';
+    var email = document.getElementById('magic-email').value.trim();
     try {
+      if (!(await gateByApplicationStatus(email, 'magic-error'))) return;
       var result = await sb.auth.signInWithOtp({
         email: email,
-        options: { emailRedirectTo: window.location.origin + '/admin' },
+        options: {
+          emailRedirectTo: window.location.origin + '/admin',
+          shouldCreateUser: false,
+        },
       });
       if (result.error) {
-        err.textContent = result.error.message || 'Failed to send link';
-        err.style.display = 'block';
+        showMessage('magic-error', result.error.message || 'Failed to send link');
         return;
       }
-      err.textContent = 'Check your email for the login link!';
-      err.style.color = '#4caf50';
-      err.style.display = 'block';
+      showMessage('magic-error', 'Check your email for the login link!', '#4caf50');
     } catch (ex) {
-      err.textContent = 'Something went wrong';
-      err.style.display = 'block';
+      showMessage('magic-error', 'Something went wrong');
     }
   });
 
