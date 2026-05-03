@@ -552,46 +552,105 @@
   }
 
   function openRequestDetail(id) {
+    renderRequestDetail(id, false);
+    document.getElementById('request-detail-modal').classList.add('active');
+  }
+
+  function renderRequestDetail(id, editing) {
     var r = shoppingRequests.find(function(x) { return x.RequestID === id; });
     if (!r) return;
-    document.getElementById('req-detail-title').textContent = r.Item || 'Request';
+    document.getElementById('req-detail-title').textContent = (editing ? 'Edit: ' : '') + (r.Item || 'Request');
     var status = r.Status || 'pending';
+    var lbl = 'color:var(--text-muted);text-transform:uppercase;font-size:0.7rem;letter-spacing:0.06em';
+    var inputStyle = 'background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:0.85rem;padding:7px 10px;width:100%;box-sizing:border-box;';
     var body = '';
-    body += '<div><span style="color:var(--text-muted);text-transform:uppercase;font-size:0.7rem;letter-spacing:0.06em">Submitted by</span><div>' + esc(r.SubmittedBy || '') + '</div></div>';
-    if (r.Description) body += '<div><span style="color:var(--text-muted);text-transform:uppercase;font-size:0.7rem;letter-spacing:0.06em">Why</span><div>' + esc(r.Description) + '</div></div>';
-    if (r.Price) body += '<div><span style="color:var(--text-muted);text-transform:uppercase;font-size:0.7rem;letter-spacing:0.06em">Price estimate</span><div>€' + esc(r.Price) + '</div></div>';
-    if (r.Link) body += '<div><span style="color:var(--text-muted);text-transform:uppercase;font-size:0.7rem;letter-spacing:0.06em">Link</span><div><a href="' + esc(r.Link) + '" target="_blank" rel="noopener" style="color:var(--accent);word-break:break-all">' + esc(r.Link) + '</a></div></div>';
-    body += '<div><span style="color:var(--text-muted);text-transform:uppercase;font-size:0.7rem;letter-spacing:0.06em">Status</span><div><span class="request-status status-' + status.toLowerCase() + '">' + esc(status) + '</span></div></div>';
+
+    if (editing) {
+      body += '<div><label style="' + lbl + '">Item</label><input id="req-edit-item" style="' + inputStyle + '" value="' + esc(r.Item || '') + '"></div>';
+      body += '<div><label style="' + lbl + '">Submitted by</label><input id="req-edit-submitter" style="' + inputStyle + '" value="' + esc(r.SubmittedBy || '') + '"></div>';
+      body += '<div><label style="' + lbl + '">Why</label><textarea id="req-edit-desc" rows="3" style="' + inputStyle + 'resize:vertical;font-family:var(--body);">' + esc(r.Description || '') + '</textarea></div>';
+      body += '<div><label style="' + lbl + '">Price estimate (€)</label><input id="req-edit-price" type="number" step="0.01" style="' + inputStyle + '" value="' + esc(r.Price || '') + '"></div>';
+      body += '<div><label style="' + lbl + '">Link</label><input id="req-edit-link" style="' + inputStyle + '" value="' + esc(r.Link || '') + '"></div>';
+      body += '<div><label style="' + lbl + '">Status</label><select id="req-edit-status" style="' + inputStyle + '">' +
+        ['pending','approved','rejected'].map(function(s) {
+          return '<option value="' + s + '"' + (s === status.toLowerCase() ? ' selected' : '') + '>' + s + '</option>';
+        }).join('') + '</select></div>';
+    } else {
+      body += '<div><span style="' + lbl + '">Submitted by</span><div>' + esc(r.SubmittedBy || '') + '</div></div>';
+      if (r.Description) body += '<div><span style="' + lbl + '">Why</span><div>' + esc(r.Description) + '</div></div>';
+      if (r.Price) body += '<div><span style="' + lbl + '">Price estimate</span><div>&euro;' + esc(r.Price) + '</div></div>';
+      if (r.Link) body += '<div><span style="' + lbl + '">Link</span><div><a href="' + esc(r.Link) + '" target="_blank" rel="noopener" style="color:var(--accent);word-break:break-all">' + esc(r.Link) + '</a></div></div>';
+      body += '<div><span style="' + lbl + '">Status</span><div><span class="request-status status-' + status.toLowerCase() + '">' + esc(status) + '</span></div></div>';
+    }
     document.getElementById('req-detail-body').innerHTML = body;
 
     var actions = '';
     if (isAdmin) {
-      if (status.toLowerCase() === 'pending') {
-        actions += '<button id="req-detail-approve" data-id="' + esc(id) + '" class="fullscreen-btn" style="color:#4caf50;border-color:#4caf50;">Approve</button>';
-        actions += '<button id="req-detail-reject" data-id="' + esc(id) + '" class="fullscreen-btn" style="color:#f44336;border-color:#f44336;">Reject</button>';
+      if (editing) {
+        actions += '<button id="req-detail-save" class="fullscreen-btn" style="color:#4caf50;border-color:#4caf50;">Save</button>';
+        actions += '<button id="req-detail-cancel" class="fullscreen-btn">Cancel</button>';
+      } else {
+        if (status.toLowerCase() === 'pending') {
+          actions += '<button id="req-detail-approve" class="fullscreen-btn" style="color:#4caf50;border-color:#4caf50;">Approve</button>';
+          actions += '<button id="req-detail-reject" class="fullscreen-btn" style="color:#f44336;border-color:#f44336;">Reject</button>';
+        }
+        actions += '<button id="req-detail-edit" class="fullscreen-btn">Edit</button>';
+        actions += '<button id="req-detail-delete" class="fullscreen-btn" style="color:#f44336;border-color:#f44336;margin-left:auto;">Delete</button>';
       }
-      actions += '<button id="req-detail-delete" data-id="' + esc(id) + '" class="fullscreen-btn" style="color:#f44336;border-color:#f44336;margin-left:auto;">Delete</button>';
     }
     document.getElementById('req-detail-actions').innerHTML = actions;
 
-    if (isAdmin) {
-      var ap = document.getElementById('req-detail-approve');
-      if (ap) ap.addEventListener('click', function() { handleRequestAction(id, 'approve-request', 'approved'); });
-      var rj = document.getElementById('req-detail-reject');
-      if (rj) rj.addEventListener('click', function() { handleRequestAction(id, 'reject-request', 'rejected'); });
-      var dl = document.getElementById('req-detail-delete');
-      if (dl) dl.addEventListener('click', async function() {
-        if (!confirm('Delete this request? This cannot be undone.')) return;
-        dl.disabled = true; dl.textContent = '...';
-        var r = await JH.apiFetch('/api/budget', { action: 'delete-request', requestId: id });
-        if (!r.ok) { alert('Failed to delete'); dl.disabled = false; dl.textContent = 'Delete'; return; }
-        shoppingRequests = shoppingRequests.filter(function(x) { return x.RequestID !== id; });
-        document.getElementById('request-detail-modal').classList.remove('active');
+    if (!isAdmin) return;
+
+    if (editing) {
+      document.getElementById('req-detail-cancel').addEventListener('click', function() {
+        renderRequestDetail(id, false);
+      });
+      document.getElementById('req-detail-save').addEventListener('click', async function() {
+        var btn = this;
+        var updates = {
+          item: document.getElementById('req-edit-item').value.trim(),
+          submittedBy: document.getElementById('req-edit-submitter').value.trim(),
+          description: document.getElementById('req-edit-desc').value.trim(),
+          price: document.getElementById('req-edit-price').value,
+          link: document.getElementById('req-edit-link').value.trim(),
+          status: document.getElementById('req-edit-status').value,
+        };
+        if (!updates.item) { alert('Item is required'); return; }
+        btn.disabled = true; btn.textContent = '...';
+        var resp = await JH.apiFetch('/api/budget', { action: 'update-request', requestId: id, updates: updates });
+        if (!resp.ok) { alert('Failed to save'); btn.disabled = false; btn.textContent = 'Save'; return; }
+        var req = shoppingRequests.find(function(x) { return x.RequestID === id; });
+        if (req) {
+          req.Item = updates.item;
+          req.SubmittedBy = updates.submittedBy;
+          req.Description = updates.description;
+          req.Price = updates.price;
+          req.Link = updates.link;
+          req.Status = updates.status;
+        }
+        renderRequestDetail(id, false);
         renderShoppingRequests();
       });
+      return;
     }
 
-    document.getElementById('request-detail-modal').classList.add('active');
+    var ap = document.getElementById('req-detail-approve');
+    if (ap) ap.addEventListener('click', function() { handleRequestAction(id, 'approve-request', 'approved'); });
+    var rj = document.getElementById('req-detail-reject');
+    if (rj) rj.addEventListener('click', function() { handleRequestAction(id, 'reject-request', 'rejected'); });
+    var ed = document.getElementById('req-detail-edit');
+    if (ed) ed.addEventListener('click', function() { renderRequestDetail(id, true); });
+    var dl = document.getElementById('req-detail-delete');
+    if (dl) dl.addEventListener('click', async function() {
+      if (!confirm('Delete this request? This cannot be undone.')) return;
+      dl.disabled = true; dl.textContent = '...';
+      var r2 = await JH.apiFetch('/api/budget', { action: 'delete-request', requestId: id });
+      if (!r2.ok) { alert('Failed to delete'); dl.disabled = false; dl.textContent = 'Delete'; return; }
+      shoppingRequests = shoppingRequests.filter(function(x) { return x.RequestID !== id; });
+      document.getElementById('request-detail-modal').classList.remove('active');
+      renderShoppingRequests();
+    });
   }
 
   async function handleRequestAction(id, action, newStatus) {

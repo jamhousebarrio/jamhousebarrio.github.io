@@ -224,6 +224,41 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true });
     }
 
+    if (action === 'update-request') {
+      const { requestId, updates } = payload;
+      if (!requestId || !updates) return res.status(400).json({ error: 'requestId and updates required' });
+      const reqRes = await sheets.spreadsheets.values.get({ spreadsheetId, range: 'ShoppingRequests' });
+      const reqRows = reqRes.data.values || [];
+      if (!reqRows.length) return res.status(404).json({ error: 'Not found' });
+      const reqHeaders = reqRows[0];
+      const idCol = reqHeaders.indexOf('RequestID');
+      const rowIdx = reqRows.findIndex((r, i) => i > 0 && r[idCol] === requestId);
+      if (rowIdx === -1) return res.status(404).json({ error: 'Request not found' });
+      const fieldMap = {
+        item: 'Item',
+        description: 'Description',
+        link: 'Link',
+        price: 'Price',
+        submittedBy: 'SubmittedBy',
+        status: 'Status',
+      };
+      const data = [];
+      for (const key in updates) {
+        const header = fieldMap[key];
+        if (!header) continue;
+        const col = reqHeaders.indexOf(header);
+        if (col === -1) continue;
+        const cl = String.fromCharCode(65 + col);
+        data.push({ range: `ShoppingRequests!${cl}${rowIdx + 1}`, values: [[updates[key] || '']] });
+      }
+      if (!data.length) return res.status(400).json({ error: 'No valid fields to update' });
+      await sheets.spreadsheets.values.batchUpdate({
+        spreadsheetId,
+        requestBody: { valueInputOption: 'RAW', data },
+      });
+      return res.status(200).json({ success: true });
+    }
+
     if (action === 'delete-request') {
       const { requestId } = payload;
       if (!requestId) return res.status(400).json({ error: 'requestId required' });
