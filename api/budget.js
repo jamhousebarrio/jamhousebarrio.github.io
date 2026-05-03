@@ -108,15 +108,40 @@ export default async function handler(req, res) {
 
     // ── Shopping request (available to ALL authenticated users) ───────────
     if (action === 'shopping-request') {
-      const { requestId, item, description, link, price, submittedBy } = payload;
-      if (!requestId || !item || !submittedBy) {
-        return res.status(400).json({ error: 'requestId, item, submittedBy required' });
+      const { requestId, category, item, description, link, price, submittedBy } = payload;
+      if (!requestId || !category || !item || !submittedBy) {
+        return res.status(400).json({ error: 'requestId, category, item, submittedBy required' });
       }
+      const headerRes = await sheets.spreadsheets.values.get({ spreadsheetId, range: 'ShoppingRequests!1:1' });
+      let srHeaders = (headerRes.data.values || [[]])[0] || [];
+      if (!srHeaders.length) {
+        srHeaders = ['RequestID','Item','Description','Link','Price','SubmittedBy','Status','Category'];
+        await sheets.spreadsheets.values.update({
+          spreadsheetId,
+          range: 'ShoppingRequests!1:1',
+          valueInputOption: 'RAW',
+          requestBody: { values: [srHeaders] },
+        });
+      } else if (srHeaders.indexOf('Category') === -1) {
+        const newHeaders = srHeaders.concat(['Category']);
+        await sheets.spreadsheets.values.update({
+          spreadsheetId,
+          range: 'ShoppingRequests!1:1',
+          valueInputOption: 'RAW',
+          requestBody: { values: [newHeaders] },
+        });
+        srHeaders = newHeaders;
+      }
+      const fieldVals = {
+        RequestID: requestId, Item: item, Description: description || '', Link: link || '',
+        Price: price || '', SubmittedBy: submittedBy, Status: 'pending', Category: category,
+      };
+      const row = srHeaders.map(h => fieldVals[h] !== undefined ? fieldVals[h] : '');
       await sheets.spreadsheets.values.append({
         spreadsheetId,
         range: 'ShoppingRequests',
         valueInputOption: 'RAW',
-        requestBody: { values: [[requestId, item, description || '', link || '', price || '', submittedBy, 'pending']] },
+        requestBody: { values: [row] },
       });
       return res.status(200).json({ success: true });
     }
@@ -235,6 +260,7 @@ export default async function handler(req, res) {
       const rowIdx = reqRows.findIndex((r, i) => i > 0 && r[idCol] === requestId);
       if (rowIdx === -1) return res.status(404).json({ error: 'Request not found' });
       const fieldMap = {
+        category: 'Category',
         item: 'Item',
         description: 'Description',
         link: 'Link',
@@ -305,7 +331,55 @@ export default async function handler(req, res) {
         valueInputOption: 'RAW',
         requestBody: { values: [[action === 'approve-request' ? 'approved' : 'rejected']] },
       });
-      return res.status(200).json({ success: true });
+
+      let createdBudgetRow = null;
+      if (action === 'approve-request') {
+        const reqRow = reqRows[rowIdx];
+        const get = (h) => { const c = reqHeaders.indexOf(h); return c === -1 ? '' : (reqRow[c] || ''); };
+        const category = get('Category');
+        const itemName = get('Item');
+        const reqPrice = get('Price');
+        if (category && itemName) {
+          const newBudgetRow = headers.map(h => {
+            if (h === 'Category') return category;
+            if (h === 'Item') return itemName;
+            if (h === 'Qty') return 1;
+            if (h === 'Price') return reqPrice || 0;
+            if (h === 'Total Actual') return '';
+            return '';
+          });
+          const appendRes = await sheets.spreadsheets.values.append({
+            spreadsheetId,
+            range: 'Budget!A:A',
+            valueInputOption: 'RAW',
+            requestBody: { values: [newBudgetRow] },
+          });
+          const updatedRange = appendRes.data.updates.updatedRange;
+          const addedRow = parseInt(updatedRange.match(/\d+$/)[0]);
+          createdBudgetRow = addedRow;
+          const totalCol = headers.indexOf('Total Actual');
+          if (totalCol !== -1) {
+            const qtyCol = colToLetter(headers.indexOf('Qty'));
+            const priceCol = colToLetter(headers.indexOf('Price'));
+            await sheets.spreadsheets.values.update({
+              spreadsheetId,
+              range: 'Budget!' + colToLetter(totalCol) + addedRow,
+              valueInputOption: 'USER_ENTERED',
+              requestBody: { values: [['=' + qtyCol + addedRow + '*' + priceCol + addedRow]] },
+            });
+          }
+          const paidCol = headers.indexOf('Paid');
+          if (paidCol !== -1) {
+            await sheets.spreadsheets.values.update({
+              spreadsheetId,
+              range: 'Budget!' + colToLetter(paidCol) + addedRow,
+              valueInputOption: 'USER_ENTERED',
+              requestBody: { values: [[false]] },
+            });
+          }
+        }
+      }
+      return res.status(200).json({ success: true, budgetRow: createdBudgetRow });
     }
 
     if (action === 'update-fee') {

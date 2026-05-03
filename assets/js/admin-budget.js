@@ -519,7 +519,7 @@
       var deleteBtn = isAdmin ? '<button class="req-delete-btn" data-id="' + esc(r.RequestID) + '" title="Delete request" style="background:none;border:none;color:#f44336;font-size:1.1rem;cursor:pointer;padding:4px 8px;line-height:1;">&times;</button>' : '';
       return '<div class="request-row" data-id="' + esc(r.RequestID) + '" style="cursor:pointer;">' +
         '<div>' +
-          '<div style="font-weight:600">' + esc(r.Item) + '</div>' +
+          '<div style="font-weight:600">' + esc(r.Item) + (r.Category ? ' <span style="font-size:0.7rem;font-weight:500;color:var(--accent);background:rgba(232,168,76,0.12);padding:2px 8px;border-radius:10px;margin-left:6px;vertical-align:middle">' + esc(r.Category) + '</span>' : '') + '</div>' +
           (r.Description ? '<div style="color:var(--text-muted);font-size:0.8rem;margin-top:2px">' + esc(r.Description) + '</div>' : '') +
           '<div style="font-size:0.78rem;color:var(--text-muted);margin-top:4px">by ' + esc(r.SubmittedBy) + (r.Price ? ' · €' + esc(r.Price) : '') + ' ' + linkHtml + '</div>' +
         '</div>' +
@@ -565,7 +565,14 @@
     var inputStyle = 'background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:0.85rem;padding:7px 10px;width:100%;box-sizing:border-box;';
     var body = '';
 
+    var categories = ['Barrio Costs','Kitchen','Construction','Music Equipment','Logistics','Deco'];
+
     if (editing) {
+      body += '<div><label style="' + lbl + '">Category</label><select id="req-edit-category" style="' + inputStyle + '">' +
+        '<option value="">Select...</option>' +
+        categories.map(function(c) {
+          return '<option' + (c === r.Category ? ' selected' : '') + '>' + c + '</option>';
+        }).join('') + '</select></div>';
       body += '<div><label style="' + lbl + '">Item</label><input id="req-edit-item" style="' + inputStyle + '" value="' + esc(r.Item || '') + '"></div>';
       body += '<div><label style="' + lbl + '">Submitted by</label><input id="req-edit-submitter" style="' + inputStyle + '" value="' + esc(r.SubmittedBy || '') + '"></div>';
       body += '<div><label style="' + lbl + '">Why</label><textarea id="req-edit-desc" rows="3" style="' + inputStyle + 'resize:vertical;font-family:var(--body);">' + esc(r.Description || '') + '</textarea></div>';
@@ -576,6 +583,7 @@
           return '<option value="' + s + '"' + (s === status.toLowerCase() ? ' selected' : '') + '>' + s + '</option>';
         }).join('') + '</select></div>';
     } else {
+      if (r.Category) body += '<div><span style="' + lbl + '">Category</span><div>' + esc(r.Category) + '</div></div>';
       body += '<div><span style="' + lbl + '">Submitted by</span><div>' + esc(r.SubmittedBy || '') + '</div></div>';
       if (r.Description) body += '<div><span style="' + lbl + '">Why</span><div>' + esc(r.Description) + '</div></div>';
       if (r.Price) body += '<div><span style="' + lbl + '">Price estimate</span><div>&euro;' + esc(r.Price) + '</div></div>';
@@ -609,6 +617,7 @@
       document.getElementById('req-detail-save').addEventListener('click', async function() {
         var btn = this;
         var updates = {
+          category: document.getElementById('req-edit-category').value,
           item: document.getElementById('req-edit-item').value.trim(),
           submittedBy: document.getElementById('req-edit-submitter').value.trim(),
           description: document.getElementById('req-edit-desc').value.trim(),
@@ -622,6 +631,7 @@
         if (!resp.ok) { alert('Failed to save'); btn.disabled = false; btn.textContent = 'Save'; return; }
         var req = shoppingRequests.find(function(x) { return x.RequestID === id; });
         if (req) {
+          req.Category = updates.category;
           req.Item = updates.item;
           req.SubmittedBy = updates.submittedBy;
           req.Description = updates.description;
@@ -685,23 +695,25 @@
   // Submit request
   document.getElementById('req-submit-btn').addEventListener('click', async function() {
     var submittedBy = document.getElementById('req-submitter').value;
+    var category = document.getElementById('req-category').value;
     var item = document.getElementById('req-item').value.trim();
     var desc = document.getElementById('req-desc').value.trim();
     var link = document.getElementById('req-link').value.trim();
     var price = document.getElementById('req-price').value;
     var msg = document.getElementById('req-msg');
 
-    if (!submittedBy || !item) {
-      msg.textContent = 'Name and item are required'; msg.style.color = '#f44336'; return;
+    if (!submittedBy || !category || !item) {
+      msg.textContent = 'Name, category and item are required'; msg.style.color = '#f44336'; return;
     }
     msg.textContent = 'Submitting...'; msg.style.color = '#888';
     var requestId = Date.now() + '-' + Math.random().toString(36).slice(2, 7);
     try {
-      var r = await JH.apiFetch('/api/budget', { action: 'shopping-request', requestId: requestId, item: item, description: desc, link: link, price: price, submittedBy: submittedBy });
+      var r = await JH.apiFetch('/api/budget', { action: 'shopping-request', requestId: requestId, category: category, item: item, description: desc, link: link, price: price, submittedBy: submittedBy });
       if (!r.ok) throw new Error('Failed');
-      shoppingRequests.push({ RequestID: requestId, Item: item, Description: desc, Link: link, Price: price, SubmittedBy: submittedBy, Status: 'pending' });
+      shoppingRequests.push({ RequestID: requestId, Category: category, Item: item, Description: desc, Link: link, Price: price, SubmittedBy: submittedBy, Status: 'pending' });
       renderShoppingRequests();
       document.getElementById('request-modal').classList.remove('active');
+      document.getElementById('req-category').value = '';
       document.getElementById('req-item').value = '';
       document.getElementById('req-desc').value = '';
       document.getElementById('req-link').value = '';
