@@ -356,12 +356,21 @@ export default async function handler(req, res) {
         const category = get('Category');
         const itemName = get('Item');
         const reqPrice = get('Price');
+        const reqLink = get('Link');
+        const reqDesc = get('Description');
+        const reqSubmitter = get('SubmittedBy');
         if (category && itemName) {
+          const commentParts = [];
+          if (reqDesc) commentParts.push(reqDesc);
+          if (reqSubmitter) commentParts.push('Requested by ' + reqSubmitter);
+          const comment = commentParts.join(' — ');
           const newBudgetRow = headers.map(h => {
             if (h === 'Category') return category;
             if (h === 'Item') return itemName;
             if (h === 'Qty') return 1;
             if (h === 'Price') return reqPrice || 0;
+            if (h === 'Link') return reqLink || '';
+            if (h === 'Comment') return comment;
             if (h === 'Total Actual') return '';
             return '';
           });
