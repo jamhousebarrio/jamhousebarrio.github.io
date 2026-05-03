@@ -363,25 +363,6 @@
     } catch (e) { msgEl.textContent = 'Error adding item'; msgEl.style.color = '#f44336'; }
   }
 
-  // Add item (admin only) — desktop
-  if (isAdmin) {
-    document.getElementById('add-bar').style.display = 'flex';
-    document.getElementById('add-btn').addEventListener('click', function() {
-      doAddItem(
-        document.getElementById('add-category').value,
-        document.getElementById('add-item').value.trim(),
-        document.getElementById('add-qty').value,
-        document.getElementById('add-price').value,
-        document.getElementById('add-msg'),
-        function() {
-          document.getElementById('add-item').value = '';
-          document.getElementById('add-qty').value = '';
-          document.getElementById('add-price').value = '';
-          setTimeout(function() { document.getElementById('add-msg').textContent = ''; }, 2000);
-        }
-      );
-    });
-  }
   // Budget detail modal (shared for edit + add)
   var detailOverlay = document.getElementById('budget-detail-overlay');
   var detailBody = document.getElementById('budget-detail-body');
@@ -422,9 +403,11 @@
       (editable ? '<div style="margin-top:12px;display:flex;gap:8px;"><button id="budget-detail-save" style="' + btnStyle + '">' + (isNew ? 'Add Item' : 'Save') + '</button><span id="budget-detail-msg" style="font-size:0.8rem;color:#888;align-self:center;"></span></div>' : '');
   }
 
-  // Mobile: "+ Add" opens detail modal in add mode
-  if (isAdmin && JH.isMobile) {
-    document.getElementById('mobile-add-btn').addEventListener('click', function() {
+  // "+ Add Item" opens detail modal in add mode
+  if (isAdmin) {
+    var addBtn = document.getElementById('mobile-add-btn');
+    addBtn.style.display = '';
+    addBtn.addEventListener('click', function() {
       detailTitle.textContent = 'Add Item';
       detailBody.innerHTML = buildModalFields({}, true);
       document.getElementById('budget-detail-save').onclick = function() {

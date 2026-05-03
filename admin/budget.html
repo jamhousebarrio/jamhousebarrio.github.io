@@ -121,24 +121,8 @@ access: general
       <h2>Budget Items</h2>
       <button class="fullscreen-btn" id="fullscreenBtn" title="Toggle fullscreen">Expand</button>
     </div>
-    <div id="add-bar" class="add-bar" style="display:none;">
-      <select id="add-category">
-        <option value="">Category...</option>
-        <option>Barrio Costs</option>
-        <option>Kitchen</option>
-        <option>Construction</option>
-        <option>Music Equipment</option>
-        <option>Logistics</option>
-        <option>Deco</option>
-      </select>
-      <input id="add-item" placeholder="Item name">
-      <input id="add-qty" type="number" placeholder="Qty" style="max-width:70px;">
-      <input id="add-price" type="number" step="0.01" placeholder="Price" style="max-width:100px;">
-      <button id="add-btn">Add Item</button>
-      <span class="msg" id="add-msg"></span>
-    </div>
     <div class="filter-row">
-      <button id="mobile-add-btn">+ Add</button>
+      <button id="mobile-add-btn" style="display:none;">+ Add Item</button>
       <label id="discussFilter" style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:0.82rem;color:var(--text-muted);padding:0.35rem 0.75rem;border:1px solid var(--border);border-radius:20px;background:var(--surface);user-select:none;"><input type="checkbox" id="discussCheck" style="accent-color:#ff9800;width:15px;height:15px;"> Discuss</label>
       <select id="categoryFilter">
         <option value="">All Categories</option>
