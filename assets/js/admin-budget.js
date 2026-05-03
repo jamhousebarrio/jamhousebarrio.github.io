@@ -516,6 +516,7 @@
     wrap.innerHTML = shoppingRequests.map(function(r) {
       var statusClass = 'status-' + (r.Status || 'pending').toLowerCase();
       var linkHtml = r.Link ? '<a href="' + esc(r.Link) + '" target="_blank" rel="noopener" class="req-link" style="color:var(--accent);font-size:0.8rem;">View ↗</a>' : '';
+      var deleteBtn = isAdmin ? '<button class="req-delete-btn" data-id="' + esc(r.RequestID) + '" title="Delete request" style="background:none;border:none;color:#f44336;font-size:1.1rem;cursor:pointer;padding:4px 8px;line-height:1;">&times;</button>' : '';
       return '<div class="request-row" data-id="' + esc(r.RequestID) + '" style="cursor:pointer;">' +
         '<div>' +
           '<div style="font-weight:600">' + esc(r.Item) + '</div>' +
@@ -523,15 +524,31 @@
           '<div style="font-size:0.78rem;color:var(--text-muted);margin-top:4px">by ' + esc(r.SubmittedBy) + (r.Price ? ' · €' + esc(r.Price) : '') + ' ' + linkHtml + '</div>' +
         '</div>' +
         '<span class="request-status ' + statusClass + '">' + esc(r.Status || 'pending') + '</span>' +
+        deleteBtn +
       '</div>';
     }).join('');
 
     wrap.querySelectorAll('.request-row').forEach(function(row) {
       row.addEventListener('click', function(e) {
-        if (e.target.closest('a')) return;
+        if (e.target.closest('a') || e.target.closest('.req-delete-btn')) return;
         openRequestDetail(row.dataset.id);
       });
     });
+
+    if (isAdmin) {
+      wrap.querySelectorAll('.req-delete-btn').forEach(function(btn) {
+        btn.addEventListener('click', async function(e) {
+          e.stopPropagation();
+          var id = btn.dataset.id;
+          if (!confirm('Delete this request? This cannot be undone.')) return;
+          btn.disabled = true;
+          var r = await JH.apiFetch('/api/budget', { action: 'delete-request', requestId: id });
+          if (!r.ok) { alert('Failed to delete'); btn.disabled = false; return; }
+          shoppingRequests = shoppingRequests.filter(function(x) { return x.RequestID !== id; });
+          renderShoppingRequests();
+        });
+      });
+    }
   }
 
   function openRequestDetail(id) {
