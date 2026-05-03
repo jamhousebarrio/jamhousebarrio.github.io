@@ -255,7 +255,7 @@ export default async function handler(req, res) {
       const reqRes = await sheets.spreadsheets.values.get({ spreadsheetId, range: 'ShoppingRequests' });
       const reqRows = reqRes.data.values || [];
       if (!reqRows.length) return res.status(404).json({ error: 'Not found' });
-      const reqHeaders = reqRows[0];
+      let reqHeaders = reqRows[0];
       const idCol = reqHeaders.indexOf('RequestID');
       const rowIdx = reqRows.findIndex((r, i) => i > 0 && r[idCol] === requestId);
       if (rowIdx === -1) return res.status(404).json({ error: 'Request not found' });
@@ -268,6 +268,23 @@ export default async function handler(req, res) {
         submittedBy: 'SubmittedBy',
         status: 'Status',
       };
+      const neededHeaders = [];
+      for (const key in updates) {
+        const header = fieldMap[key];
+        if (header && reqHeaders.indexOf(header) === -1 && neededHeaders.indexOf(header) === -1) {
+          neededHeaders.push(header);
+        }
+      }
+      if (neededHeaders.length) {
+        const newHeaders = reqHeaders.concat(neededHeaders);
+        await sheets.spreadsheets.values.update({
+          spreadsheetId,
+          range: 'ShoppingRequests!1:1',
+          valueInputOption: 'RAW',
+          requestBody: { values: [newHeaders] },
+        });
+        reqHeaders = newHeaders;
+      }
       const data = [];
       for (const key in updates) {
         const header = fieldMap[key];
