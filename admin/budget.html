@@ -170,7 +170,7 @@ access: general
 </div>
 
 <!-- Shopping request modal -->
-<div class="modal-overlay" id="request-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:100;justify-content:center;align-items:center;">
+<div class="modal-overlay" id="request-modal">
   <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;max-width:480px;width:90%;padding:24px;display:flex;flex-direction:column;gap:12px;">
     <h2 style="font-family:var(--heading);color:var(--accent);margin:0;font-size:1.1rem;display:flex;justify-content:space-between;align-items:center;">
       Request an Item <button id="request-modal-close" style="background:none;border:none;color:var(--text-muted);font-size:1.4rem;cursor:pointer;">&times;</button>
@@ -198,6 +198,18 @@ access: general
   <div class="budget-detail-modal">
     <h2><span id="budget-detail-title"></span><button class="modal-close" id="budget-detail-close" style="background:none;border:none;color:var(--text-muted);font-size:1.4rem;cursor:pointer;">&times;</button></h2>
     <div id="budget-detail-body"></div>
+  </div>
+</div>
+
+<!-- Shopping request detail modal -->
+<div class="modal-overlay" id="request-detail-modal">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;max-width:520px;width:90%;padding:24px;display:flex;flex-direction:column;gap:12px;">
+    <h2 style="font-family:var(--heading);color:var(--accent);margin:0;font-size:1.1rem;display:flex;justify-content:space-between;align-items:center;">
+      <span id="req-detail-title">Request</span>
+      <button id="request-detail-close" style="background:none;border:none;color:var(--text-muted);font-size:1.4rem;cursor:pointer;">&times;</button>
+    </h2>
+    <div id="req-detail-body" style="display:flex;flex-direction:column;gap:10px;font-size:0.88rem;"></div>
+    <div id="req-detail-actions" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;"></div>
   </div>
 </div>
 

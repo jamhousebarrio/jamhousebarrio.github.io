@@ -515,44 +515,83 @@
     }
     wrap.innerHTML = shoppingRequests.map(function(r) {
       var statusClass = 'status-' + (r.Status || 'pending').toLowerCase();
-      var linkHtml = r.Link ? '<a href="' + esc(r.Link) + '" target="_blank" rel="noopener" style="color:var(--accent);font-size:0.8rem;">View ↗</a>' : '';
-      var adminBtns = isAdmin && (r.Status || 'pending') === 'pending' ?
-        '<button class="approve-btn fullscreen-btn" data-id="' + esc(r.RequestID) + '" style="color:#4caf50;border-color:#4caf50;">Approve</button>' +
-        '<button class="reject-btn fullscreen-btn" data-id="' + esc(r.RequestID) + '" style="color:#f44336;border-color:#f44336;margin-left:4px;">Reject</button>' : '';
-      return '<div class="request-row">' +
+      var linkHtml = r.Link ? '<a href="' + esc(r.Link) + '" target="_blank" rel="noopener" class="req-link" style="color:var(--accent);font-size:0.8rem;">View ↗</a>' : '';
+      return '<div class="request-row" data-id="' + esc(r.RequestID) + '" style="cursor:pointer;">' +
         '<div>' +
           '<div style="font-weight:600">' + esc(r.Item) + '</div>' +
           (r.Description ? '<div style="color:var(--text-muted);font-size:0.8rem;margin-top:2px">' + esc(r.Description) + '</div>' : '') +
           '<div style="font-size:0.78rem;color:var(--text-muted);margin-top:4px">by ' + esc(r.SubmittedBy) + (r.Price ? ' · €' + esc(r.Price) : '') + ' ' + linkHtml + '</div>' +
         '</div>' +
         '<span class="request-status ' + statusClass + '">' + esc(r.Status || 'pending') + '</span>' +
-        '<div>' + adminBtns + '</div>' +
       '</div>';
     }).join('');
 
-    if (isAdmin) {
-      wrap.querySelectorAll('.approve-btn').forEach(function(btn) {
-        btn.addEventListener('click', async function() {
-          var id = btn.dataset.id;
-          var r = await JH.apiFetch('/api/budget', { action: 'approve-request', requestId: id });
-          if (!r.ok) { alert('Failed to approve'); return; }
-          var req = shoppingRequests.find(function(x) { return x.RequestID === id; });
-          if (req) req.Status = 'approved';
-          renderShoppingRequests();
-        });
+    wrap.querySelectorAll('.request-row').forEach(function(row) {
+      row.addEventListener('click', function(e) {
+        if (e.target.closest('a')) return;
+        openRequestDetail(row.dataset.id);
       });
-      wrap.querySelectorAll('.reject-btn').forEach(function(btn) {
-        btn.addEventListener('click', async function() {
-          var id = btn.dataset.id;
-          var r = await JH.apiFetch('/api/budget', { action: 'reject-request', requestId: id });
-          if (!r.ok) { alert('Failed to reject'); return; }
-          var req = shoppingRequests.find(function(x) { return x.RequestID === id; });
-          if (req) req.Status = 'rejected';
-          renderShoppingRequests();
-        });
+    });
+  }
+
+  function openRequestDetail(id) {
+    var r = shoppingRequests.find(function(x) { return x.RequestID === id; });
+    if (!r) return;
+    document.getElementById('req-detail-title').textContent = r.Item || 'Request';
+    var status = r.Status || 'pending';
+    var body = '';
+    body += '<div><span style="color:var(--text-muted);text-transform:uppercase;font-size:0.7rem;letter-spacing:0.06em">Submitted by</span><div>' + esc(r.SubmittedBy || '') + '</div></div>';
+    if (r.Description) body += '<div><span style="color:var(--text-muted);text-transform:uppercase;font-size:0.7rem;letter-spacing:0.06em">Why</span><div>' + esc(r.Description) + '</div></div>';
+    if (r.Price) body += '<div><span style="color:var(--text-muted);text-transform:uppercase;font-size:0.7rem;letter-spacing:0.06em">Price estimate</span><div>€' + esc(r.Price) + '</div></div>';
+    if (r.Link) body += '<div><span style="color:var(--text-muted);text-transform:uppercase;font-size:0.7rem;letter-spacing:0.06em">Link</span><div><a href="' + esc(r.Link) + '" target="_blank" rel="noopener" style="color:var(--accent);word-break:break-all">' + esc(r.Link) + '</a></div></div>';
+    body += '<div><span style="color:var(--text-muted);text-transform:uppercase;font-size:0.7rem;letter-spacing:0.06em">Status</span><div><span class="request-status status-' + status.toLowerCase() + '">' + esc(status) + '</span></div></div>';
+    document.getElementById('req-detail-body').innerHTML = body;
+
+    var actions = '';
+    if (isAdmin) {
+      if (status.toLowerCase() === 'pending') {
+        actions += '<button id="req-detail-approve" data-id="' + esc(id) + '" class="fullscreen-btn" style="color:#4caf50;border-color:#4caf50;">Approve</button>';
+        actions += '<button id="req-detail-reject" data-id="' + esc(id) + '" class="fullscreen-btn" style="color:#f44336;border-color:#f44336;">Reject</button>';
+      }
+      actions += '<button id="req-detail-delete" data-id="' + esc(id) + '" class="fullscreen-btn" style="color:#f44336;border-color:#f44336;margin-left:auto;">Delete</button>';
+    }
+    document.getElementById('req-detail-actions').innerHTML = actions;
+
+    if (isAdmin) {
+      var ap = document.getElementById('req-detail-approve');
+      if (ap) ap.addEventListener('click', function() { handleRequestAction(id, 'approve-request', 'approved'); });
+      var rj = document.getElementById('req-detail-reject');
+      if (rj) rj.addEventListener('click', function() { handleRequestAction(id, 'reject-request', 'rejected'); });
+      var dl = document.getElementById('req-detail-delete');
+      if (dl) dl.addEventListener('click', async function() {
+        if (!confirm('Delete this request? This cannot be undone.')) return;
+        dl.disabled = true; dl.textContent = '...';
+        var r = await JH.apiFetch('/api/budget', { action: 'delete-request', requestId: id });
+        if (!r.ok) { alert('Failed to delete'); dl.disabled = false; dl.textContent = 'Delete'; return; }
+        shoppingRequests = shoppingRequests.filter(function(x) { return x.RequestID !== id; });
+        document.getElementById('request-detail-modal').classList.remove('active');
+        renderShoppingRequests();
       });
     }
+
+    document.getElementById('request-detail-modal').classList.add('active');
   }
+
+  async function handleRequestAction(id, action, newStatus) {
+    var r = await JH.apiFetch('/api/budget', { action: action, requestId: id });
+    if (!r.ok) { alert('Failed'); return; }
+    var req = shoppingRequests.find(function(x) { return x.RequestID === id; });
+    if (req) req.Status = newStatus;
+    document.getElementById('request-detail-modal').classList.remove('active');
+    renderShoppingRequests();
+  }
+
+  document.getElementById('request-detail-close').addEventListener('click', function() {
+    document.getElementById('request-detail-modal').classList.remove('active');
+  });
+  document.getElementById('request-detail-modal').addEventListener('click', function(e) {
+    if (e.target === this) this.classList.remove('active');
+  });
 
   renderShoppingRequests();
 

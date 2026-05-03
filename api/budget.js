@@ -224,6 +224,30 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true });
     }
 
+    if (action === 'delete-request') {
+      const { requestId } = payload;
+      if (!requestId) return res.status(400).json({ error: 'requestId required' });
+      const reqRes = await sheets.spreadsheets.values.get({ spreadsheetId, range: 'ShoppingRequests' });
+      const reqRows = reqRes.data.values || [];
+      if (!reqRows.length) return res.status(404).json({ error: 'Not found' });
+      const idCol = reqRows[0].indexOf('RequestID');
+      const rowIdx = reqRows.findIndex((r, i) => i > 0 && r[idCol] === requestId);
+      if (rowIdx === -1) return res.status(404).json({ error: 'Request not found' });
+      const spreadsheet = await sheets.spreadsheets.get({ spreadsheetId });
+      const srSheet = spreadsheet.data.sheets.find(s => s.properties.title === 'ShoppingRequests');
+      await sheets.spreadsheets.batchUpdate({
+        spreadsheetId,
+        requestBody: {
+          requests: [{
+            deleteDimension: {
+              range: { sheetId: srSheet.properties.sheetId, dimension: 'ROWS', startIndex: rowIdx, endIndex: rowIdx + 1 }
+            }
+          }]
+        }
+      });
+      return res.status(200).json({ success: true });
+    }
+
     if (action === 'approve-request' || action === 'reject-request') {
       const { requestId } = payload;
       if (!requestId) return res.status(400).json({ error: 'requestId required' });
