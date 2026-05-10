@@ -346,7 +346,7 @@ JH.checkLogisticsPrompt = async function() {
     if (row && (row['ArrivalDate'] || row['DepartureDate'])) return;
     var banner = document.createElement('div');
     banner.style.cssText = 'background:rgba(232,168,76,0.1);border:1px solid var(--accent);border-radius:8px;padding:10px 16px;margin-bottom:16px;font-size:0.84rem;color:var(--text);display:flex;align-items:center;justify-content:space-between;gap:12px;';
-    banner.innerHTML = '<span>We don\'t have your arrival info yet! Please <a href="/admin/logistics" style="color:var(--accent);font-weight:600">fill in your logistics</a> so we can plan meals and pickups.</span>' +
+    banner.innerHTML = '<span>We don\'t have your arrival info yet! Please <a href="/admin/logistics" style="color:var(--accent);font-weight:600">fill in your logistics</a> so we can plan meals and pickups. Don\'t worry if it\'s approximate for now &mdash; any information is useful, and you can update it as plans change.</span>' +
       '<button onclick="this.parentNode.remove()" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:1.1rem;flex-shrink:0">&times;</button>';
     var main = document.querySelector('.main');
     if (main) main.insertBefore(banner, main.firstChild.nextSibling);
