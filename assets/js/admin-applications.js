@@ -6,6 +6,7 @@
   var isAdmin = JH.isAdmin();
   var allMembers = members.map(function(m, i) { m._row = i + 2; return m; });
   var ALL_STATUSES = ['Pending', 'Review', 'Vibe Check', 'Team Discussion', 'On-boarding', 'Approved', 'Rejected'];
+  var FOOD_TYPES = ['', 'Carnivore', 'Pescatarian', 'Vegetarian', 'Vegan'];
   var STATUS_IDS = { 'Pending': 'stat-pending', 'Review': 'stat-review', 'Vibe Check': 'stat-vibe-check', 'Team Discussion': 'stat-team-discussion', 'On-boarding': 'stat-on-boarding', 'Approved': 'stat-approved', 'Rejected': 'stat-rejected' };
 
   function normalizeStatus(s) {
@@ -278,7 +279,7 @@
   }
 
   // Modal — keys that should not be editable
-  var readonlyKeys = ['_row', 'Timestamp', '', 'Admin'];
+  var readonlyKeys = ['_row', 'Timestamp', '', 'Admin', 'LastDietaryPromptedAt'];
 
   function openModal(m) {
     document.getElementById('modal-title').textContent = val(m, 'Name') || 'Application';
@@ -307,6 +308,16 @@
         });
         sel += '</select>';
         return '<div class="detail-row"><div class="detail-label">Status</div><div class="detail-value">' + sel + '</div></div>';
+      }
+      // FoodType: dropdown (constrained to allowed values, matches save-dietary)
+      if (k === 'FoodType' && isAdmin) {
+        var sel = '<select class="field-input" data-key="FoodType">';
+        FOOD_TYPES.forEach(function(opt) {
+          var label = opt || '— not set —';
+          sel += '<option value="' + opt + '"' + (opt === v ? ' selected' : '') + '>' + label + '</option>';
+        });
+        sel += '</select>';
+        return '<div class="detail-row"><div class="detail-label">FoodType</div><div class="detail-value">' + sel + '</div></div>';
       }
       // Read-only fields
       if (!isAdmin || readonlyKeys.indexOf(k) !== -1) {
