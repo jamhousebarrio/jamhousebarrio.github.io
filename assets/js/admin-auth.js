@@ -353,6 +353,48 @@ JH.checkLogisticsPrompt = async function() {
   } catch (e) {}
 };
 
+JH.checkShiftsPrompt = async function() {
+  if (window.location.pathname.indexOf('/admin/shifts') !== -1) return;
+  if (!JH.currentUser || !JH.currentUser.member) return;
+  if (sessionStorage.getItem('jh_shifts_dismissed')) return;
+
+  // Cache the "has at least one shift" answer for 10 minutes to avoid
+  // an extra API call on every admin page load.
+  var lastChecked = sessionStorage.getItem('jh_shifts_checked');
+  var hasShifts;
+  if (lastChecked && (Date.now() - parseInt(lastChecked, 10)) < 600000) {
+    hasShifts = sessionStorage.getItem('jh_shifts_has') === '1';
+  } else {
+    try {
+      var res = await JH.apiFetch('/api/shifts', {});
+      if (!res.ok) return;
+      var data = await res.json();
+      var playa = (JH.currentUser.member['Playa Name'] || '').trim().toLowerCase();
+      var legal = (JH.currentUser.member['Name'] || '').trim().toLowerCase();
+      hasShifts = (data.shifts || []).some(function(s) {
+        var names = (s.AssignedTo || '').split(',').map(function(x) { return x.trim().toLowerCase(); });
+        return (playa && names.indexOf(playa) !== -1) || (legal && names.indexOf(legal) !== -1);
+      });
+      sessionStorage.setItem('jh_shifts_has', hasShifts ? '1' : '0');
+      sessionStorage.setItem('jh_shifts_checked', Date.now());
+    } catch (e) { return; }
+  }
+  if (hasShifts) return;
+
+  var banner = document.createElement('div');
+  banner.id = 'jh-shifts-banner';
+  banner.style.cssText = 'background:rgba(232,168,76,0.1);border:1px solid var(--accent);border-radius:8px;padding:10px 16px;margin-bottom:16px;font-size:0.84rem;color:var(--text);display:flex;align-items:center;justify-content:space-between;gap:12px;';
+  banner.innerHTML = '<span>You haven\'t signed up to any shifts yet &mdash; please <a href="/admin/shifts" style="color:var(--accent);font-weight:600">grab at least one</a> so the barrio stays covered. Don\'t worry if plans aren\'t firm, you can swap or drop later.</span>' +
+    '<button id="jh-shifts-dismiss" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:1.1rem;flex-shrink:0">&times;</button>';
+  var main = document.querySelector('.main');
+  if (main) main.insertBefore(banner, main.firstChild.nextSibling);
+  var dismissBtn = document.getElementById('jh-shifts-dismiss');
+  if (dismissBtn) dismissBtn.addEventListener('click', function() {
+    sessionStorage.setItem('jh_shifts_dismissed', '1');
+    banner.remove();
+  });
+};
+
 JH.checkDietaryPrompt = function() {
   if (window.location.pathname.indexOf('/admin/profile') !== -1) return;
   if (!JH.currentUser || !JH.currentUser.member) return;
@@ -374,4 +416,4 @@ JH.checkDietaryPrompt = function() {
 };
 
 // Auto-check after page loads
-setTimeout(function() { JH.checkLogisticsPrompt(); JH.checkDietaryPrompt(); }, 500);
+setTimeout(function() { JH.checkLogisticsPrompt(); JH.checkDietaryPrompt(); JH.checkShiftsPrompt(); }, 500);
