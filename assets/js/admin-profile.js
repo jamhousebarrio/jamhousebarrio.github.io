@@ -157,6 +157,61 @@
     }
   });
 
+  // ── Dietary Info section ───────────────────────────────────────────
+  var dietarySection = document.getElementById('dietary-section');
+  var dietaryNotes = document.getElementById('dietary-notes');
+  var foodTypeInputs = document.querySelectorAll('input[name="food-type"]');
+
+  var currentFoodType = user.member ? JH.val(user.member, 'FoodType') : '';
+  var currentDietaryNotes = user.member ? JH.val(user.member, 'DietaryNotes') : '';
+  foodTypeInputs.forEach(function(el) { if (el.value === currentFoodType) el.checked = true; });
+  dietaryNotes.value = currentDietaryNotes;
+
+  document.getElementById('dietary-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    var msg = document.getElementById('dietary-msg');
+    msg.textContent = 'Saving...';
+    msg.style.color = 'var(--text-muted)';
+    var checked = document.querySelector('input[name="food-type"]:checked');
+    var foodType = checked ? checked.value : '';
+    var notes = dietaryNotes.value.trim();
+    try {
+      var res = await JH.apiFetch('/api/members', {
+        action: 'save-dietary',
+        foodType: foodType,
+        dietaryNotes: notes,
+      });
+      if (!res.ok) {
+        var err = await res.json().catch(function() { return {}; });
+        throw new Error(err.error || 'Failed');
+      }
+      msg.textContent = 'Saved!';
+      msg.style.color = '#4caf50';
+      if (user.member) {
+        user.member['FoodType'] = foodType;
+        user.member['DietaryNotes'] = notes;
+        user.member['LastDietaryPromptedAt'] = '';
+      }
+    } catch (ex) {
+      msg.textContent = ex.message || 'Failed to save';
+      msg.style.color = '#f44336';
+    }
+  });
+
+  // ?prompt=dietary → scroll to + briefly outline the dietary section
+  if (location.search.indexOf('prompt=dietary') !== -1 && dietarySection) {
+    setTimeout(function() {
+      dietarySection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      dietarySection.style.outline = '2px solid var(--accent)';
+      dietarySection.style.outlineOffset = '6px';
+      dietarySection.style.transition = 'outline-color 0.4s';
+      setTimeout(function() {
+        dietarySection.style.outline = 'none';
+        dietarySection.style.outlineOffset = '';
+      }, 3500);
+    }, 250);
+  }
+
   // If must change password, disable navigation away
   if (mustChange) {
     document.querySelectorAll('.sidebar a').forEach(function(link) {

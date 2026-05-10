@@ -5,6 +5,8 @@ const ALLOWED_STATUSES = ['Pending', 'Review', 'Vibe Check', 'Team Discussion', 
 const BARRIO_FEE = 280;
 const LOW_INCOME_FEE = 180;
 const FEE_COLUMNS = ['fee_total_sent', 'fee_received', 'low_income_request', 'low_income_status'];
+const DIETARY_COLUMNS = ['FoodType', 'DietaryNotes', 'LastDietaryPromptedAt'];
+const ALLOWED_FOOD_TYPES = ['', 'Carnivore', 'Pescatarian', 'Vegetarian', 'Vegan'];
 
 async function tgSend(text) {
   if (!process.env.TELEGRAM_BOT_TOKEN || !process.env.TELEGRAM_CHAT_ID) return;
@@ -26,6 +28,19 @@ function displayName(member) {
 
 async function ensureFeeColumns(sheets, spreadsheetId, headers) {
   const missing = FEE_COLUMNS.filter(c => headers.indexOf(c) === -1);
+  if (!missing.length) return headers;
+  const newHeaders = headers.concat(missing);
+  await sheets.spreadsheets.values.update({
+    spreadsheetId,
+    range: 'Sheet1!A1:' + colToLetter(newHeaders.length - 1) + '1',
+    valueInputOption: 'RAW',
+    requestBody: { values: [newHeaders] },
+  });
+  return newHeaders;
+}
+
+async function ensureDietaryColumns(sheets, spreadsheetId, headers) {
+  const missing = DIETARY_COLUMNS.filter(c => headers.indexOf(c) === -1);
   if (!missing.length) return headers;
   const newHeaders = headers.concat(missing);
   await sheets.spreadsheets.values.update({
@@ -204,6 +219,23 @@ export default async function handler(req, res) {
       await writeCell(sheets, spreadsheetId, headers, auth.row, 'low_income_request', '');
       await writeCell(sheets, spreadsheetId, headers, auth.row, 'low_income_status', '');
       await tgSend('🗑 A low income ticket request has been withdrawn.');
+      return res.status(200).json({ success: true });
+    }
+
+    // ── Dietary: any authenticated member saves their own info ──────────
+    if (action === 'save-dietary') {
+      const foodType = (payload.foodType || '').toString().trim();
+      const dietaryNotes = (payload.dietaryNotes || '').toString().trim();
+      if (ALLOWED_FOOD_TYPES.indexOf(foodType) === -1) {
+        return res.status(400).json({ error: 'Invalid food type' });
+      }
+      const r = await sheets.spreadsheets.values.get({ spreadsheetId, range: 'Sheet1!1:1' });
+      let hdrs = (r.data.values || [[]])[0] || [];
+      hdrs = await ensureDietaryColumns(sheets, spreadsheetId, hdrs);
+      await writeCell(sheets, spreadsheetId, hdrs, auth.row, 'FoodType', foodType);
+      await writeCell(sheets, spreadsheetId, hdrs, auth.row, 'DietaryNotes', dietaryNotes);
+      // Clear the prompt timestamp once filled (keeps "incomplete" check in sync)
+      await writeCell(sheets, spreadsheetId, hdrs, auth.row, 'LastDietaryPromptedAt', '');
       return res.status(200).json({ success: true });
     }
 

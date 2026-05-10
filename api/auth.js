@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { verifyToken, getMemberByEmail, isAdmin } from './_lib/auth.js';
-import { getSheets } from './_lib/sheets.js';
+import { getSheets, colToLetter } from './_lib/sheets.js';
 
 function getSupabaseAdmin() {
   return createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SECRET_KEY, {
@@ -134,6 +134,90 @@ export default async function handler(req, res) {
         return res.status(500).json({ error: 'Failed to update user metadata' });
       }
       return res.status(200).json({ success: true });
+    }
+
+    // ── Bulk-prompt approved members missing dietary info ───────────────
+    if (action === 'prompt-dietary-bulk') {
+      const user = verifyToken(req);
+      const sheets = getSheets(true);
+      const result = await getMemberByEmail(sheets, process.env.SHEET_ID, user.email);
+      if (!result || !isAdmin(result.member)) {
+        return res.status(403).json({ error: 'Admin required' });
+      }
+
+      const spreadsheetId = process.env.SHEET_ID;
+      const r = await sheets.spreadsheets.values.get({ spreadsheetId, range: 'Sheet1' });
+      const rows = r.data.values || [];
+      if (rows.length < 2) return res.status(200).json({ sent: [], skipped: [] });
+
+      // Ensure the dietary columns exist before we read/write them
+      let headers = rows[0];
+      const needed = ['FoodType', 'DietaryNotes', 'LastDietaryPromptedAt'];
+      const missing = needed.filter(c => headers.indexOf(c) === -1);
+      if (missing.length) {
+        headers = headers.concat(missing);
+        await sheets.spreadsheets.values.update({
+          spreadsheetId,
+          range: 'Sheet1!A1:' + colToLetter(headers.length - 1) + '1',
+          valueInputOption: 'RAW',
+          requestBody: { values: [headers] },
+        });
+      }
+
+      const statusCol = headers.indexOf('Status');
+      const emailCol = headers.indexOf('Email');
+      const foodCol = headers.indexOf('FoodType');
+      const promptedCol = headers.indexOf('LastDietaryPromptedAt');
+      const playaCol = headers.indexOf('Playa Name');
+      const nameCol = headers.indexOf('Name');
+
+      const supabase = getSupabaseAdmin();
+      const siteUrl = process.env.SITE_URL || 'https://jamhouse.space';
+      const now = new Date();
+      const dayMs = 24 * 60 * 60 * 1000;
+      const sent = [];
+      const skipped = [];
+
+      for (let i = 1; i < rows.length; i++) {
+        const row = rows[i];
+        if ((row[statusCol] || '').toLowerCase() !== 'approved') continue;
+        if ((row[foodCol] || '').trim()) continue; // already filled
+        const email = (row[emailCol] || '').trim();
+        if (!email) continue;
+
+        const label = (row[playaCol] || row[nameCol] || email).toString();
+        const lastPrompted = (row[promptedCol] || '').trim();
+        if (lastPrompted) {
+          const t = Date.parse(lastPrompted);
+          if (!isNaN(t) && (now.getTime() - t) < dayMs) {
+            skipped.push({ email, name: label, reason: 'prompted in last 24h' });
+            continue;
+          }
+        }
+
+        try {
+          const { error } = await supabase.auth.admin.generateLink({
+            type: 'recovery',
+            email,
+            options: { redirectTo: `${siteUrl}/admin/profile?prompt=dietary` },
+          });
+          if (error) {
+            skipped.push({ email, name: label, reason: error.message });
+            continue;
+          }
+          const sheetRow = i + 1;
+          await sheets.spreadsheets.values.update({
+            spreadsheetId,
+            range: 'Sheet1!' + colToLetter(promptedCol) + sheetRow,
+            valueInputOption: 'RAW',
+            requestBody: { values: [[now.toISOString()]] },
+          });
+          sent.push({ email, name: label });
+        } catch (e) {
+          skipped.push({ email, name: label, reason: e.message || 'failed' });
+        }
+      }
+      return res.status(200).json({ sent, skipped });
     }
 
     // ── Delete user (remove Supabase account) ───────────────────────────

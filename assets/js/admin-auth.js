@@ -353,5 +353,25 @@ JH.checkLogisticsPrompt = async function() {
   } catch (e) {}
 };
 
+JH.checkDietaryPrompt = function() {
+  if (window.location.pathname.indexOf('/admin/profile') !== -1) return;
+  if (!JH.currentUser || !JH.currentUser.member) return;
+  if (sessionStorage.getItem('jh_dietary_dismissed')) return;
+  var ft = (JH.currentUser.member['FoodType'] || '').toString().trim();
+  if (ft) return;
+  var banner = document.createElement('div');
+  banner.id = 'jh-dietary-banner';
+  banner.style.cssText = 'background:rgba(232,168,76,0.1);border:1px solid var(--accent);border-radius:8px;padding:10px 16px;margin-bottom:16px;font-size:0.84rem;color:var(--text);display:flex;align-items:center;justify-content:space-between;gap:12px;';
+  banner.innerHTML = '<span>We don\'t have your dietary info yet — please <a href="/admin/profile?prompt=dietary" style="color:var(--accent);font-weight:600">fill it in on your profile</a> so the kitchen can plan around you.</span>' +
+    '<button id="jh-dietary-dismiss" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:1.1rem;flex-shrink:0">&times;</button>';
+  var main = document.querySelector('.main');
+  if (main) main.insertBefore(banner, main.firstChild.nextSibling);
+  var dismissBtn = document.getElementById('jh-dietary-dismiss');
+  if (dismissBtn) dismissBtn.addEventListener('click', function() {
+    sessionStorage.setItem('jh_dietary_dismissed', '1');
+    banner.remove();
+  });
+};
+
 // Auto-check after page loads
-setTimeout(function() { JH.checkLogisticsPrompt(); }, 500);
+setTimeout(function() { JH.checkLogisticsPrompt(); JH.checkDietaryPrompt(); }, 500);

@@ -277,6 +277,42 @@
     var phoneCol = rosterCols.find(function(c) { return c.field === 'Phone'; });
     if (phoneCol) JH.mobilePhoneColumn(phoneCol);
   }
+  // Admin-only: "Prompt for allergies" button — emails recovery links to
+  // approved members with empty FoodType (skips anyone prompted in last 24h).
+  if (isAdminUser) {
+    var promptBtn = document.getElementById('prompt-dietary-btn');
+    if (promptBtn) {
+      promptBtn.style.display = '';
+      var incomplete = members.filter(function(m) {
+        return !val(m, 'FoodType');
+      });
+      promptBtn.textContent = 'Prompt for allergies (' + incomplete.length + ')';
+      promptBtn.disabled = incomplete.length === 0;
+      promptBtn.addEventListener('click', async function() {
+        if (!incomplete.length) return;
+        var labels = incomplete.map(function(m) { return val(m, 'Playa Name') || val(m, 'Name') || val(m, 'Email'); });
+        if (!confirm('Send a magic-link email to ' + incomplete.length + ' member' + (incomplete.length === 1 ? '' : 's') + ' missing dietary info?\n\n' + labels.join(', ') + '\n\n(Anyone prompted in the last 24h is automatically skipped.)')) return;
+        promptBtn.disabled = true;
+        promptBtn.textContent = 'Sending...';
+        try {
+          var r = await JH.apiFetch('/api/auth', { action: 'prompt-dietary-bulk' });
+          var d = await r.json().catch(function() { return {}; });
+          if (!r.ok) throw new Error(d.error || 'Failed');
+          var sentCount = (d.sent || []).length;
+          var skippedCount = (d.skipped || []).length;
+          var msg = 'Sent ' + sentCount + ' email' + (sentCount === 1 ? '' : 's') + '.';
+          if (skippedCount) msg += ' Skipped ' + skippedCount + ' (already prompted within 24h or send failed).';
+          alert(msg);
+        } catch (e) {
+          alert('Failed: ' + (e.message || 'unknown error'));
+        } finally {
+          promptBtn.disabled = false;
+          promptBtn.textContent = 'Prompt for allergies (' + incomplete.length + ')';
+        }
+      });
+    }
+  }
+
   var rosterGrid = agGrid.createGrid(document.getElementById('roster-grid'), {
     rowData: members.map(function(m) {
       return { 'Playa Name': val(m, 'Playa Name'), Roles: memberRoles(m), Phone: val(m, 'Phone'), Telegram: val(m, 'Telegram'), Admin: val(m, 'Admin'), 'Last Login': memberLastLogin(m), _member: m };

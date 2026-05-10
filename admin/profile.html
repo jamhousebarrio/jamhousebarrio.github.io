@@ -96,6 +96,32 @@ access: general
       </div>
     </form>
   </div>
+
+  <div class="panel panel-form" id="dietary-section">
+    <div class="panel-header">
+      <h2>Dietary Info</h2>
+      <span style="font-size:0.78rem;color:var(--text-muted)">For meal planning</span>
+    </div>
+    <form id="dietary-form">
+      <div class="form-group">
+        <label>Diet</label>
+        <div id="food-type-pills" style="display:flex;flex-wrap:wrap;gap:10px;margin-top:8px;">
+          <label style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:999px;cursor:pointer;font-size:0.85rem;"><input type="radio" name="food-type" value="Carnivore" style="accent-color:var(--accent);"> Carnivore</label>
+          <label style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:999px;cursor:pointer;font-size:0.85rem;"><input type="radio" name="food-type" value="Pescatarian" style="accent-color:var(--accent);"> Pescatarian</label>
+          <label style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:999px;cursor:pointer;font-size:0.85rem;"><input type="radio" name="food-type" value="Vegetarian" style="accent-color:var(--accent);"> Vegetarian</label>
+          <label style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:999px;cursor:pointer;font-size:0.85rem;"><input type="radio" name="food-type" value="Vegan" style="accent-color:var(--accent);"> Vegan</label>
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="dietary-notes">Allergies &amp; intolerances</label>
+        <textarea id="dietary-notes" rows="3" placeholder="e.g. peanuts, lactose intolerant, no shellfish — leave blank if none"></textarea>
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn">Save Dietary Info</button>
+        <div id="dietary-msg" class="form-msg"></div>
+      </div>
+    </form>
+  </div>
 </div>
 
 <script src="/assets/js/admin-auth.js"></script>
