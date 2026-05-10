@@ -75,6 +75,27 @@ export default async function handler(req, res) {
       });
     }
 
+    // ── List last sign-in time for all Supabase users (admin only) ──────
+    if (action === 'list-last-signin') {
+      const user = verifyToken(req);
+      const sheets = getSheets(true);
+      const result = await getMemberByEmail(sheets, process.env.SHEET_ID, user.email);
+      if (!result || !isAdmin(result.member)) {
+        return res.status(403).json({ error: 'Admin required' });
+      }
+      const supabase = getSupabaseAdmin();
+      const { data, error } = await supabase.auth.admin.listUsers({ perPage: 1000 });
+      if (error) {
+        console.error('List signins error:', error);
+        return res.status(500).json({ error: error.message || 'Failed to list users' });
+      }
+      const signins = (data?.users || []).map(u => ({
+        email: (u.email || '').toLowerCase(),
+        lastSignInAt: u.last_sign_in_at || null,
+      }));
+      return res.status(200).json({ signins });
+    }
+
     // ── Resend invite (password reset for existing user) ─────────────────
     if (action === 'resend-invite') {
       const user = verifyToken(req);

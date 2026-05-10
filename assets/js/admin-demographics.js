@@ -27,6 +27,32 @@
     return (rolesByMember[key] || []).join(', ');
   }
 
+  // Last-login map (admin only — Supabase admin.listUsers requires service role).
+  var isAdminUser = JH.isAdmin();
+  var lastLoginByEmail = {};
+  if (isAdminUser) {
+    try {
+      var sRes = await JH.apiFetch('/api/auth', { action: 'list-last-signin' });
+      if (sRes.ok) {
+        var sData = await sRes.json();
+        (sData.signins || []).forEach(function(s) {
+          if (s.email) lastLoginByEmail[s.email.toLowerCase()] = s.lastSignInAt;
+        });
+      }
+    } catch (e) { console.error('Failed to load last-signin', e); }
+  }
+  function fmtDateTime(iso) {
+    if (!iso) return '';
+    var d = new Date(iso);
+    if (isNaN(d)) return '';
+    var pad = function(n) { return n < 10 ? '0' + n : n; };
+    return pad(d.getDate()) + '/' + pad(d.getMonth() + 1) + '/' + d.getFullYear() + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+  }
+  function memberLastLogin(m) {
+    var em = (val(m, 'Email') || '').toLowerCase();
+    return lastLoginByEmail[em] || '';
+  }
+
   // Stats
   document.getElementById('stat-total').textContent = members.length;
   var ages = members.map(function(m) { return parseInt(val(m, 'Age')); }).filter(function(a) { return !isNaN(a); });
@@ -136,6 +162,7 @@
       ['Phone', val(m, 'Phone')],
       ['Email', val(m, 'Email')],
       ['Admin', val(m, 'Admin')],
+      ['Last Login', fmtDateTime(memberLastLogin(m))],
       ['First Burn', val(m, 'First Burn')],
       ['First Elsewhere', val(m, 'First Elsewhere/Nowhere')],
       ['Has Ticket', val(m, 'Has Ticket')],
@@ -236,6 +263,13 @@
     { field: 'Phone', sortable: true, filter: true, cellRenderer: JH.PhoneCellRenderer }
   ];
   if (JH.isAdmin()) {
+    rosterCols.push({
+      field: 'Last Login',
+      sortable: true,
+      filter: true,
+      minWidth: 140,
+      valueFormatter: function(p) { return fmtDateTime(p.value); },
+    });
     rosterCols.push({ field: 'Admin', headerName: 'Admin', sortable: true, filter: true, cellRenderer: AdminCellRenderer, maxWidth: 90 });
     rosterCols.push({ headerName: '', cellRenderer: DeleteCellRenderer, maxWidth: 50, sortable: false, filter: false, suppressSizeToFit: true });
   }
@@ -245,7 +279,7 @@
   }
   var rosterGrid = agGrid.createGrid(document.getElementById('roster-grid'), {
     rowData: members.map(function(m) {
-      return { 'Playa Name': val(m, 'Playa Name'), Roles: memberRoles(m), Phone: val(m, 'Phone'), Telegram: val(m, 'Telegram'), Admin: val(m, 'Admin'), _member: m };
+      return { 'Playa Name': val(m, 'Playa Name'), Roles: memberRoles(m), Phone: val(m, 'Phone'), Telegram: val(m, 'Telegram'), Admin: val(m, 'Admin'), 'Last Login': memberLastLogin(m), _member: m };
     }),
     columnDefs: rosterCols,
     defaultColDef: { resizable: true, flex: 1, minWidth: 100 },
