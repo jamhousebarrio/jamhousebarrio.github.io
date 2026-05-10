@@ -6,6 +6,27 @@
   members.forEach(function(m, i) { m._row = i + 2; });
   members = members.filter(function(m) { return val(m, 'Status').toLowerCase() === 'approved'; });
 
+  // Roles are owned by the Roles sheet — derive each member's role list by
+  // reverse-lookup against role.AssignedTo (the freeform Member.Role column
+  // is no longer read or displayed).
+  var rolesByMember = {};
+  try {
+    var rolesRes = await JH.apiFetch('/api/roles', {});
+    if (rolesRes.ok) {
+      var rolesData = await rolesRes.json();
+      (rolesData.roles || []).forEach(function(role) {
+        (role.AssignedTo || '').split(',').map(function(s) { return s.trim(); }).filter(Boolean).forEach(function(person) {
+          if (!rolesByMember[person]) rolesByMember[person] = [];
+          rolesByMember[person].push(role.Name);
+        });
+      });
+    }
+  } catch (e) { console.error('Failed to load roles', e); }
+  function memberRoles(m) {
+    var key = val(m, 'Playa Name') || val(m, 'Name') || '';
+    return (rolesByMember[key] || []).join(', ');
+  }
+
   // Stats
   document.getElementById('stat-total').textContent = members.length;
   var ages = members.map(function(m) { return parseInt(val(m, 'Age')); }).filter(function(a) { return !isNaN(a); });
@@ -111,7 +132,7 @@
       ['Gender', val(m, 'Gender')],
       ['Nationality', val(m, 'Nationality')],
       ['Location', val(m, 'Location')],
-      ['Role', val(m, 'Role')],
+      ['Roles', memberRoles(m)],
       ['Phone', val(m, 'Phone')],
       ['Email', val(m, 'Email')],
       ['Admin', val(m, 'Admin')],
@@ -211,7 +232,7 @@
   // Roster table
   var rosterCols = [
     { field: 'Playa Name', sortable: true, filter: true, cellRenderer: NameCellRenderer },
-    { field: 'Role', sortable: true, filter: true },
+    { field: 'Roles', sortable: true, filter: true },
     { field: 'Phone', sortable: true, filter: true, cellRenderer: JH.PhoneCellRenderer }
   ];
   if (JH.isAdmin()) {
@@ -224,7 +245,7 @@
   }
   var rosterGrid = agGrid.createGrid(document.getElementById('roster-grid'), {
     rowData: members.map(function(m) {
-      return { 'Playa Name': val(m, 'Playa Name'), Role: val(m, 'Role'), Phone: val(m, 'Phone'), Telegram: val(m, 'Telegram'), Admin: val(m, 'Admin'), _member: m };
+      return { 'Playa Name': val(m, 'Playa Name'), Roles: memberRoles(m), Phone: val(m, 'Phone'), Telegram: val(m, 'Telegram'), Admin: val(m, 'Admin'), _member: m };
     }),
     columnDefs: rosterCols,
     defaultColDef: { resizable: true, flex: 1, minWidth: 100 },
