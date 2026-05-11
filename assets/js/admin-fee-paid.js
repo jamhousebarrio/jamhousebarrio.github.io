@@ -13,6 +13,12 @@
   var liStatus = document.getElementById('li-status');
   var liSubmit = document.getElementById('li-submit');
   var liWithdraw = document.getElementById('li-withdraw');
+  var liFormWrap = document.getElementById('li-form-wrap');
+  var liBanner = document.getElementById('li-disabled-banner');
+  var liToggleWrap = document.getElementById('li-toggle-wrap');
+  var liToggle = document.getElementById('li-enabled-toggle');
+  var liToggleLabel = document.getElementById('li-toggle-label');
+  var lowIncomeEnabled = true;
 
   function esc(s) {
     return (s == null ? '' : String(s)).replace(/[&<>"']/g, function(c) {
@@ -50,12 +56,28 @@
 
   function renderMyLowIncome(me) {
     var status = (me.low_income_status || '').toLowerCase();
+    var hasExisting = !!me.low_income_request;
+    // When disabled and the member has no existing request, hide the form and show banner.
+    // Admins always see the form area so they can preview. Members with existing requests
+    // still see their status and can withdraw.
+    if (!lowIncomeEnabled && !hasExisting && !JH.currentUser.admin) {
+      liFormWrap.style.display = 'none';
+      liBanner.style.display = '';
+      return;
+    }
+    liFormWrap.style.display = '';
+    liBanner.style.display = 'none';
     liInput.value = me.low_income_request || '';
-    if (!me.low_income_request) {
+    if (!hasExisting) {
       liStatus.style.display = 'none';
       liSubmit.textContent = 'Submit request';
+      liSubmit.style.display = '';
       liWithdraw.style.display = 'none';
-      liInput.disabled = false;
+      liInput.disabled = !lowIncomeEnabled;
+      liSubmit.disabled = !lowIncomeEnabled;
+      if (!lowIncomeEnabled) {
+        setStatus(liStatus, 'status-grey', 'Low Income applications are currently closed.');
+      }
       return;
     }
     liWithdraw.style.display = '';
@@ -64,6 +86,13 @@
     if (status === 'pending') setStatus(liStatus, 'status-yellow', 'Request submitted — awaiting review');
     else if (status === 'approved') setStatus(liStatus, 'status-green', '✓ Approved — adjusted fee will be communicated by an admin');
     else if (status === 'declined') setStatus(liStatus, 'status-red', '✗ Declined — please contact an admin');
+  }
+
+  function renderLiToggle() {
+    if (!JH.currentUser.admin) return;
+    liToggleWrap.style.display = '';
+    liToggle.checked = lowIncomeEnabled;
+    liToggleLabel.textContent = lowIncomeEnabled ? 'Accepting requests' : 'Closed';
   }
 
   function rosterRowClass(r) {
@@ -199,17 +228,34 @@
     var data = await res.json();
     EXPECTED = data.expected || 280;
     LOW_INCOME = data.low_income_fee || 180;
+    lowIncomeEnabled = data.low_income_enabled !== false;
+    if (data.admin && data.roster) {
+      document.querySelectorAll('.admin-only').forEach(function(el) { el.style.display = ''; });
+      renderRoster(data.roster);
+      renderLiList(data.roster);
+      renderLiToggle();
+    }
     if (data.me) {
       sentInput.value = data.me.fee_total_sent || '';
       renderMyStatus(data.me);
       renderMyLowIncome(data.me);
     }
-    if (data.admin && data.roster) {
-      document.querySelectorAll('.admin-only').forEach(function(el) { el.style.display = ''; });
-      renderRoster(data.roster);
-      renderLiList(data.roster);
-    }
   }
+
+  liToggle.addEventListener('change', async function() {
+    var newVal = liToggle.checked;
+    liToggle.disabled = true;
+    try {
+      var res = await JH.apiFetch('/api/members', { action: 'set-low-income-enabled', enabled: newVal });
+      if (!res.ok) throw new Error('Failed');
+      await load();
+    } catch (e) {
+      liToggle.checked = !newVal;
+      alert('Failed to update');
+    } finally {
+      liToggle.disabled = false;
+    }
+  });
 
   document.getElementById('sent-form').addEventListener('submit', async function(e) {
     e.preventDefault();

@@ -43,6 +43,15 @@ access: general
     .btn-sm { padding: 6px 12px; font-size: 0.85rem; }
     .btn-decline { background: transparent; color: #f06b60; border: 1px solid #f06b60; }
     .text-help { color: var(--text-muted); font-size: 0.88rem; margin-bottom: 12px; line-height: 1.5; }
+    .panel-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 4px; }
+    .panel-head h2 { margin: 0; }
+    .toggle { display: inline-flex; align-items: center; gap: 8px; font-size: 0.88rem; color: var(--text-muted); }
+    .toggle input { appearance: none; -webkit-appearance: none; width: 38px; height: 22px; background: var(--border); border-radius: 11px; position: relative; cursor: pointer; transition: background 0.15s; outline: none; }
+    .toggle input:checked { background: var(--accent); }
+    .toggle input::before { content: ''; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; background: var(--text); border-radius: 50%; transition: transform 0.15s; }
+    .toggle input:checked::before { transform: translateX(16px); }
+    .toggle input:disabled { opacity: 0.5; cursor: wait; }
+    .li-disabled-banner { padding: 14px 18px; border-radius: 6px; background: rgba(255,255,255,0.04); border: 1px solid var(--border); color: var(--text-muted); font-size: 0.95rem; line-height: 1.5; }
   </style>
 </head>
 <body>
@@ -84,18 +93,29 @@ access: general
   </div>
 
   <div class="panel">
-    <h2>Low Income Ticket Request</h2>
-    <p class="text-help">If €280 is genuinely a barrier for you, you can request a reduced fee. Please explain your situation — this stays confidential and is only seen by the barrio admins. We'll review and get back to you privately.</p>
-    <form id="li-form">
-      <div class="form-group">
-        <textarea id="li-justification" rows="4" placeholder="Explain your situation…" style="width:100%;resize:vertical;"></textarea>
-      </div>
-      <div style="display:flex;gap:10px;">
-        <button type="submit" class="btn" id="li-submit">Submit request</button>
-        <button type="button" class="btn btn-decline" id="li-withdraw" style="display:none;">Withdraw request</button>
-      </div>
-    </form>
-    <div id="li-status" class="status-line status-grey" style="display:none;"></div>
+    <div class="panel-head">
+      <h2>Low Income Ticket Request</h2>
+      <label class="toggle admin-only" id="li-toggle-wrap" style="display:none;">
+        <span id="li-toggle-label">Accepting requests</span>
+        <input type="checkbox" id="li-enabled-toggle">
+      </label>
+    </div>
+    <div id="li-form-wrap">
+      <p class="text-help">If €280 is genuinely a barrier for you, you can request a reduced fee. Please explain your situation — this stays confidential and is only seen by the barrio admins. We'll review and get back to you privately.</p>
+      <form id="li-form">
+        <div class="form-group">
+          <textarea id="li-justification" rows="4" placeholder="Explain your situation…" style="width:100%;resize:vertical;"></textarea>
+        </div>
+        <div style="display:flex;gap:10px;">
+          <button type="submit" class="btn" id="li-submit">Submit request</button>
+          <button type="button" class="btn btn-decline" id="li-withdraw" style="display:none;">Withdraw request</button>
+        </div>
+      </form>
+      <div id="li-status" class="status-line status-grey" style="display:none;"></div>
+    </div>
+    <div id="li-disabled-banner" class="li-disabled-banner" style="display:none;">
+      Low Income applications no longer available. Better luck next time.
+    </div>
   </div>
 
   <div class="admin-divider admin-only" style="display:none;">⚙ Admin section — visible only to admins</div>

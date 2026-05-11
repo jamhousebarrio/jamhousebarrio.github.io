@@ -1,5 +1,56 @@
-import { colToLetter, getSheetId } from './_lib/sheets.js';
+import { colToLetter, getSheetId, ensureTab, getRows } from './_lib/sheets.js';
 import { authenticateRequest } from './_lib/auth.js';
+
+const SETTINGS_TAB = 'Settings';
+const LOW_INCOME_ENABLED_KEY = 'low_income_enabled';
+
+async function getSetting(sheets, spreadsheetId, key, defaultValue) {
+  const rows = await getRows(sheets, spreadsheetId, SETTINGS_TAB);
+  if (!rows.length) return defaultValue;
+  const headers = rows[0];
+  const keyCol = headers.indexOf('key');
+  const valCol = headers.indexOf('value');
+  if (keyCol === -1 || valCol === -1) return defaultValue;
+  for (let i = 1; i < rows.length; i++) {
+    if ((rows[i][keyCol] || '') === key) return rows[i][valCol] || defaultValue;
+  }
+  return defaultValue;
+}
+
+async function setSetting(sheets, spreadsheetId, key, value) {
+  let rows = await getRows(sheets, spreadsheetId, SETTINGS_TAB);
+  if (!rows.length) {
+    await ensureTab(sheets, spreadsheetId, SETTINGS_TAB);
+    await sheets.spreadsheets.values.update({
+      spreadsheetId, range: SETTINGS_TAB + '!A1', valueInputOption: 'RAW',
+      requestBody: { values: [['key', 'value'], [key, value]] },
+    });
+    return;
+  }
+  const headers = rows[0];
+  const keyCol = headers.indexOf('key');
+  const valCol = headers.indexOf('value');
+  for (let i = 1; i < rows.length; i++) {
+    if ((rows[i][keyCol] || '') === key) {
+      await sheets.spreadsheets.values.update({
+        spreadsheetId,
+        range: SETTINGS_TAB + '!' + colToLetter(valCol) + (i + 1),
+        valueInputOption: 'RAW',
+        requestBody: { values: [[value]] },
+      });
+      return;
+    }
+  }
+  await sheets.spreadsheets.values.append({
+    spreadsheetId, range: SETTINGS_TAB, valueInputOption: 'RAW',
+    requestBody: { values: [[key, value]] },
+  });
+}
+
+function settingIsTrue(v) {
+  const s = (v == null ? '' : String(v)).toLowerCase().trim();
+  return s === 'true' || s === '1' || s === 'yes';
+}
 
 const ALLOWED_STATUSES = ['Pending', 'Review', 'Vibe Check', 'Team Discussion', 'On-boarding', 'Approved', 'Rejected'];
 const BARRIO_FEE = 280;
@@ -171,7 +222,8 @@ export default async function handler(req, res) {
           });
         }
       }
-      return res.status(200).json({ expected: BARRIO_FEE, low_income_fee: LOW_INCOME_FEE, me: myFee, roster, admin: auth.admin });
+      const lowIncomeEnabled = settingIsTrue(await getSetting(sheets, spreadsheetId, LOW_INCOME_ENABLED_KEY, 'true'));
+      return res.status(200).json({ expected: BARRIO_FEE, low_income_fee: LOW_INCOME_FEE, low_income_enabled: lowIncomeEnabled, me: myFee, roster, admin: auth.admin });
     }
 
     // ── Fee: member saves total sent ─────────────────────────────────────
@@ -200,6 +252,8 @@ export default async function handler(req, res) {
 
     // ── Fee: member submits low income request ───────────────────────────
     if (action === 'submit-low-income') {
+      const enabled = settingIsTrue(await getSetting(sheets, spreadsheetId, LOW_INCOME_ENABLED_KEY, 'true'));
+      if (!enabled) return res.status(403).json({ error: 'Low income applications are no longer available' });
       const text = (payload.justification || '').toString().trim();
       if (!text) return res.status(400).json({ error: 'Justification required' });
       const r = await sheets.spreadsheets.values.get({ spreadsheetId, range: 'Sheet1!1:1' });
@@ -290,6 +344,13 @@ export default async function handler(req, res) {
         await writeCell(sheets, spreadsheetId, hdrs, row, 'fee_received', 'FALSE');
       }
       return res.status(200).json({ success: true });
+    }
+
+    // ── Fee: admin toggles low income availability ───────────────────────
+    if (action === 'set-low-income-enabled') {
+      const enabled = !!payload.enabled;
+      await setSetting(sheets, spreadsheetId, LOW_INCOME_ENABLED_KEY, enabled ? 'true' : 'false');
+      return res.status(200).json({ success: true, low_income_enabled: enabled });
     }
 
     // ── Fee: admin reviews low income request ────────────────────────────
