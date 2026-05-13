@@ -83,6 +83,22 @@ access: general
     .shopping-table .unit-col { color: var(--text-muted); }
     .shopping-table .total-col { font-weight: 600; color: var(--accent); }
     .shopping-cat-header td { font-family: var(--heading); font-weight: 700; color: var(--text); font-size: 0.82rem; padding-top: 14px; background: none !important; border-bottom: 2px solid var(--border); }
+    .dietary-tiles { display: flex; flex-wrap: wrap; gap: 10px; }
+    .dietary-tile { flex: 1 1 130px; min-width: 120px; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; cursor: pointer; transition: all 0.15s; display: flex; flex-direction: column; gap: 4px; user-select: none; }
+    .dietary-tile:hover { border-color: var(--accent); }
+    .dietary-tile.active { border-color: var(--accent); background: rgba(232,168,76,0.08); }
+    .dietary-tile-label { font-family: var(--heading); font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); display: flex; align-items: center; gap: 6px; }
+    .dietary-tile-count { font-family: var(--heading); font-size: 1.6rem; font-weight: 700; color: var(--text); }
+    .dietary-tile-emoji { font-size: 1rem; }
+    .dietary-details-card { margin-top: 12px; padding: 10px 14px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; font-size: 0.88rem; color: var(--text); line-height: 1.6; }
+    .dietary-section-title { font-family: var(--heading); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin-bottom: 8px; }
+    .allergens-list { display: flex; flex-direction: column; gap: 6px; }
+    .allergen-card { background: var(--surface2); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 6px; padding: 8px 12px; font-size: 0.85rem; display: flex; align-items: flex-start; gap: 8px; flex-wrap: wrap; }
+    .allergen-card.severe { border-left-color: #f44336; background: rgba(244,67,54,0.05); }
+    .allergen-name { font-weight: 600; color: var(--text); }
+    .allergen-tag { display: inline-block; padding: 1px 7px; font-size: 0.68rem; font-weight: 700; background: rgba(244,67,54,0.15); color: #f44336; border: 1px solid rgba(244,67,54,0.3); border-radius: 3px; text-transform: uppercase; letter-spacing: 0.04em; margin-right: 4px; }
+    .allergen-note { color: var(--text-muted); font-size: 0.82rem; flex: 1; min-width: 140px; }
+    .dietary-empty { color: var(--text-muted); font-size: 0.85rem; padding: 4px 0; }
     @media (max-width: 480px) {
       .ingredients-table, .shopping-table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
       .meal-card { padding: 12px; }
@@ -132,6 +148,17 @@ access: general
 
   <div class="panel" style="margin-bottom:20px;padding:16px">
     <div style="height:180px"><canvas id="headcount-chart"></canvas></div>
+  </div>
+
+  <div class="panel" id="dietary-panel" style="margin-bottom:20px;padding:16px">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+      <h2 style="font-family:var(--heading);color:var(--accent);margin:0;font-size:1rem">Who eats what</h2>
+      <div style="font-size:0.78rem;color:var(--text-muted)">Click a tile to see names</div>
+    </div>
+    <div id="dietary-summary"></div>
+    <div id="dietary-details" style="display:none"></div>
+    <div id="dietary-allergens" style="margin-top:16px"></div>
+    <div id="dietary-unspecified" style="margin-top:16px"></div>
   </div>
 
   <div id="meals-wrap"><div class="empty-state">Loading meals...</div></div>

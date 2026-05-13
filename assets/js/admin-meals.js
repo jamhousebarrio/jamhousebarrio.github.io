@@ -557,6 +557,148 @@
     window.print();
   });
 
+  // ── Dietary overview ──────────────────────────────────────────────────────
+
+  var FOOD_TYPES = ['Carnivore', 'Pescatarian', 'Vegetarian', 'Vegan'];
+  var FOOD_EMOJI = { Carnivore: '🥩', Pescatarian: '🐟', Vegetarian: '🥗', Vegan: '🌱', 'Not set': '❓' };
+
+  function approvedMembers() {
+    return members.filter(function (m) {
+      return (JH.val(m, 'Status') || '').toLowerCase() === 'approved';
+    });
+  }
+
+  function memberDisplayName(m) {
+    var playa = JH.val(m, 'Playa Name');
+    if (playa) return playa;
+    var name = JH.val(m, 'Name');
+    return name.split(/\s+/)[0] || 'Member';
+  }
+
+  // Detect serious allergens / dietary constraints worth surfacing as badges.
+  // Keep this conservative — only flag conditions the cook needs to know up front.
+  function allergenTags(notes) {
+    var lower = (notes || '').toLowerCase();
+    var tags = [];
+    if (/coeliac|celiac/.test(lower)) tags.push('Celiac');
+    else if (/gluten[\s-]?(free|intoleran)|\bno gluten/.test(lower)) tags.push('Gluten-free');
+    if (/peanut/.test(lower)) tags.push('Peanut');
+    if (/tree[\s-]?nut|\balmond|cashew|hazelnut|walnut|pistachio/.test(lower)) tags.push('Tree nut');
+    if (/lactos|\bdairy/.test(lower)) tags.push('Dairy');
+    if (/shellfish|crustace|prawn|shrimp/.test(lower)) tags.push('Shellfish');
+    if (/anaphyl|epipen/.test(lower)) tags.push('Anaphylaxis');
+    if (/\begg/.test(lower)) tags.push('Egg');
+    if (/\bsoy|soya/.test(lower)) tags.push('Soy');
+    if (/sesame/.test(lower)) tags.push('Sesame');
+    return tags;
+  }
+
+  var dietaryByType = {};
+
+  function renderDietaryPanel() {
+    var approved = approvedMembers();
+    var byType = { Carnivore: [], Pescatarian: [], Vegetarian: [], Vegan: [], 'Not set': [] };
+    approved.forEach(function (m) {
+      var ft = JH.val(m, 'FoodType');
+      var bucket = byType[ft] ? ft : 'Not set';
+      byType[bucket].push(m);
+    });
+    dietaryByType = byType;
+
+    var order = FOOD_TYPES.slice();
+    if (byType['Not set'].length) order.push('Not set');
+
+    var tilesHtml = order.map(function (t) {
+      return '<div class="dietary-tile" data-type="' + JH.esc(t) + '">' +
+        '<div class="dietary-tile-label"><span class="dietary-tile-emoji">' + FOOD_EMOJI[t] + '</span>' + JH.esc(t) + '</div>' +
+        '<div class="dietary-tile-count">' + byType[t].length + '</div>' +
+        '</div>';
+    }).join('');
+    document.getElementById('dietary-summary').innerHTML = '<div class="dietary-tiles">' + tilesHtml + '</div>';
+
+    // Allergens & special preferences
+    var withNotes = approved.filter(function (m) { return JH.val(m, 'DietaryNotes'); });
+    var html = '<div class="dietary-section-title">Allergies &amp; special preferences (' + withNotes.length + ')</div>';
+    if (withNotes.length) {
+      html += '<div class="allergens-list">';
+      withNotes
+        .slice()
+        .sort(function (a, b) {
+          var sa = allergenTags(JH.val(a, 'DietaryNotes')).length > 0 ? 0 : 1;
+          var sb = allergenTags(JH.val(b, 'DietaryNotes')).length > 0 ? 0 : 1;
+          if (sa !== sb) return sa - sb;
+          return memberDisplayName(a).localeCompare(memberDisplayName(b));
+        })
+        .forEach(function (m) {
+          var notes = JH.val(m, 'DietaryNotes');
+          var tags = allergenTags(notes);
+          var severe = tags.length > 0;
+          var tagHtml = tags.map(function (t) { return '<span class="allergen-tag">' + JH.esc(t) + '</span>'; }).join('');
+          html += '<div class="allergen-card' + (severe ? ' severe' : '') + '">' +
+            '<span class="allergen-name">' + JH.esc(memberDisplayName(m)) + '</span>' +
+            (tagHtml ? '<span>' + tagHtml + '</span>' : '') +
+            '<span class="allergen-note">' + JH.esc(notes) + '</span>' +
+            '</div>';
+        });
+      html += '</div>';
+    } else {
+      html += '<div class="dietary-empty">Nobody has noted any allergies or special preferences yet.</div>';
+    }
+    document.getElementById('dietary-allergens').innerHTML = html;
+
+    // Yet to specify — visible list of approved members with no FoodType set
+    var pending = byType['Not set'].slice().sort(function (a, b) {
+      return memberDisplayName(a).localeCompare(memberDisplayName(b));
+    });
+    var pendingHtml = '<div class="dietary-section-title">Yet to specify (' + pending.length + ')</div>';
+    if (pending.length) {
+      pendingHtml += '<div class="dietary-details-card">';
+      pendingHtml += pending.map(function (m) {
+        var name = JH.esc(memberDisplayName(m));
+        var tg = JH.val(m, 'Telegram');
+        if (tg) {
+          var handle = tg.replace(/^@/, '');
+          return name + ' <a href="https://t.me/' + JH.esc(handle) + '" target="_blank" rel="noopener" style="color:var(--text-muted);font-size:0.78rem">@' + JH.esc(handle) + '</a>';
+        }
+        return name;
+      }).join(' &middot; ');
+      pendingHtml += '</div>';
+    } else {
+      pendingHtml += '<div class="dietary-empty">Everyone has filled in their dietary preferences. 🎉</div>';
+    }
+    document.getElementById('dietary-unspecified').innerHTML = pendingHtml;
+  }
+
+  document.getElementById('dietary-summary').addEventListener('click', function (e) {
+    var tile = e.target.closest('.dietary-tile');
+    if (!tile) return;
+    var type = tile.dataset.type;
+    var wasActive = tile.classList.contains('active');
+    document.querySelectorAll('.dietary-tile').forEach(function (t) { t.classList.remove('active'); });
+    var details = document.getElementById('dietary-details');
+    if (wasActive) {
+      details.style.display = 'none';
+      details.innerHTML = '';
+      return;
+    }
+    tile.classList.add('active');
+    var list = (dietaryByType[type] || []).slice().sort(function (a, b) {
+      return memberDisplayName(a).localeCompare(memberDisplayName(b));
+    });
+    var inner = '<div class="dietary-section-title">' + JH.esc(type) + ' &middot; ' + list.length + '</div>';
+    if (list.length) {
+      inner += list.map(function (m) {
+        var notes = JH.val(m, 'DietaryNotes');
+        var name = JH.esc(memberDisplayName(m));
+        return notes ? name + ' <span style="color:var(--text-muted);font-size:0.82rem">(' + JH.esc(notes) + ')</span>' : name;
+      }).join(' &middot; ');
+    } else {
+      inner += '<div class="dietary-empty">Nobody in this category.</div>';
+    }
+    details.innerHTML = '<div class="dietary-details-card">' + inner + '</div>';
+    details.style.display = '';
+  });
+
   // ── Reload and render ─────────────────────────────────────────────────────
 
   async function reload() {
@@ -571,6 +713,7 @@
 
   if (isAdmin) document.getElementById('admin-controls').style.display = '';
 
+  renderDietaryPanel();
   await reload();
 
 })();
