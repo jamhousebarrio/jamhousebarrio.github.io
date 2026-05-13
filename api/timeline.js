@@ -1,4 +1,4 @@
-import { getSheets, safeGet, toObjects, ensureTab } from './_lib/sheets.js';
+import { getSheets, safeGet, toObjects, ensureTab, getRows, upsertRow, deleteRowById } from './_lib/sheets.js';
 import { authenticateRequest } from './_lib/auth.js';
 
 export default async function handler(req, res) {
@@ -77,6 +77,31 @@ export default async function handler(req, res) {
           });
         }
       }
+      return res.status(200).json({ success: true });
+    }
+
+    // ── To-Do actions ────────────────────────────────────────────────────────
+    const TODO_TAB = 'ToDo';
+    const TODO_HEADERS = ['Id', 'Task', 'Week', 'Responsible', 'Done', 'Category'];
+
+    if (action === 'todo-fetch') {
+      const rows = await getRows(sheets, spreadsheetId, TODO_TAB);
+      return res.status(200).json({ tasks: toObjects(rows) });
+    }
+
+    if (action === 'todo-add' || action === 'todo-update') {
+      const { id, task, week, responsible, done, category } = payload;
+      if (!id || !task) return res.status(400).json({ error: 'id and task required' });
+      await upsertRow(sheets, spreadsheetId, TODO_TAB, 'Id', id, TODO_HEADERS,
+        [id, task, week || '', responsible || '', done === true || done === 'true' ? 'true' : 'false', category || 'General']);
+      return res.status(200).json({ success: true });
+    }
+
+    if (action === 'todo-delete') {
+      const { id } = payload;
+      if (!id) return res.status(400).json({ error: 'id required' });
+      const deleted = await deleteRowById(sheets, spreadsheetId, TODO_TAB, 'Id', id);
+      if (!deleted) return res.status(404).json({ error: 'Task not found' });
       return res.status(200).json({ success: true });
     }
 

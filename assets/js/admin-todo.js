@@ -124,7 +124,7 @@
   // ── API calls ──────────────────────────────────────────────────────────────
 
   async function apiFetch(body) {
-    var res = await JH.apiFetch('/api/todo', body);
+    var res = await JH.apiFetch('/api/timeline', body);
     if (!res.ok) {
       var err = {};
       try { err = await res.json(); } catch (e) {}
@@ -135,7 +135,7 @@
   }
 
   async function loadTasks() {
-    var data = await apiFetch({});
+    var data = await apiFetch({ action: 'todo-fetch' });
     state.tasks = data.tasks || [];
 
     if (state.tasks.length === 0) {
@@ -150,7 +150,7 @@
         for (var i = 0; i < toSave.length; i++) {
           var t = toSave[i];
           try {
-            await JH.apiFetch('/api/todo', { action: 'add', id: t.Id, task: t.Task, week: t.Week, responsible: '', done: 'false' });
+            await JH.apiFetch('/api/timeline', { action: 'todo-add', id: t.Id, task: t.Task, week: t.Week, responsible: '', done: 'false', category: 'General' });
           } catch (e) { console.error('[ToDo] seed add failed', e); }
         }
         console.log('[ToDo] Seed complete.');
@@ -159,11 +159,11 @@
   }
 
   async function saveTask(taskObj) {
-    await apiFetch({ action: taskObj._isNew ? 'add' : 'update', id: taskObj.Id, task: taskObj.Task, week: taskObj.Week, responsible: taskObj.Responsible, done: taskObj.Done, category: taskObj.Category || 'General' });
+    await apiFetch({ action: taskObj._isNew ? 'todo-add' : 'todo-update', id: taskObj.Id, task: taskObj.Task, week: taskObj.Week, responsible: taskObj.Responsible, done: taskObj.Done, category: taskObj.Category || 'General' });
   }
 
   async function deleteTask(id) {
-    await apiFetch({ action: 'delete', id: id });
+    await apiFetch({ action: 'todo-delete', id: id });
     state.tasks = state.tasks.filter(function (t) { return t.Id !== id; });
   }
 
