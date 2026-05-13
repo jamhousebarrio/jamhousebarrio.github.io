@@ -161,6 +161,7 @@ JH.sidebarNav = [
   { href: '/admin/events', icon: '&#127926;', text: 'Events', access: 'general' },
   { href: '/admin/roles', icon: '&#128101;', text: 'Roles & Leads', access: 'general' },
   { href: '/admin/timeline', icon: '&#128197;', text: 'Timeline', access: 'general' },
+  { href: '/admin/todo', icon: '&#9989;', text: 'To-Do', access: 'general' },
   { href: '/admin/profile', icon: '&#128100;', text: 'Profile', access: 'general' },
   { href: '/admin/info', icon: '&#128218;', text: 'Useful Info', access: 'general' },
   { href: '/admin/build', icon: '&#128296;', text: 'Build Guide', access: 'general' }

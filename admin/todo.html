@@ -1,0 +1,171 @@
+---
+layout: none
+title: JamHouse To-Do - JamHouse Admin
+access: general
+---
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>JamHouse To-Do - JamHouse Admin</title>
+  <meta name="access" content="general">
+  <link rel="icon" type="image/svg+xml" href="/images/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/admin.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+  <style>
+    /* ── Toolbar ─────────────────────────────────────────────────── */
+    .view-toggle { display: flex; gap: 0; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+    .view-toggle button { padding: 0.4rem 1rem; background: var(--surface); border: none; color: var(--text-muted); font-family: var(--heading); font-size: 0.82rem; cursor: pointer; transition: all 0.15s; }
+    .view-toggle button.active { background: var(--accent); color: var(--bg); font-weight: 600; }
+    .view-toggle button:hover:not(.active) { color: var(--text); }
+    .todo-toolbar, .kanban-toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+    .cat-filter-btn { padding: 0.35rem 0.85rem; background: var(--surface); border: 1px solid var(--border); border-radius: 20px; color: var(--text-muted); font-family: var(--heading); font-size: 0.78rem; cursor: pointer; transition: all 0.15s; }
+    .cat-filter-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .cat-filter-btn.active { background: var(--accent); border-color: var(--accent); color: var(--bg); font-weight: 600; }
+    .col-cat select { background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; color: var(--text); font-family: var(--body); font-size: 0.8rem; padding: 3px 6px; cursor: pointer; }
+    .col-cat select:focus { border-color: var(--accent); outline: none; }
+
+    /* ── List view ───────────────────────────────────────────────── */
+    .todo-table-wrap { overflow-x: auto; }
+    .todo-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    .todo-table th { text-align: left; padding: 8px 12px; font-family: var(--heading); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); border-bottom: 2px solid var(--border); font-weight: 600; white-space: nowrap; }
+    .todo-table td { padding: 7px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    .todo-table tr:hover td { background: rgba(255,255,255,0.02); }
+    .week-row td { background: var(--surface2) !important; font-family: var(--heading); font-size: 0.78rem; font-weight: 700; color: var(--accent); letter-spacing: 0.04em; padding: 6px 12px; border-bottom: 1px solid var(--border); }
+    .col-task { min-width: 256px; }
+    .col-week { min-width: 184px; color: var(--text-muted); font-size: 0.8rem; }
+    .col-resp select, .resp-select, .week-select { background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; color: var(--text); font-family: var(--body); font-size: 0.8rem; padding: 3px 6px; cursor: pointer; width: 100%; }
+    .col-resp select:focus, .resp-select:focus, .week-select:focus { border-color: var(--accent); outline: none; }
+    .col-done { text-align: center; width: 60px; }
+    .col-done input[type=checkbox] { width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer; }
+    .col-del { width: 36px; text-align: center; }
+    .btn-del-task { background: none; border: none; color: var(--text-muted); font-size: 0.75rem; cursor: pointer; padding: 3px 6px; border-radius: 4px; opacity: 0.5; }
+    .btn-del-task:hover { color: #f44336; background: rgba(244,67,54,0.1); opacity: 1; }
+    .task-done .col-task { text-decoration: line-through; color: var(--text-muted); opacity: 0.6; }
+
+    /* ── Kanban view ─────────────────────────────────────────────── */
+    .kanban-board { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 12px; align-items: flex-start; }
+    .kanban-col { flex: 0 0 240px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; display: flex; flex-direction: column; max-height: calc(100vh - 320px); }
+    .kanban-col-header { padding: 10px 12px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+    .kanban-col-name { font-family: var(--heading); font-size: 0.85rem; font-weight: 700; color: var(--text); display: block; }
+    .kanban-col-count { font-size: 0.72rem; color: var(--text-muted); }
+    .kanban-cards { flex: 1; overflow-y: auto; padding: 8px; display: flex; flex-direction: column; gap: 6px; min-height: 60px; }
+    .kanban-cards.drag-over { background: rgba(232,168,76,0.06); border-radius: 6px; }
+    .kanban-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 10px 10px 8px; cursor: grab; transition: border-color 0.15s, box-shadow 0.15s; }
+    .kanban-card:hover { border-color: rgba(232,168,76,0.4); }
+    .kanban-card.dragging { opacity: 0.4; cursor: grabbing; }
+    .kanban-card-week { font-size: 0.68rem; color: var(--accent); font-family: var(--heading); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
+    .kanban-card-task { font-size: 0.82rem; color: var(--text); line-height: 1.4; margin-bottom: 8px; }
+    .kanban-card.task-done .kanban-card-task { text-decoration: line-through; color: var(--text-muted); opacity: 0.6; }
+    .kanban-card-footer { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .week-select-kb { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 4px; color: var(--accent); font-family: var(--heading); font-size: 0.68rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; padding: 2px 4px; margin-bottom: 6px; cursor: pointer; }
+    .week-select-kb:focus { border-color: var(--accent); outline: none; }
+    .resp-select-kb { flex: 1; min-width: 0; background: var(--bg); border: 1px solid var(--border); border-radius: 4px; color: var(--text-muted); font-family: var(--body); font-size: 0.72rem; padding: 2px 4px; }
+    .resp-select-kb:focus { border-color: var(--accent); outline: none; }
+    .done-label { display: flex; align-items: center; gap: 3px; font-size: 0.72rem; color: var(--text-muted); cursor: pointer; white-space: nowrap; }
+    .done-label input[type=checkbox] { accent-color: #4caf50; cursor: pointer; }
+
+    /* ── Modal ───────────────────────────────────────────────────── */
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 100; justify-content: center; align-items: center; }
+    .modal-overlay.active { display: flex; }
+    .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; max-width: 460px; width: 90%; padding: 24px; }
+    .modal h2 { font-family: var(--heading); color: var(--accent); margin: 0 0 16px; font-size: 1.05rem; display: flex; justify-content: space-between; align-items: center; }
+    .modal-body { display: flex; flex-direction: column; gap: 12px; }
+    .modal-body label { font-size: 0.78rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 3px; }
+    .modal-body input, .modal-body select { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-family: var(--body); font-size: 0.85rem; padding: 7px 10px; box-sizing: border-box; }
+    .modal-body input:focus, .modal-body select:focus { border-color: var(--accent); outline: none; }
+    .modal-actions { display: flex; gap: 8px; margin-top: 16px; }
+    .btn-primary { padding: 0.45rem 1rem; background: var(--accent); border: none; border-radius: 6px; color: var(--bg); font-family: var(--heading); font-size: 0.85rem; font-weight: 600; cursor: pointer; }
+    .btn-primary:hover { opacity: 0.9; }
+    .btn-secondary { padding: 0.45rem 1rem; background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-family: var(--heading); font-size: 0.85rem; cursor: pointer; }
+    .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/assets/js/supabase-client.js"></script>
+</head>
+<body>
+<nav class="sidebar"></nav>
+
+<div class="main">
+  <div class="page-header">
+    <h1><span class="icon" style="color:var(--accent)">&#9989;</span> JamHouse To-Do</h1>
+    <div class="subtitle">Task tracker for camp preparation</div>
+  </div>
+
+  <div id="todo-loading" class="empty-state" style="display:none">Loading tasks…</div>
+
+  <div id="todo-main" style="display:none">
+
+    <!-- Chart -->
+    <div class="panel" style="margin-bottom:20px;padding:16px;width:100%;box-sizing:border-box">
+      <h2 style="font-family:var(--heading);color:var(--accent);margin:0 0 12px;font-size:0.95rem">Tasks per person</h2>
+      <div style="position:relative;height:260px;width:100%"><canvas id="todo-chart"></canvas></div>
+    </div>
+
+    <!-- View toggle + category filters -->
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap">
+      <div class="view-toggle">
+        <button id="btn-view-list" class="active">&#9776; List</button>
+        <button id="btn-view-kanban">&#9632; Kanban</button>
+      </div>
+      <div id="cat-filters" style="display:flex;gap:6px;flex-wrap:wrap">
+        <button class="cat-filter-btn active" data-cat="">All</button>
+        <button class="cat-filter-btn" data-cat="General">General</button>
+        <button class="cat-filter-btn" data-cat="Construction">Construction</button>
+        <button class="cat-filter-btn" data-cat="Kitchen">Kitchen</button>
+        <button class="cat-filter-btn" data-cat="Deco">Deco</button>
+        <button class="cat-filter-btn" data-cat="Events">Events</button>
+      </div>
+    </div>
+
+    <!-- View container -->
+    <div class="panel" style="padding:16px">
+      <div id="todo-view"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Add Task Modal -->
+<div class="modal-overlay" id="todo-modal">
+  <div class="modal">
+    <h2>Add Task</h2>
+    <div class="modal-body">
+      <div>
+        <label>Task</label>
+        <input id="modal-task-name" type="text" placeholder="Describe the task…">
+      </div>
+      <div>
+        <label>Week</label>
+        <select id="modal-week"></select>
+      </div>
+      <div>
+        <label>Responsible</label>
+        <select id="modal-responsible"></select>
+      </div>
+      <div>
+        <label>Category</label>
+        <select id="modal-category">
+          <option value="General">General</option>
+          <option value="Construction">Construction</option>
+          <option value="Kitchen">Kitchen</option>
+          <option value="Deco">Deco</option>
+          <option value="Events">Events</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button id="modal-save" class="btn-primary">Add Task</button>
+      <button id="modal-cancel" class="btn-secondary">Cancel</button>
+    </div>
+  </div>
+</div>
+
+
+<script src="/assets/js/admin-auth.js"></script>
+<script src="/assets/js/admin-todo.js"></script>
+</body>
+</html>
