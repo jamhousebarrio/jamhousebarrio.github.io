@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { verifyToken, getMemberByEmail, isAdmin } from './_lib/auth.js';
 import { getSheets, colToLetter } from './_lib/sheets.js';
+import { logError } from './_lib/error-log.js';
 
 function getSupabaseAdmin() {
   return createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SECRET_KEY, {
@@ -253,6 +254,7 @@ export default async function handler(req, res) {
   } catch (e) {
     if (e.status) return res.status(e.status).json({ error: e.message });
     console.error('Auth API error:', e);
+    await logError(req, e, { status: 500 });
     return res.status(500).json({ error: e.message || 'Failed', detail: e.stack });
   }
 }

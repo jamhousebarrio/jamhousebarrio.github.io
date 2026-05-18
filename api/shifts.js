@@ -1,4 +1,5 @@
 import { authenticateRequest } from './_lib/auth.js';
+import { logError } from './_lib/error-log.js';
 
 const TAB = 'ShiftData';
 const BASE_HEADERS = ['ShiftID', 'Name', 'Description', 'Date', 'StartTime', 'EndTime', 'AssignedTo', 'MaxPerSlot'];
@@ -297,6 +298,7 @@ export default async function handler(req, res) {
   } catch (e) {
     if (e.status) return res.status(e.status).json({ error: e.message });
     console.error('shifts error:', e.message, e.stack);
+    await logError(req, e, { status: 500 });
     return res.status(500).json({ error: 'Failed', detail: e.message });
   }
 }

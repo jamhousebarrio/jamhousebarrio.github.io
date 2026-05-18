@@ -1,5 +1,6 @@
 import { getSheets, safeGet, toObjects } from './_lib/sheets.js';
 import { authenticateRequest } from './_lib/auth.js';
+import { logError } from './_lib/error-log.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -117,6 +118,7 @@ export default async function handler(req, res) {
   } catch (e) {
     if (e.status) return res.status(e.status).json({ error: e.message });
     console.error('Logistics API error:', e);
+    await logError(req, e, { status: 500 });
     return res.status(500).json({ error: e.message || 'Failed', detail: e.stack });
   }
 }

@@ -30,6 +30,7 @@ admin/
 api/
   _lib/sheets.js                # Shared Google Sheets helpers (all APIs import from here)
   _lib/auth.js                  # JWT verification, member lookup, admin check
+  _lib/error-log.js             # logError() — writes 500 errors to ErrorLog tab
   auth.js                       # Supabase user management (invite, disable, password flag)
   budget.js                     # Budget items, barrio fees, shopping requests
   drinks.js                     # Drinks & snacks CRUD
@@ -84,6 +85,7 @@ vercel.json                     # URL rewrites & framework config
 - **Shared API helpers**: `/api/_lib/sheets.js` exports `getSheets`, `safeGet`, `toObjects`, `getRows`, `getSheetId`, `deleteRowById`, `ensureTab`, `upsertRow`, `colToLetter`
 - **Auto-create tabs**: All APIs auto-create their Google Sheet tab on first insert
 - **Shared auth helpers**: `/api/_lib/auth.js` exports `verifyToken`, `getMemberByEmail`, `isAdmin`, `authenticateRequest`
+- **Error logging**: `/api/_lib/error-log.js` exports `logError(req, error, extra)` — called in every API's outer catch before the 500 response, writes to ErrorLog tab in Members sheet. Inner catches (tab-exists, telegram-send) are not logged.
 - **Admin pages**: No Jekyll layout, fixed 220px sidebar, include Supabase CDN + `supabase-client.js` + `admin-auth.js` + `admin.css`
 - **URL rewrites**: Defined in `vercel.json`
 - **Date format**: dd/mm/yyyy via Flatpickr (loaded dynamically in admin-auth.js)
@@ -112,6 +114,7 @@ vercel.json                     # URL rewrites & framework config
 | Events | events.js | Event planning |
 | Roles | roles.js | Role assignments |
 | Timeline | timeline.js | Setup schedule entries |
+| ErrorLog | error-log.js | 500-error log: timestamp, endpoint, action, method, status, message, stack, context |
 
 ### Budget Sheet (BUDGET_SHEET_ID)
 | Tab | Used by | Purpose |

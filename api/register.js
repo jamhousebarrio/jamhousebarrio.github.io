@@ -1,5 +1,6 @@
 import { sheets as sheetsApi } from '@googleapis/sheets';
 import { GoogleAuth } from 'google-auth-library';
+import { logError } from './_lib/error-log.js';
 
 function sanitize(val) {
   if (typeof val !== 'string') return val;
@@ -144,6 +145,7 @@ export default async function handler(req, res) {
     return res.status(200).json({ success: true });
   } catch (err) {
     console.error("Registration error:", err);
+    await logError(req, err, { status: 500 });
     return res.status(500).json({ error: "Failed to save registration" });
   }
 };
