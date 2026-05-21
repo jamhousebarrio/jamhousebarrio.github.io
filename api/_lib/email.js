@@ -51,7 +51,7 @@ export async function sendEmail({ to, subject, html, text, replyTo }) {
   return res.json();
 }
 
-export function htmlToText(html) {
+function htmlToText(html) {
   return String(html || '')
     .replace(/<style[\s\S]*?<\/style>/gi, '')
     .replace(/<script[\s\S]*?<\/script>/gi, '')
@@ -70,7 +70,7 @@ export function htmlToText(html) {
     .trim();
 }
 
-export function daysUntilEvent() {
+function daysUntilEvent() {
   const now = new Date();
   const days = Math.ceil((EVENT_START.getTime() - now.getTime()) / 86_400_000);
   if (days > 1) return `${days} days until Elsewhere · ${EVENT_LABEL}`;
@@ -80,7 +80,7 @@ export function daysUntilEvent() {
   return `Elsewhere · ${EVENT_LABEL}`;
 }
 
-export function getFeeConfig() {
+function getFeeConfig() {
   return {
     standard: process.env.BARRIO_FEE_STANDARD || '280',
     lowIncome: process.env.BARRIO_FEE_LOW_INCOME || '180',
@@ -90,7 +90,7 @@ export function getFeeConfig() {
   };
 }
 
-export function getChatLinks() {
+function getChatLinks() {
   return {
     telegram: process.env.GROUP_CHAT_URL_TELEGRAM || 'https://t.me/+m8IcFErlLtwwZmQ0',
     whatsapp: process.env.GROUP_CHAT_URL_WHATSAPP || 'https://chat.whatsapp.com/BVYTz7xiJCS61Dan7CEjna',
@@ -143,7 +143,7 @@ function sectionHeading(label) {
   return `<h3 style="font-size:13px; margin:24px 0 10px 0; color:${COLORS.ink}; letter-spacing:1px; text-transform:uppercase; font-weight:700;">${escapeHtml(label)}</h3>`;
 }
 
-export function renderLayout({ preheader, bodyHtml }) {
+function renderLayout({ preheader, bodyHtml }) {
   const safePre = escapeHtml(preheader || '');
   return `<!doctype html>
 <html lang="en">
@@ -232,35 +232,7 @@ ${helpLine()}`;
   };
 }
 
-export function tplRecovery({ playaName, name, actionLink, reason }) {
-  if (reason === 'dietary-prompt') {
-    const bodyHtml = `
-<p style="font-size:18px; margin:0 0 12px 0; font-weight:600;">${greet({ playaName, name })}</p>
-<p style="margin:0 0 12px 0;">We're planning the meal rota for the barrio and your dietary preferences are still missing from your profile.</p>
-${countdownLine()}
-<p style="margin:0 0 8px 0;">It takes about ten seconds — pick one of:</p>
-<ul style="margin:0 0 16px 0; padding-left:22px; color:${COLORS.ink};">
-  <li>Carnivore</li>
-  <li>Pescatarian</li>
-  <li>Vegetarian</li>
-  <li>Vegan</li>
-</ul>
-<p style="margin:0 0 8px 0;">…plus a notes field for allergies and "absolutely no" items.</p>
-${cta('Open my profile', actionLink)}
-<p style="margin:0 0 8px 0; font-size:14px; color:${COLORS.inkSoft};">
-  We can't shop smart for the kitchen without it — and the meal rota gets a lot harder to balance when people are missing. Thanks for sorting it.
-</p>
-${helpLine()}`;
-    return {
-      subject: 'Quick favour — your dietary info',
-      html: renderLayout({
-        preheader: 'Quick favour — we need your dietary preferences for meal planning.',
-        bodyHtml,
-      }),
-    };
-  }
-
-  // default: password-reset
+export function tplPasswordReset({ playaName, name, actionLink }) {
   const bodyHtml = `
 <p style="font-size:18px; margin:0 0 12px 0; font-weight:600;">${greet({ playaName, name })}</p>
 <p style="margin:0 0 12px 0;">Click the button below to set a new password for your JamHouse account.</p>
@@ -283,6 +255,33 @@ ${helpLine()}
     subject: 'Reset your JamHouse password',
     html: renderLayout({
       preheader: 'Reset your JamHouse password and catch up on what\'s new.',
+      bodyHtml,
+    }),
+  };
+}
+
+export function tplDietaryPrompt({ playaName, name, actionLink }) {
+  const bodyHtml = `
+<p style="font-size:18px; margin:0 0 12px 0; font-weight:600;">${greet({ playaName, name })}</p>
+<p style="margin:0 0 12px 0;">We're planning the meal rota for the barrio and your dietary preferences are still missing from your profile.</p>
+${countdownLine()}
+<p style="margin:0 0 8px 0;">It takes about ten seconds — pick one of:</p>
+<ul style="margin:0 0 16px 0; padding-left:22px; color:${COLORS.ink};">
+  <li>Carnivore</li>
+  <li>Pescatarian</li>
+  <li>Vegetarian</li>
+  <li>Vegan</li>
+</ul>
+<p style="margin:0 0 8px 0;">…plus a notes field for allergies and "absolutely no" items.</p>
+${cta('Open my profile', actionLink)}
+<p style="margin:0 0 8px 0; font-size:14px; color:${COLORS.inkSoft};">
+  We can't shop smart for the kitchen without it — and the meal rota gets a lot harder to balance when people are missing. Thanks for sorting it.
+</p>
+${helpLine()}`;
+  return {
+    subject: 'Quick favour — your dietary info',
+    html: renderLayout({
+      preheader: 'Quick favour — we need your dietary preferences for meal planning.',
       bodyHtml,
     }),
   };

@@ -14,7 +14,8 @@
 import {
   sendEmail,
   tplInvite,
-  tplRecovery,
+  tplPasswordReset,
+  tplDietaryPrompt,
   tplMagicLink,
 } from '../api/_lib/email.js';
 
@@ -27,11 +28,10 @@ if (!process.env.RESEND_API_KEY) {
   process.exit(2);
 }
 
-// Mock personalisation. In production these come from the Members sheet via
-// getMemberRowAnyStatus. Here we just simulate what a recipient with full
-// profile data would see.
+// In production personalisation comes from the Members sheet via
+// getMemberByEmail({ anyStatus: true }); here we just hardcode a recipient.
 const MOCK = {
-  playaName: 'Franky',
+  playaName: 'Frank',
   name: 'Frank',
 };
 
@@ -51,11 +51,11 @@ const templates = {
   }),
   'password-reset': () => ({
     label: 'Password reset',
-    payload: tplRecovery({ ...MOCK, actionLink: MOCK_LINKS.password, reason: 'password-reset' }),
+    payload: tplPasswordReset({ ...MOCK, actionLink: MOCK_LINKS.password }),
   }),
   'dietary': () => ({
     label: 'Dietary prompt (bulk)',
-    payload: tplRecovery({ ...MOCK, actionLink: MOCK_LINKS.dietary, reason: 'dietary-prompt' }),
+    payload: tplDietaryPrompt({ ...MOCK, actionLink: MOCK_LINKS.dietary }),
   }),
   'magic-link': () => ({
     label: 'Magic link sign-in',

@@ -40,34 +40,10 @@ export function verifyToken(req) {
 
 /**
  * Look up a member by email in Sheet1. Returns { member, row, headers } or null.
- * Rejects non-Approved members.
+ * Rejects non-Approved members by default. Pass { anyStatus: true } when the email
+ * pipeline needs to personalise templates for invitees / unapproved accounts.
  */
-export async function getMemberByEmail(sheets, spreadsheetId, email) {
-  const res = await sheets.spreadsheets.values.get({ spreadsheetId, range: 'Sheet1' });
-  const rows = res.data.values;
-  if (!rows || rows.length < 2) return null;
-  const headers = rows[0];
-  const emailCol = headers.indexOf('Email');
-  const statusCol = headers.indexOf('Status');
-  if (emailCol === -1) return null;
-  for (let i = 1; i < rows.length; i++) {
-    if ((rows[i][emailCol] || '').toLowerCase().trim() === email.toLowerCase().trim()) {
-      const member = {};
-      headers.forEach((h, j) => { member[h] = rows[i][j] || ''; });
-      const status = (member.Status || '').toLowerCase();
-      if (status !== 'approved') return null;
-      return { member, row: i + 1, headers };
-    }
-  }
-  return null;
-}
-
-/**
- * Look up a member by email regardless of Status. Returns { member, row, headers } or null.
- * Used by the email pipeline so we can personalise templates for invitees, unapproved
- * accounts, and edge-case statuses without rejecting them outright.
- */
-export async function getMemberRowAnyStatus(sheets, spreadsheetId, email) {
+export async function getMemberByEmail(sheets, spreadsheetId, email, { anyStatus = false } = {}) {
   const res = await sheets.spreadsheets.values.get({ spreadsheetId, range: 'Sheet1' });
   const rows = res.data.values;
   if (!rows || rows.length < 2) return null;
@@ -79,6 +55,7 @@ export async function getMemberRowAnyStatus(sheets, spreadsheetId, email) {
     if ((rows[i][emailCol] || '').toLowerCase().trim() === target) {
       const member = {};
       headers.forEach((h, j) => { member[h] = rows[i][j] || ''; });
+      if (!anyStatus && (member.Status || '').toLowerCase() !== 'approved') return null;
       return { member, row: i + 1, headers };
     }
   }

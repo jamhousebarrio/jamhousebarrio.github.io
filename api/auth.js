@@ -1,29 +1,68 @@
 import { createClient } from '@supabase/supabase-js';
-import { verifyToken, getMemberByEmail, getMemberRowAnyStatus, isAdmin } from './_lib/auth.js';
+import { verifyToken, getMemberByEmail, isAdmin } from './_lib/auth.js';
 import { getSheets, colToLetter } from './_lib/sheets.js';
 import { logError } from './_lib/error-log.js';
-import { sendEmail, tplInvite, tplRecovery, tplMagicLink } from './_lib/email.js';
+import { sendEmail, tplInvite, tplPasswordReset, tplDietaryPrompt, tplMagicLink } from './_lib/email.js';
 
-// Pull Playa Name + Name out of the Members sheet (any Status). Falls back to
-// empty strings if the email isn't in Sheet1 — the templates handle that
-// gracefully by defaulting to "friend".
-async function personaliseFor(sheets, spreadsheetId, email) {
-  try {
-    const r = await getMemberRowAnyStatus(sheets, spreadsheetId, email);
-    if (!r) return { playaName: '', name: '' };
-    return {
-      playaName: r.member['Playa Name'] || '',
-      name: r.member['Name'] || '',
-    };
-  } catch {
-    return { playaName: '', name: '' };
-  }
-}
+const SITE_URL = process.env.SITE_URL || 'https://jamhouse.space';
+// Resend free tier is 2 req/s; 500ms keeps us safely under.
+const RESEND_RATE_LIMIT_MS = 500;
+// Hard cap on bulk dietary prompts per call. Resend free tier is 100/day, and
+// admins re-trigger this on a schedule — exceeding the cap returns early so
+// they know to continue tomorrow.
+const MAX_DIETARY_PROMPTS_PER_RUN = 50;
 
 function getSupabaseAdmin() {
   return createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SECRET_KEY, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
+}
+
+// Mints an action link via Supabase and dispatches a branded email through
+// Resend. Runs generateLink + member-lookup in parallel since they're independent.
+// Throws on link-mint failure; sendEmail throws on Resend failure (both are
+// caught by the action's outer try-catch).
+async function mintAndSendAuthEmail({ supabase, sheets, email, type, redirectTo, linkData, tplFn }) {
+  const options = { redirectTo };
+  if (linkData) options.data = linkData;
+  const [linkRes, member] = await Promise.all([
+    supabase.auth.admin.generateLink({ type, email, options }),
+    getMemberByEmail(sheets, process.env.SHEET_ID, email, { anyStatus: true }).catch(() => null),
+  ]);
+  if (linkRes.error || !linkRes.data?.properties?.action_link) {
+    throw new Error(linkRes.error?.message || 'Failed to generate action link');
+  }
+  const tpl = tplFn({
+    playaName: member?.member?.['Playa Name'] || '',
+    name: member?.member?.['Name'] || '',
+    actionLink: linkRes.data.properties.action_link,
+  });
+  await sendEmail({ to: email, subject: tpl.subject, html: tpl.html });
+}
+
+// Public-facing email actions (magic-link, password-reset) share the same
+// enumeration-safe contract: validate email format, look up the member, gate
+// on Approved status, log denials, and always return { success: true }.
+async function handlePublicAuthEmailAction(req, res, { action, payload, email, type, redirectTo, tplFn }) {
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return res.status(200).json({ success: true });
+  }
+  try {
+    const sheets = getSheets(true);
+    const row = await getMemberByEmail(sheets, process.env.SHEET_ID, email, { anyStatus: true });
+    if (!row || (row.member.Status || '').toLowerCase() !== 'approved') {
+      await logError(req, new Error(`${action} denied`), {
+        action, email, reason: row ? 'not-approved' : 'not-found',
+      });
+      return res.status(200).json({ success: true });
+    }
+    await mintAndSendAuthEmail({
+      supabase: getSupabaseAdmin(), sheets, email, type, redirectTo, tplFn,
+    });
+  } catch (e) {
+    await logError(req, e, { action, email });
+  }
+  return res.status(200).json({ success: true });
 }
 
 export default async function handler(req, res) {
@@ -44,9 +83,8 @@ export default async function handler(req, res) {
       if (!email) return res.status(400).json({ error: 'email required' });
 
       const supabase = getSupabaseAdmin();
-      const siteUrl = process.env.SITE_URL || 'https://jamhouse.space';
 
-      // Create the user (idempotent: "already registered" falls through to link mint).
+      // createUser is idempotent: "already registered" falls through to link mint.
       const createRes = await supabase.auth.admin.createUser({
         email,
         email_confirm: true,
@@ -57,19 +95,13 @@ export default async function handler(req, res) {
         return res.status(500).json({ error: createRes.error.message || 'Failed to create user' });
       }
 
-      const linkRes = await supabase.auth.admin.generateLink({
+      await mintAndSendAuthEmail({
+        supabase, sheets, email,
         type: 'invite',
-        email,
-        options: { redirectTo: `${siteUrl}/admin`, data: { must_change_password: true } },
+        redirectTo: `${SITE_URL}/admin`,
+        linkData: { must_change_password: true },
+        tplFn: tplInvite,
       });
-      if (linkRes.error || !linkRes.data?.properties?.action_link) {
-        console.error('Invite generateLink error:', linkRes.error);
-        return res.status(500).json({ error: linkRes.error?.message || 'Failed to generate invite link' });
-      }
-
-      const { playaName, name } = await personaliseFor(sheets, process.env.SHEET_ID, email);
-      const tpl = tplInvite({ playaName, name, actionLink: linkRes.data.properties.action_link });
-      await sendEmail({ to: email, subject: tpl.subject, html: tpl.html });
       return res.status(200).json({ success: true });
     }
 
@@ -86,11 +118,10 @@ export default async function handler(req, res) {
       if (!targetEmail) return res.status(400).json({ error: 'email required' });
 
       const supabase = getSupabaseAdmin();
-      const siteUrl = process.env.SITE_URL || 'https://jamhouse.space';
       const type = linkType || 'invite';
       const redirectTo = type === 'recovery'
-        ? `${siteUrl}/admin/profile`
-        : `${siteUrl}/admin`;
+        ? `${SITE_URL}/admin/profile`
+        : `${SITE_URL}/admin`;
       const { data, error } = await supabase.auth.admin.generateLink({
         type,
         email: targetEmail,
@@ -140,21 +171,12 @@ export default async function handler(req, res) {
       const { email: targetEmail } = payload;
       if (!targetEmail) return res.status(400).json({ error: 'email required' });
 
-      const supabase = getSupabaseAdmin();
-      const siteUrl = process.env.SITE_URL || 'https://jamhouse.space';
-      const linkRes = await supabase.auth.admin.generateLink({
+      await mintAndSendAuthEmail({
+        supabase: getSupabaseAdmin(), sheets, email: targetEmail,
         type: 'recovery',
-        email: targetEmail,
-        options: { redirectTo: `${siteUrl}/admin/profile` },
+        redirectTo: `${SITE_URL}/admin/profile`,
+        tplFn: tplPasswordReset,
       });
-      if (linkRes.error || !linkRes.data?.properties?.action_link) {
-        console.error('Resend invite error:', linkRes.error);
-        return res.status(500).json({ error: linkRes.error?.message || 'Failed to resend' });
-      }
-
-      const { playaName, name } = await personaliseFor(sheets, process.env.SHEET_ID, targetEmail);
-      const tpl = tplRecovery({ playaName, name, actionLink: linkRes.data.properties.action_link, reason: 'password-reset' });
-      await sendEmail({ to: targetEmail, subject: tpl.subject, html: tpl.html });
       return res.status(200).json({ success: true });
     }
 
@@ -208,11 +230,11 @@ export default async function handler(req, res) {
       const nameCol = headers.indexOf('Name');
 
       const supabase = getSupabaseAdmin();
-      const siteUrl = process.env.SITE_URL || 'https://jamhouse.space';
       const now = new Date();
       const dayMs = 24 * 60 * 60 * 1000;
       const sent = [];
       const skipped = [];
+      let stoppedAtCap = false;
 
       for (let i = 1; i < rows.length; i++) {
         const row = rows[i];
@@ -231,22 +253,26 @@ export default async function handler(req, res) {
           }
         }
 
+        if (sent.length >= MAX_DIETARY_PROMPTS_PER_RUN) {
+          stoppedAtCap = true;
+          skipped.push({ email, name: label, reason: 'daily cap reached — retry tomorrow' });
+          continue;
+        }
+
         try {
           const linkRes = await supabase.auth.admin.generateLink({
             type: 'recovery',
             email,
-            options: { redirectTo: `${siteUrl}/admin/profile?prompt=dietary` },
+            options: { redirectTo: `${SITE_URL}/admin/profile?prompt=dietary` },
           });
           if (linkRes.error || !linkRes.data?.properties?.action_link) {
             skipped.push({ email, name: label, reason: linkRes.error?.message || 'no action link' });
             continue;
           }
-          const playaName = (row[playaCol] || '').toString();
-          const nm = (row[nameCol] || '').toString();
-          const tpl = tplRecovery({
-            playaName, name: nm,
+          const tpl = tplDietaryPrompt({
+            playaName: (row[playaCol] || '').toString(),
+            name: (row[nameCol] || '').toString(),
             actionLink: linkRes.data.properties.action_link,
-            reason: 'dietary-prompt',
           });
           await sendEmail({ to: email, subject: tpl.subject, html: tpl.html });
 
@@ -261,10 +287,9 @@ export default async function handler(req, res) {
         } catch (e) {
           skipped.push({ email, name: label, reason: e.message || 'failed' });
         }
-        // Stay under Resend's 2 req/s free-tier limit.
-        await new Promise(r => setTimeout(r, 120));
+        await new Promise(r => setTimeout(r, RESEND_RATE_LIMIT_MS));
       }
-      return res.status(200).json({ sent, skipped });
+      return res.status(200).json({ sent, skipped, stoppedAtCap });
     }
 
     // ── Delete user (remove Supabase account) ───────────────────────────
@@ -296,91 +321,23 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true });
     }
 
-    // ── Public: send a magic-link email to an approved member ───────────
-    // Always returns { success: true } regardless of outcome to prevent
-    // user enumeration. Failure modes (no such email, not approved, send
-    // error) are silently logged via logError.
+    // ── Public email actions (enumeration-safe — always return success) ──
     if (action === 'magic-link') {
-      const { email: targetEmail } = payload;
-      if (!targetEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(targetEmail)) {
-        return res.status(200).json({ success: true });
-      }
-      try {
-        const sheets = getSheets(true);
-        const row = await getMemberRowAnyStatus(sheets, process.env.SHEET_ID, targetEmail);
-        if (!row || (row.member.Status || '').toLowerCase() !== 'approved') {
-          await logError(req, new Error('magic-link denied'), {
-            action: 'magic-link', email: targetEmail,
-            reason: row ? 'not-approved' : 'not-found',
-          });
-          return res.status(200).json({ success: true });
-        }
-        const supabase = getSupabaseAdmin();
-        const siteUrl = process.env.SITE_URL || 'https://jamhouse.space';
-        const linkRes = await supabase.auth.admin.generateLink({
-          type: 'magiclink',
-          email: targetEmail,
-          options: { redirectTo: `${siteUrl}/admin` },
-        });
-        if (linkRes.error || !linkRes.data?.properties?.action_link) {
-          await logError(req, new Error('magic-link generateLink failed'), {
-            action: 'magic-link', email: targetEmail, error: linkRes.error?.message,
-          });
-          return res.status(200).json({ success: true });
-        }
-        const tpl = tplMagicLink({
-          playaName: row.member['Playa Name'] || '',
-          name: row.member['Name'] || '',
-          actionLink: linkRes.data.properties.action_link,
-        });
-        await sendEmail({ to: targetEmail, subject: tpl.subject, html: tpl.html });
-      } catch (e) {
-        await logError(req, e, { action: 'magic-link', email: targetEmail });
-      }
-      return res.status(200).json({ success: true });
+      return handlePublicAuthEmailAction(req, res, {
+        action: 'magic-link', payload, email: payload.email,
+        type: 'magiclink',
+        redirectTo: `${SITE_URL}/admin`,
+        tplFn: tplMagicLink,
+      });
     }
 
-    // ── Public: send a password-reset email ─────────────────────────────
-    // Same enumeration-safe contract as magic-link.
     if (action === 'password-reset') {
-      const { email: targetEmail } = payload;
-      if (!targetEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(targetEmail)) {
-        return res.status(200).json({ success: true });
-      }
-      try {
-        const sheets = getSheets(true);
-        const row = await getMemberRowAnyStatus(sheets, process.env.SHEET_ID, targetEmail);
-        if (!row || (row.member.Status || '').toLowerCase() !== 'approved') {
-          await logError(req, new Error('password-reset denied'), {
-            action: 'password-reset', email: targetEmail,
-            reason: row ? 'not-approved' : 'not-found',
-          });
-          return res.status(200).json({ success: true });
-        }
-        const supabase = getSupabaseAdmin();
-        const siteUrl = process.env.SITE_URL || 'https://jamhouse.space';
-        const linkRes = await supabase.auth.admin.generateLink({
-          type: 'recovery',
-          email: targetEmail,
-          options: { redirectTo: `${siteUrl}/admin/profile` },
-        });
-        if (linkRes.error || !linkRes.data?.properties?.action_link) {
-          await logError(req, new Error('password-reset generateLink failed'), {
-            action: 'password-reset', email: targetEmail, error: linkRes.error?.message,
-          });
-          return res.status(200).json({ success: true });
-        }
-        const tpl = tplRecovery({
-          playaName: row.member['Playa Name'] || '',
-          name: row.member['Name'] || '',
-          actionLink: linkRes.data.properties.action_link,
-          reason: 'password-reset',
-        });
-        await sendEmail({ to: targetEmail, subject: tpl.subject, html: tpl.html });
-      } catch (e) {
-        await logError(req, e, { action: 'password-reset', email: targetEmail });
-      }
-      return res.status(200).json({ success: true });
+      return handlePublicAuthEmailAction(req, res, {
+        action: 'password-reset', payload, email: payload.email,
+        type: 'recovery',
+        redirectTo: `${SITE_URL}/admin/profile`,
+        tplFn: tplPasswordReset,
+      });
     }
 
     return res.status(400).json({ error: 'Unknown action' });
