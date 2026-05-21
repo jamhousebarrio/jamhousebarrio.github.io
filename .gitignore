@@ -17,3 +17,6 @@ assets/images/
 .superpowers/
 .worktrees/
 .playwright-mcp/
+.vercel-token
+.supabase-secret
+.vercel

@@ -63,6 +63,29 @@ export async function getMemberByEmail(sheets, spreadsheetId, email) {
 }
 
 /**
+ * Look up a member by email regardless of Status. Returns { member, row, headers } or null.
+ * Used by the email pipeline so we can personalise templates for invitees, unapproved
+ * accounts, and edge-case statuses without rejecting them outright.
+ */
+export async function getMemberRowAnyStatus(sheets, spreadsheetId, email) {
+  const res = await sheets.spreadsheets.values.get({ spreadsheetId, range: 'Sheet1' });
+  const rows = res.data.values;
+  if (!rows || rows.length < 2) return null;
+  const headers = rows[0];
+  const emailCol = headers.indexOf('Email');
+  if (emailCol === -1) return null;
+  const target = String(email || '').toLowerCase().trim();
+  for (let i = 1; i < rows.length; i++) {
+    if ((rows[i][emailCol] || '').toLowerCase().trim() === target) {
+      const member = {};
+      headers.forEach((h, j) => { member[h] = rows[i][j] || ''; });
+      return { member, row: i + 1, headers };
+    }
+  }
+  return null;
+}
+
+/**
  * Check if a member has admin privileges.
  */
 export function isAdmin(member) {

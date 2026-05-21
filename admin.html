@@ -190,45 +190,43 @@ permalink: /admin
     }
   });
 
-  // Password reset
+  // Password reset — server returns generic success to prevent enumeration.
   document.getElementById('reset-form').addEventListener('submit', async function(e) {
     e.preventDefault();
     document.getElementById('reset-error').style.display = 'none';
     var email = document.getElementById('reset-email').value.trim();
     try {
-      if (!(await gateByApplicationStatus(email, 'reset-error'))) return;
-      var result = await sb.auth.resetPasswordForEmail(email, {
-        redirectTo: window.location.origin + '/admin/profile',
+      var r = await fetch('/api/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'password-reset', email: email }),
       });
-      if (result.error) {
-        showMessage('reset-error', result.error.message || 'Failed to send reset link');
+      if (!r.ok) {
+        showMessage('reset-error', 'Failed to send reset link. Please try again.');
         return;
       }
-      showMessage('reset-error', 'Check your email for the password reset link!', '#4caf50');
+      showMessage('reset-error', 'If that address is approved, a reset link is on its way. Check your inbox (and Junk).', '#4caf50');
     } catch (ex) {
       showMessage('reset-error', 'Something went wrong');
     }
   });
 
-  // Magic link
+  // Magic link — server returns generic success to prevent enumeration.
   document.getElementById('magic-form').addEventListener('submit', async function(e) {
     e.preventDefault();
     document.getElementById('magic-error').style.display = 'none';
     var email = document.getElementById('magic-email').value.trim();
     try {
-      if (!(await gateByApplicationStatus(email, 'magic-error'))) return;
-      var result = await sb.auth.signInWithOtp({
-        email: email,
-        options: {
-          emailRedirectTo: window.location.origin + '/admin',
-          shouldCreateUser: false,
-        },
+      var r = await fetch('/api/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'magic-link', email: email }),
       });
-      if (result.error) {
-        showMessage('magic-error', result.error.message || 'Failed to send link');
+      if (!r.ok) {
+        showMessage('magic-error', 'Failed to send login link. Please try again.');
         return;
       }
-      showMessage('magic-error', 'Check your email for the login link!', '#4caf50');
+      showMessage('magic-error', 'If that address is approved, a login link is on its way. Check your inbox (and Junk).', '#4caf50');
     } catch (ex) {
       showMessage('magic-error', 'Something went wrong');
     }
