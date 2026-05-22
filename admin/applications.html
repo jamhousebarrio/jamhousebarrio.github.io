@@ -158,7 +158,10 @@ access: admin
         <option value="Observer">Observer</option>
         <option value="Rejected">Rejected</option>
       </select>
-      <div class="col-toggles" id="colToggles"></div>
+      <div class="columns-control">
+        <button type="button" id="columns-btn" class="btn-secondary">Columns &#9662;</button>
+        <div id="columns-popover" class="columns-popover" hidden></div>
+      </div>
       <span class="count" id="filter-count"></span>
     </div>
     <div id="app-grid" class="ag-theme-alpine-dark"></div>

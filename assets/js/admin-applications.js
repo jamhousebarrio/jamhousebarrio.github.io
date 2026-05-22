@@ -255,6 +255,70 @@
     }
   };
 
+  // ── Columns popover ─────────────────────────────────────────────────────
+  // Keys under jh.applications.* prefix — see "Notes for the implementing
+  // engineer" at the bottom of this plan for the full list.
+  var LS_COLS_KEY = 'jh.applications.columns';
+  var DEFAULT_VISIBLE = ['Name', 'Playa Name', 'Responsible HR', 'Status'];
+
+  function readVisibleCols() {
+    try {
+      var raw = localStorage.getItem(LS_COLS_KEY);
+      if (raw) {
+        var parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch (e) { /* fall through */ }
+    return DEFAULT_VISIBLE.slice();
+  }
+  function writeVisibleCols(arr) {
+    try { localStorage.setItem(LS_COLS_KEY, JSON.stringify(arr)); } catch (e) {}
+  }
+
+  // visibleSet must be readable in the popover-build block below — declare
+  // outside the mobile gate. On mobile, JH.mobileColumns is the only
+  // authority on column visibility; we read visibleSet only to check the
+  // popover boxes (the popover itself is hidden on mobile via CSS), but
+  // we DO NOT mutate columnDefs[i].hide on mobile.
+  var visibleSet = readVisibleCols();
+  if (!JH.isMobile) {
+    columnDefs.forEach(function(col) {
+      if (!col.field || col.field.indexOf('_') === 0) return; // skip View/Invite buttons
+      col.hide = visibleSet.indexOf(col.field) === -1;
+    });
+  }
+
+  // Build popover (idempotent — runs on both desktop and mobile, but the
+  // popover button is hidden on mobile via CSS @media query)
+  var popoverEl = document.getElementById('columns-popover');
+  var btnEl = document.getElementById('columns-btn');
+  columnDefs.filter(function(col) { return col.field && col.field.indexOf('_') !== 0; }).forEach(function(col) {
+    var label = document.createElement('label');
+    var cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = visibleSet.indexOf(col.field) !== -1;
+    cb.addEventListener('change', function() {
+      var current = readVisibleCols();
+      if (cb.checked && current.indexOf(col.field) === -1) current.push(col.field);
+      if (!cb.checked) current = current.filter(function(c) { return c !== col.field; });
+      writeVisibleCols(current);
+      gridApi.setColumnsVisible([col.field], cb.checked);
+    });
+    label.appendChild(cb);
+    label.appendChild(document.createTextNode(' ' + (col.headerName || col.field)));
+    popoverEl.appendChild(label);
+  });
+
+  btnEl.addEventListener('click', function(e) {
+    e.stopPropagation();
+    popoverEl.hidden = !popoverEl.hidden;
+  });
+  document.addEventListener('click', function(e) {
+    if (popoverEl.hidden) return;
+    if (popoverEl.contains(e.target) || btnEl.contains(e.target)) return;
+    popoverEl.hidden = true;
+  });
+
   // Mobile: fewer columns, Name as link, Phone as icons only
   JH.mobileColumns(columnDefs, ['Name', 'Phone', 'Status']);
   if (JH.isMobile) {
@@ -274,23 +338,6 @@
       if (member) openModal(member);
     });
   }
-
-  // Column toggles
-  var togglesEl = document.getElementById('colToggles');
-  columnDefs.filter(function(col) { return col.field && col.field !== '_view'; }).forEach(function(col) {
-    var label = document.createElement('label');
-    label.className = 'col-toggle' + (col.hide ? '' : ' active');
-    var cb = document.createElement('input');
-    cb.type = 'checkbox';
-    cb.checked = !col.hide;
-    cb.addEventListener('change', function() {
-      label.className = 'col-toggle' + (this.checked ? ' active' : '');
-      gridApi.setColumnsVisible([col.field], this.checked);
-    });
-    label.appendChild(cb);
-    label.appendChild(document.createTextNode(col.field));
-    togglesEl.appendChild(label);
-  });
 
   // Status filter — uses BucketFilter; 'In Progress' matches all 4 sub-statuses
   document.getElementById('statusFilter').addEventListener('change', function() {
