@@ -7,7 +7,6 @@
   var allMembers = members.map(function(m, i) { m._row = i + 2; return m; });
   var ALL_STATUSES = ['Pending', 'Review', 'Vibe Check', 'Team Discussion', 'On-boarding', 'Approved', 'Observer', 'Rejected'];
   var FOOD_TYPES = ['', 'Carnivore', 'Pescatarian', 'Vegetarian', 'Vegan'];
-  var STATUS_IDS = { 'Pending': 'stat-pending', 'Review': 'stat-review', 'Vibe Check': 'stat-vibe-check', 'Team Discussion': 'stat-team-discussion', 'On-boarding': 'stat-on-boarding', 'Approved': 'stat-approved', 'Observer': 'stat-observer', 'Rejected': 'stat-rejected' };
   var STATUS_BUCKETS = {
     'Pending':         'Pending',
     'Review':          'In Progress',
@@ -26,17 +25,17 @@
     'Observer': 'stat-observer',
     'Rejected': 'stat-rejected',
   };
-  function bucketOf(status) {
-    var norm = normalizeStatus(status);
-    return STATUS_BUCKETS[norm] || 'Pending';
-  }
-
   function normalizeStatus(s) {
     s = (s || '').toLowerCase();
     for (var i = 0; i < ALL_STATUSES.length; i++) {
       if (ALL_STATUSES[i].toLowerCase() === s) return ALL_STATUSES[i];
     }
     return 'Pending';
+  }
+
+  function bucketOf(status) {
+    var norm = normalizeStatus(status);
+    return STATUS_BUCKETS[norm] || 'Pending';
   }
 
   function refreshStats() {
@@ -152,6 +151,7 @@
     this.targetStatus = null;
   };
   BucketFilter.prototype.doesFilterPass = function(params) {
+    // params.data.Status arrives pre-normalized via getRowData()
     var v = params.data && params.data.Status;
     if (this.targetBucket === 'In Progress') return bucketOf(v) === 'In Progress';
     if (this.targetStatus) return v === this.targetStatus;
