@@ -2,7 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 import { verifyToken, getMemberByEmail, isAdmin } from './_lib/auth.js';
 import { getSheets, colToLetter } from './_lib/sheets.js';
 import { logError } from './_lib/error-log.js';
-import { sendEmail, tplInvite, tplPasswordReset, tplDietaryPrompt, tplMagicLink } from './_lib/email.js';
+import { sendEmail, tplInvite, tplObserverWelcome, tplPasswordReset, tplDietaryPrompt, tplMagicLink } from './_lib/email.js';
 
 const SITE_URL = process.env.SITE_URL || 'https://jamhouse.space';
 // Resend free tier is 2 req/s; 500ms keeps us safely under.
@@ -107,26 +107,31 @@ export default async function handler(req, res) {
         return res.status(500).json({ error: createRes.error.message || 'Failed to create user' });
       }
 
+      // Pre-lookup so we can pick an Observer-flavoured email template when
+      // the target is an Observer.
+      const preLookup = await getMemberByEmail(sheets, process.env.SHEET_ID, email, { anyStatus: true }).catch(() => null);
+      const preStatus = (preLookup?.member?.Status || '').toString().toLowerCase().trim();
+      const tplFn = preStatus === 'observer' ? tplObserverWelcome : tplInvite;
+
       const target = await mintAndSendAuthEmail({
         supabase, sheets, email,
         type: 'invite',
         redirectTo: `${SITE_URL}/admin`,
         linkData: { must_change_password: true },
-        tplFn: tplInvite,
+        tplFn,
       });
 
-      const targetMember = target?.member || {};
-      const memberName = (targetMember['Playa Name'] || targetMember['Name'] || email).toString().trim() || email;
-      const targetStatus = (targetMember.Status || '').toString().toLowerCase().trim();
-      let tgText;
-      if (targetStatus === 'observer') {
-        tgText = '👀 *' + memberName + '* has joined as an Observer — here for transparency, not as a full barrio member.';
-      } else if (targetStatus === 'approved') {
-        tgText = '🎉 Welcome to the barrio! *' + memberName + '* has been approved — say hi!';
-      } else {
-        tgText = '✉️ *' + memberName + '* was invited to the dashboard.';
+      // Telegram: Observer invites are silent — the Pending→Observer transition
+      // in members.update-status fires "joined us as a lurker"; manual re-invites
+      // on Observer rows shouldn't re-ping the team.
+      if (preStatus !== 'observer') {
+        const targetMember = target?.member || {};
+        const memberName = (targetMember['Playa Name'] || targetMember['Name'] || email).toString().trim() || email;
+        const tgText = preStatus === 'approved'
+          ? '🎉 Welcome to the barrio! *' + memberName + '* has been approved — say hi!'
+          : '✉️ *' + memberName + '* was invited to the dashboard.';
+        await tgSend(tgText);
       }
-      await tgSend(tgText);
 
       return res.status(200).json({ success: true });
     }

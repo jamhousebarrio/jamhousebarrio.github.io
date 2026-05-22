@@ -232,6 +232,39 @@ ${helpLine()}`;
   };
 }
 
+export function tplObserverWelcome({ playaName, name, actionLink }) {
+  const { telegram, whatsapp } = getChatLinks();
+  const bodyHtml = `
+<p style="font-size:18px; margin:0 0 12px 0; font-weight:600;">${greet({ playaName, name })}</p>
+<p style="margin:0 0 12px 0;">You've been added to JamHouse as an <strong>Observer</strong> — read-only access to what we're cooking up for the barrio at Elsewhere.</p>
+${countdownLine()}
+
+${sectionHeading('What Observer access means')}
+<p style="margin:0 0 10px 0;">You can see the planning side of the barrio — events, shifts, meal rota, logistics — but you can't sign up for things, edit member data, or commit to camp membership. It's a way for us to share openly without locking you in.</p>
+
+${sectionHeading('Want to join us properly?')}
+<p style="margin:0 0 10px 0;">If you'd like to be a <strong>full barrio member</strong> — shifts, fees, the works — please reach out to one of the leads. Once they update your status, you'll get the full welcome with everything you need to know.</p>
+<p style="margin:0 0 12px 0;">The fastest way is the Telegram group below; otherwise just reply to this email.</p>
+
+${cta('Set up access', actionLink)}
+
+${sectionHeading('Join the conversation')}
+<p style="margin:0 0 8px 0;">
+  <a href="${escapeHtml(telegram)}" style="color:${COLORS.accentDark}; font-weight:600;">Telegram — main channel</a><br>
+  <a href="${escapeHtml(whatsapp)}" style="color:${COLORS.accentDark}; font-weight:600;">WhatsApp — announcements</a>
+</p>
+
+${helpLine()}`;
+
+  return {
+    subject: 'Welcome to JamHouse — Observer access',
+    html: renderLayout({
+      preheader: 'You\'ve been added to JamHouse as an Observer — read-only access to the barrio planning.',
+      bodyHtml,
+    }),
+  };
+}
+
 export function tplPasswordReset({ playaName, name, actionLink }) {
   const bodyHtml = `
 <p style="font-size:18px; margin:0 0 12px 0; font-weight:600;">${greet({ playaName, name })}</p>

@@ -1,6 +1,10 @@
+import { createClient } from '@supabase/supabase-js';
 import { colToLetter, getSheetId, ensureTab, getRows } from './_lib/sheets.js';
 import { authenticateRequest } from './_lib/auth.js';
 import { logError } from './_lib/error-log.js';
+import { sendEmail, tplObserverWelcome } from './_lib/email.js';
+
+const SITE_URL = process.env.SITE_URL || 'https://jamhouse.space';
 
 const SETTINGS_TAB = 'Settings';
 const LOW_INCOME_ENABLED_KEY = 'low_income_enabled';
@@ -454,12 +458,73 @@ export default async function handler(req, res) {
         return res.status(500).json({ error: 'Status column not found' });
       }
 
+      // Read row before the update so we can detect transitions (Pending → Observer
+      // gets a welcome email + Telegram; other transitions are silent).
+      const rowRes = await sheets.spreadsheets.values.get({
+        spreadsheetId,
+        range: 'Sheet1!' + row + ':' + row,
+      });
+      const rowData = (rowRes.data.values || [[]])[0];
+      const oldStatus = (rowData[col] || '').toString().trim();
+
       await sheets.spreadsheets.values.update({
         spreadsheetId,
         range: 'Sheet1!' + colToLetter(col) + row,
         valueInputOption: 'USER_ENTERED',
         requestBody: { values: [[status]] },
       });
+
+      // Pending → Observer: mint Supabase account (so they can log in to the
+      // read-only dashboard), send Observer welcome email, ping Telegram.
+      // Failure here doesn't roll back the status change — admin can re-invite
+      // manually if the email/Telegram leg fails.
+      if (oldStatus.toLowerCase() === 'pending' && status === 'Observer') {
+        try {
+          const emailCol = headers.indexOf('Email');
+          const playaCol = headers.indexOf('Playa Name');
+          const nameCol = headers.indexOf('Name');
+          const email = (emailCol !== -1 && rowData[emailCol]) ? rowData[emailCol].toString().trim() : '';
+          const playaName = (playaCol !== -1 && rowData[playaCol]) ? rowData[playaCol].toString().trim() : '';
+          const fullName = (nameCol !== -1 && rowData[nameCol]) ? rowData[nameCol].toString().trim() : '';
+          const memberName = playaName || fullName || email || 'Someone';
+
+          if (email) {
+            const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SECRET_KEY, {
+              auth: { autoRefreshToken: false, persistSession: false },
+            });
+            const createRes = await supabase.auth.admin.createUser({
+              email,
+              email_confirm: true,
+              user_metadata: { must_change_password: true },
+            });
+            if (createRes.error && !/already.*registered|already.*exists/i.test(createRes.error.message || '')) {
+              throw new Error(createRes.error.message || 'Failed to create user');
+            }
+            const linkRes = await supabase.auth.admin.generateLink({
+              type: 'invite',
+              email,
+              options: {
+                redirectTo: SITE_URL + '/admin',
+                data: { must_change_password: true },
+              },
+            });
+            if (linkRes.error || !linkRes.data?.properties?.action_link) {
+              throw new Error(linkRes.error?.message || 'Failed to mint invite link');
+            }
+            const tpl = tplObserverWelcome({
+              playaName,
+              name: fullName,
+              actionLink: linkRes.data.properties.action_link,
+            });
+            await sendEmail({ to: email, subject: tpl.subject, html: tpl.html });
+          }
+
+          await tgSend('👀 *' + memberName + '* joined us as a lurker.');
+        } catch (e) {
+          console.error('Pending→Observer notify failed:', e);
+          await logError(req, e, { action: 'update-status', transition: 'pending-to-observer', row });
+        }
+      }
 
       return res.status(200).json({ success: true });
     }
