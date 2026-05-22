@@ -8,6 +8,28 @@
   var ALL_STATUSES = ['Pending', 'Review', 'Vibe Check', 'Team Discussion', 'On-boarding', 'Approved', 'Observer', 'Rejected'];
   var FOOD_TYPES = ['', 'Carnivore', 'Pescatarian', 'Vegetarian', 'Vegan'];
   var STATUS_IDS = { 'Pending': 'stat-pending', 'Review': 'stat-review', 'Vibe Check': 'stat-vibe-check', 'Team Discussion': 'stat-team-discussion', 'On-boarding': 'stat-on-boarding', 'Approved': 'stat-approved', 'Observer': 'stat-observer', 'Rejected': 'stat-rejected' };
+  var STATUS_BUCKETS = {
+    'Pending':         'Pending',
+    'Review':          'In Progress',
+    'Vibe Check':      'In Progress',
+    'Team Discussion': 'In Progress',
+    'On-boarding':     'In Progress',
+    'Approved':        'Approved',
+    'Observer':        'Observer',
+    'Rejected':        'Rejected',
+  };
+  var BUCKET_ORDER = ['Pending', 'In Progress', 'Approved', 'Observer', 'Rejected'];
+  var BUCKET_STAT_IDS = {
+    'Pending': 'stat-pending',
+    'In Progress': 'stat-in-progress',
+    'Approved': 'stat-approved',
+    'Observer': 'stat-observer',
+    'Rejected': 'stat-rejected',
+  };
+  function bucketOf(status) {
+    var norm = normalizeStatus(status);
+    return STATUS_BUCKETS[norm] || 'Pending';
+  }
 
   function normalizeStatus(s) {
     s = (s || '').toLowerCase();
@@ -18,13 +40,31 @@
   }
 
   function refreshStats() {
-    document.getElementById('stat-total').textContent = allMembers.length;
-    ALL_STATUSES.forEach(function(status) {
-      var count = allMembers.filter(function(x) { return normalizeStatus(val(x, 'Status')) === status; }).length;
-      document.getElementById(STATUS_IDS[status]).textContent = count;
+    var counts = { 'Pending': 0, 'In Progress': 0, 'Approved': 0, 'Observer': 0, 'Rejected': 0 };
+    allMembers.forEach(function(m) {
+      var b = bucketOf(val(m, 'Status'));
+      if (counts.hasOwnProperty(b)) counts[b] += 1;
+    });
+    BUCKET_ORDER.forEach(function(bucket) {
+      var el = document.getElementById(BUCKET_STAT_IDS[bucket]);
+      if (el) el.textContent = counts[bucket];
     });
   }
   refreshStats();
+
+  // Stat-card clicks set the bucket filter dropdown and trigger filtering
+  BUCKET_ORDER.forEach(function(bucket) {
+    var el = document.getElementById(BUCKET_STAT_IDS[bucket]);
+    if (!el) return;
+    var card = el.closest('.stat-card');
+    if (!card) return;
+    card.style.cursor = 'pointer';
+    card.addEventListener('click', function() {
+      var filter = document.getElementById('statusFilter');
+      filter.value = bucket;
+      filter.dispatchEvent(new Event('change'));
+    });
+  });
 
   function getRowData() {
     return allMembers.map(function(m) {
@@ -103,6 +143,33 @@
   };
   InviteBtnRenderer.prototype.getGui = function() { return this.eGui; };
 
+  // Custom AG Grid filter that matches a full bucket ('In Progress' → any of its sub-statuses)
+  // or an exact status string. Used by the #statusFilter dropdown.
+  function BucketFilter() {}
+  BucketFilter.prototype.init = function(params) {
+    this.filterActive = false;
+    this.targetBucket = null;
+    this.targetStatus = null;
+  };
+  BucketFilter.prototype.doesFilterPass = function(params) {
+    var v = params.data && params.data.Status;
+    if (this.targetBucket === 'In Progress') return bucketOf(v) === 'In Progress';
+    if (this.targetStatus) return v === this.targetStatus;
+    return true;
+  };
+  BucketFilter.prototype.isFilterActive = function() { return this.filterActive; };
+  BucketFilter.prototype.getModel = function() {
+    if (!this.filterActive) return null;
+    return { bucket: this.targetBucket, status: this.targetStatus };
+  };
+  BucketFilter.prototype.setModel = function(model) {
+    if (!model) { this.filterActive = false; this.targetBucket = null; this.targetStatus = null; return; }
+    this.filterActive = true;
+    this.targetBucket = model.bucket || null;
+    this.targetStatus = model.status || null;
+  };
+  BucketFilter.prototype.getGui = function() { return document.createElement('div'); };
+
   // Shared invite flow — used by status change to Approved AND the Invite button.
   async function sendInvite(member) {
     var memberEmail = val(member, 'Email');
@@ -161,7 +228,7 @@
     { field: 'Has Ticket', sortable: true, filter: true, hide: true },
     { field: 'Volunteer', sortable: true, filter: true, hide: true },
     { field: 'Responsible HR', sortable: true, filter: true, editable: isAdmin },
-    { field: 'Status', sortable: true, filter: true, cellRenderer: StatusCellRenderer }
+    { field: 'Status', sortable: true, filter: BucketFilter, cellRenderer: StatusCellRenderer }
   ];
 
   var gridOptions = {
@@ -225,19 +292,22 @@
     togglesEl.appendChild(label);
   });
 
-  // Status filter
+  // Status filter — uses BucketFilter; 'In Progress' matches all 4 sub-statuses
   document.getElementById('statusFilter').addEventListener('change', function() {
     var filterVal = this.value;
-    if (filterVal) {
+    if (!filterVal) {
       gridApi.setGridOption('quickFilterText', null);
-      gridApi.setColumnFilterModel('Status', { type: 'equals', filter: filterVal }).then(function() {
-        gridApi.onFilterChanged();
-      });
-    } else {
       gridApi.setColumnFilterModel('Status', null).then(function() {
         gridApi.onFilterChanged();
       });
+      return;
     }
+    var model = filterVal === 'In Progress'
+      ? { bucket: 'In Progress' }
+      : { status: filterVal };
+    gridApi.setColumnFilterModel('Status', model).then(function() {
+      gridApi.onFilterChanged();
+    });
   });
 
   // Statuses that grant portal access (auth gate accepts these).
