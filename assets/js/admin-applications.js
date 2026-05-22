@@ -256,8 +256,7 @@
   };
 
   // ── Columns popover ─────────────────────────────────────────────────────
-  // Keys under jh.applications.* prefix — see "Notes for the implementing
-  // engineer" at the bottom of this plan for the full list.
+  // LS keys: jh.applications.columns (here), .view, .kanban.expanded (added in later chunks)
   var LS_COLS_KEY = 'jh.applications.columns';
   var DEFAULT_VISIBLE = ['Name', 'Playa Name', 'Responsible HR', 'Status'];
 
