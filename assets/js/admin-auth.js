@@ -126,6 +126,7 @@ JH.authenticate = async function() {
       name: me ? JH.val(me, 'Name') : '',
       playaName: me ? JH.val(me, 'Playa Name') : '',
       admin: data.admin,
+      observer: !!data.observer,
       row: me ? me._row : null,
       member: me,
     };
@@ -137,7 +138,13 @@ JH.authenticate = async function() {
       window.location.href = '/admin/demographics';
       return null;
     }
-    JH.filterNav(data.admin);
+    JH.filterNav(data.admin, !!data.observer);
+    if (data.observer) {
+      var badge = document.getElementById('sidebar-role-badge');
+      if (badge) {
+        badge.innerHTML = '<div style="display:inline-block;padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-size:0.75rem;color:var(--text-muted);margin-bottom:8px;">👀 Observer</div>';
+      }
+    }
     JH.addLogoutBtn();
     return data.members;
   } catch (e) {
@@ -151,7 +158,7 @@ JH.sidebarNav = [
   { href: '/admin/applications', icon: '&#9993;', text: 'Applications', access: 'admin' },
   { href: '/admin/demographics', icon: '&#9776;', text: 'Approved Members', access: 'general' },
   { href: '/admin/budget', icon: '&#9733;', text: 'Budget', access: 'general' },
-  { href: '/admin/fee-paid', icon: '&#128176;', text: 'Fee Paid', access: 'general' },
+  { href: '/admin/fee-paid', icon: '&#128176;', text: 'Fee Paid', access: 'general', observerHide: true },
   { href: '/admin/shifts', icon: '&#9835;', text: 'Shifts', access: 'general' },
   { href: '/admin/inventory', icon: '&#128722;', text: 'Inventory', access: 'general' },
   { href: '/admin/logistics', icon: '&#9992;', text: 'Logistics', access: 'general' },
@@ -175,22 +182,22 @@ JH.renderSidebar = function() {
   var html = '<div class="sidebar-brand">JamHouse <span>Admin 2026</span></div><div class="sidebar-nav">';
   JH.sidebarNav.forEach(function(item) {
     var active = path === item.href ? ' active' : '';
-    html += '<a class="nav-item' + active + '" href="' + item.href + '" data-access="' + item.access + '">' +
+    var observerAttr = item.observerHide ? ' data-observer-hide="1"' : '';
+    html += '<a class="nav-item' + active + '" href="' + item.href + '" data-access="' + item.access + '"' + observerAttr + '>' +
       '<span class="icon">' + item.icon + '</span><span class="nav-item-text">' + item.text + '</span></a>';
   });
-  html += '</div><div class="sidebar-footer"><a href="/">&#8592; Back to Site</a></div>';
+  html += '</div><div class="sidebar-footer"><div id="sidebar-role-badge"></div><a href="/">&#8592; Back to Site</a></div>';
   sidebar.innerHTML = html;
 };
 
 // Render sidebar immediately (before auth, so page isn't empty)
 JH.renderSidebar();
 
-JH.filterNav = function(isAdmin) {
+JH.filterNav = function(isAdmin, isObserver) {
   document.querySelectorAll('.sidebar .nav-item').forEach(function(item) {
     var access = item.getAttribute('data-access');
-    if (access === 'admin' && !isAdmin) {
-      item.style.display = 'none';
-    }
+    if (access === 'admin' && !isAdmin) item.style.display = 'none';
+    if (isObserver && item.getAttribute('data-observer-hide') === '1') item.style.display = 'none';
   });
 };
 
@@ -332,6 +339,7 @@ JH.addLogoutBtn = function() {
 };
 
 JH.checkLogisticsPrompt = async function() {
+  if (JH.currentUser && JH.currentUser.observer) return;
   if (window.location.pathname.indexOf('/admin/logistics') !== -1) return;
   if (!JH.currentUser || !JH.currentUser.name) return;
   // Cache: skip API call if checked less than 10 minutes ago
@@ -355,6 +363,7 @@ JH.checkLogisticsPrompt = async function() {
 };
 
 JH.checkShiftsPrompt = async function() {
+  if (JH.currentUser && JH.currentUser.observer) return;
   if (window.location.pathname.indexOf('/admin/shifts') !== -1) return;
   if (!JH.currentUser || !JH.currentUser.member) return;
   if (sessionStorage.getItem('jh_shifts_dismissed')) return;
@@ -400,6 +409,7 @@ JH.checkShiftsPrompt = async function() {
 };
 
 JH.checkDietaryPrompt = function() {
+  if (JH.currentUser && JH.currentUser.observer) return;
   if (window.location.pathname.indexOf('/admin/profile') !== -1) return;
   if (!JH.currentUser || !JH.currentUser.member) return;
   if (sessionStorage.getItem('jh_dietary_dismissed')) return;
