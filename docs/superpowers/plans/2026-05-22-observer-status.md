@@ -41,7 +41,7 @@
 **Files:**
 - Modify: `api/members.js:56`
 
-- [ ] **Step 1: Edit the constant**
+- [x] **Step 1: Edit the constant**
 
 ```js
 const ALLOWED_STATUSES = ['Pending', 'Review', 'Vibe Check', 'Team Discussion', 'On-boarding', 'Approved', 'Observer', 'Rejected'];
@@ -49,7 +49,7 @@ const ALLOWED_STATUSES = ['Pending', 'Review', 'Vibe Check', 'Team Discussion', 
 
 (Inserts `'Observer'` between `'Approved'` and `'Rejected'`.)
 
-- [ ] **Step 2: Verify with grep**
+- [x] **Step 2: Verify with grep**
 
 ```bash
 grep -n "ALLOWED_STATUSES" api/members.js
@@ -64,7 +64,7 @@ Expected: line 56 shows the new array with `'Observer'`.
 **Files:**
 - Modify: `api/_lib/auth.js` (lines 46–96)
 
-- [ ] **Step 1: Update `getMemberByEmail` status check**
+- [x] **Step 1: Update `getMemberByEmail` status check**
 
 Replace the predicate on line 58:
 
@@ -81,7 +81,7 @@ if (!anyStatus) {
 }
 ```
 
-- [ ] **Step 2: Add `observer` flag to `authenticateRequest` return value**
+- [x] **Step 2: Add `observer` flag to `authenticateRequest` return value**
 
 In the return block at the bottom of `authenticateRequest` (around line 86), add an `observer` field:
 
@@ -99,7 +99,7 @@ return {
 };
 ```
 
-- [ ] **Step 3: Update the rejection error message**
+- [x] **Step 3: Update the rejection error message**
 
 The line:
 
@@ -113,7 +113,7 @@ becomes:
 const err = new Error('Member not found or no portal access');
 ```
 
-- [ ] **Step 4: Verify**
+- [x] **Step 4: Verify**
 
 ```bash
 grep -n "observer\|approved" api/_lib/auth.js
@@ -128,7 +128,7 @@ Expected: see the new branch in `getMemberByEmail` and `observer:` in the auth c
 **Files:**
 - Modify: `api/shifts.js` (lines 210–272)
 
-- [ ] **Step 1: Block observers in `add-assignee`**
+- [x] **Step 1: Block observers in `add-assignee`**
 
 Inside the `if (action === 'add-assignee')` block, immediately after the existing `if (!clean)` check at line 214 and before the `if (!auth.admin && !isSelfName(...))` check at line 215, insert:
 
@@ -136,7 +136,7 @@ Inside the `if (action === 'add-assignee')` block, immediately after the existin
 if (auth.observer) return res.status(403).json({ error: 'Observer accounts are read-only' });
 ```
 
-- [ ] **Step 2: Block observers in `remove-assignee`**
+- [x] **Step 2: Block observers in `remove-assignee`**
 
 Inside the `if (action === 'remove-assignee')` block, immediately before the `if (!auth.admin && !isSelfName(...))` check at line 253, insert the same line:
 
@@ -144,7 +144,7 @@ Inside the `if (action === 'remove-assignee')` block, immediately before the `if
 if (auth.observer) return res.status(403).json({ error: 'Observer accounts are read-only' });
 ```
 
-- [ ] **Step 3: Verify**
+- [x] **Step 3: Verify**
 
 ```bash
 grep -n "Observer accounts are read-only" api/shifts.js
@@ -159,7 +159,7 @@ Expected: two matches, one before each non-admin self-check.
 **Files:**
 - Modify: `api/members.js` (lines 231, 255, 270)
 
-- [ ] **Step 1: Block observers in `save-fee-sent`**
+- [x] **Step 1: Block observers in `save-fee-sent`**
 
 Immediately after `if (action === 'save-fee-sent') {` on line 231, add:
 
@@ -167,15 +167,15 @@ Immediately after `if (action === 'save-fee-sent') {` on line 231, add:
 if (auth.observer) return res.status(403).json({ error: 'Observer accounts are read-only' });
 ```
 
-- [ ] **Step 2: Block observers in `submit-low-income`**
+- [x] **Step 2: Block observers in `submit-low-income`**
 
 Immediately after `if (action === 'submit-low-income') {` on line 255, add the same line.
 
-- [ ] **Step 3: Block observers in `withdraw-low-income`**
+- [x] **Step 3: Block observers in `withdraw-low-income`**
 
 Immediately after `if (action === 'withdraw-low-income') {` on line 270, add the same line.
 
-- [ ] **Step 4: Verify**
+- [x] **Step 4: Verify**
 
 ```bash
 grep -n "Observer accounts are read-only" api/members.js
@@ -190,7 +190,7 @@ Expected: three matches.
 **Files:**
 - Modify: `api/logistics.js` (lines 22–30)
 
-- [ ] **Step 1: Block observers from upserting their own logistics**
+- [x] **Step 1: Block observers from upserting their own logistics**
 
 Inside `if (action === 'upsert')`, immediately after the `if (!memberName)` check on line 23 and before the self-vs-admin check on line 28, insert:
 
@@ -200,7 +200,7 @@ if (auth.observer) return res.status(403).json({ error: 'Observer accounts are r
 
 Note: admin-as-observer is structurally impossible (admins are always Approved in practice), and observers shouldn't have a logistics row regardless of whose name they pass.
 
-- [ ] **Step 2: Verify**
+- [x] **Step 2: Verify**
 
 ```bash
 grep -n "Observer accounts are read-only" api/logistics.js
@@ -215,7 +215,7 @@ Expected: one match.
 **Files:**
 - Modify: `api/members.js:183`
 
-- [ ] **Step 1: Add observer flag to the response**
+- [x] **Step 1: Add observer flag to the response**
 
 The default-fetch response on line 183:
 
@@ -229,7 +229,7 @@ becomes:
 return res.status(200).json({ members, admin: auth.admin, observer: auth.observer });
 ```
 
-- [ ] **Step 2: Verify**
+- [x] **Step 2: Verify**
 
 ```bash
 grep -n "observer: auth.observer" api/members.js
@@ -244,7 +244,7 @@ Expected: one match on line 183.
 **Files:**
 - Modify: `api/members.js:433`
 
-- [ ] **Step 1: Replace the two-branch text with a three-branch text**
+- [x] **Step 1: Replace the two-branch text with a three-branch text**
 
 The current line 433:
 
@@ -265,7 +265,7 @@ text: (function() {
 })(),
 ```
 
-- [ ] **Step 2: Verify**
+- [x] **Step 2: Verify**
 
 ```bash
 grep -n "joined as an Observer" api/members.js
@@ -280,7 +280,7 @@ Expected: one match.
 **Files:**
 - Modify: `api/members.js` (insert just before the `update-status` action at line 397)
 
-- [ ] **Step 1: Insert the new action handler**
+- [x] **Step 1: Insert the new action handler**
 
 Add this block above the `// ── Update status ───` comment (line ~396):
 
@@ -330,7 +330,7 @@ if (action === 'refund-and-demote') {
 }
 ```
 
-- [ ] **Step 2: Verify the handler is reachable (admin-only gate)**
+- [x] **Step 2: Verify the handler is reachable (admin-only gate)**
 
 `refund-and-demote` is admin-only because the admin gate on line 298 fires before any action that's not `save-dietary`/`save-fee-sent`/`submit-low-income`/`withdraw-low-income` (the only non-admin actions). Confirm the gate is still upstream:
 
@@ -344,7 +344,7 @@ Expected: the admin gate line appears before the new action.
 
 ### Task 9: Commit Chunk 1
 
-- [ ] **Step 1: Stage and commit**
+- [x] **Step 1: Stage and commit**
 
 ```bash
 git add api/_lib/auth.js api/members.js api/shifts.js api/logistics.js
@@ -369,7 +369,7 @@ git commit -m "Observer status: backend (auth gate, 403s, refund action)
 **Files:**
 - Modify: `admin/applications.html` (lines 154–162 stat cards, lines 165–174 filter)
 
-- [ ] **Step 1: Insert Observer stat card between Approved and Rejected**
+- [x] **Step 1: Insert Observer stat card between Approved and Rejected**
 
 After the Approved stat card block (lines 154–157), before the Rejected block, insert:
 
@@ -380,7 +380,7 @@ After the Approved stat card block (lines 154–157), before the Rejected block,
     </div>
 ```
 
-- [ ] **Step 2: Insert Observer option in the status filter**
+- [x] **Step 2: Insert Observer option in the status filter**
 
 Between the Approved and Rejected `<option>`s (after line 172, before line 173), insert:
 
@@ -388,7 +388,7 @@ Between the Approved and Rejected `<option>`s (after line 172, before line 173),
         <option value="Observer">Observer</option>
 ```
 
-- [ ] **Step 3: Verify**
+- [x] **Step 3: Verify**
 
 ```bash
 grep -n "stat-observer\|value=\"Observer\"" admin/applications.html
@@ -403,7 +403,7 @@ Expected: stat card id + filter option both present.
 **Files:**
 - Modify: `assets/js/admin-applications.js:8` and `:10`
 
-- [ ] **Step 1: Add to ALL_STATUSES**
+- [x] **Step 1: Add to ALL_STATUSES**
 
 Line 8:
 
@@ -411,7 +411,7 @@ Line 8:
 var ALL_STATUSES = ['Pending', 'Review', 'Vibe Check', 'Team Discussion', 'On-boarding', 'Approved', 'Observer', 'Rejected'];
 ```
 
-- [ ] **Step 2: Add to STATUS_IDS**
+- [x] **Step 2: Add to STATUS_IDS**
 
 Line 10:
 
@@ -421,12 +421,21 @@ var STATUS_IDS = { 'Pending': 'stat-pending', 'Review': 'stat-review', 'Vibe Che
 
 ---
 
-### Task 12: Include fee fields in grid row data
+### Task 12: Include fee fields in grid row data — SKIPPED
+
+> Skipped during execution. Tasks 12 + 13 were obsoleted by the design
+> change to silent demotion: Approved → Observer no longer prompts the
+> admin at all, so the refund/keep/cancel modal never fires and the
+> `fee_total_sent` / `fee_received` row fields aren't needed by the
+> frontend. The `members.refund-and-demote` backend endpoint stays in
+> place but is currently unused; admins adjust fees manually via the
+> member modal if a refund is owed.
+
 
 **Files:**
 - Modify: `assets/js/admin-applications.js:29-50` (`getRowData`)
 
-- [ ] **Step 1: Add `fee_total_sent` and `fee_received` to the row object**
+- [x] **Step 1: Add `fee_total_sent` and `fee_received` to the row object**
 
 Inside `getRowData()`, append two more fields to the object returned per member:
 
@@ -437,7 +446,7 @@ fee_received: ((val(m, 'fee_received') || '').toString().toUpperCase() === 'TRUE
 
 These don't need to be visible columns — they're consumed by `updateStatus` for the refund-modal trigger.
 
-- [ ] **Step 2: Verify**
+- [x] **Step 2: Verify**
 
 ```bash
 grep -n "fee_total_sent\|fee_received" assets/js/admin-applications.js
@@ -447,12 +456,20 @@ Expected: at least two matches inside `getRowData`.
 
 ---
 
-### Task 13: Refund modal + Observer-aware status change
+### Task 13: Refund modal + Observer-aware status change — SKIPPED
+
+> Replaced with a simpler "silent demotion + promotion-only auto-invite"
+> design. The shipped `updateStatus` fires the existing sendInvite
+> confirm popup on transitions INTO an access state (Pending → Observer,
+> Pending → Approved, Observer → Approved). Demotions are silent: no
+> warning, no refund prompt, no auto-invite. The hasPortalAccess helper
+> in admin-applications.js encodes the policy. See commit a567d9c.
+
 
 **Files:**
 - Modify: `assets/js/admin-applications.js:243-279` (`updateStatus` function)
 
-- [ ] **Step 1: Replace `updateStatus` with the Observer-aware version**
+- [x] **Step 1: Replace `updateStatus` with the Observer-aware version**
 
 Replace the entire `async function updateStatus(data, newStatus) { ... }` block with:
 
@@ -548,7 +565,7 @@ Key behaviours encoded:
 - "refund" calls the new `refund-and-demote` endpoint and skips `update-status`.
 - The post-status invite flow also fires for new Observers (they need a portal account too).
 
-- [ ] **Step 2: Verify**
+- [x] **Step 2: Verify**
 
 ```bash
 grep -n "refund-and-demote\|hasPortalAccess" assets/js/admin-applications.js
@@ -563,7 +580,7 @@ Expected: at least one match for each.
 **Files:**
 - Modify: `assets/js/admin-applications.js:92`
 
-- [ ] **Step 1: Allow Invite button on Observer rows**
+- [x] **Step 1: Allow Invite button on Observer rows**
 
 Line 92:
 
@@ -578,7 +595,7 @@ var s = normalizeStatus(params.data.Status);
 if (s !== 'Approved' && s !== 'Observer') return;
 ```
 
-- [ ] **Step 2: Verify**
+- [x] **Step 2: Verify**
 
 ```bash
 grep -n "s !== 'Approved' && s !== 'Observer'" assets/js/admin-applications.js
@@ -590,7 +607,7 @@ Expected: one match in InviteBtnRenderer.
 
 ### Task 15: Commit Chunk 2
 
-- [ ] **Step 1: Stage and commit**
+- [x] **Step 1: Stage and commit**
 
 ```bash
 git add admin/applications.html assets/js/admin-applications.js
@@ -614,13 +631,13 @@ git commit -m "Observer status: applications page (dropdown, stat card, refund m
 **Files:**
 - Modify: `assets/js/admin-auth.js` (the `JH.authenticate` function, lines ~120–148)
 
-- [ ] **Step 1: Inspect existing authenticate to find where currentUser is set**
+- [x] **Step 1: Inspect existing authenticate to find where currentUser is set**
 
 ```bash
 grep -n "JH.currentUser\|JH.authenticate" assets/js/admin-auth.js
 ```
 
-- [ ] **Step 2: Populate `observer` on `JH.currentUser`**
+- [x] **Step 2: Populate `observer` on `JH.currentUser`**
 
 Find the block where `JH.currentUser` is built from the `/api/members` response. Add `observer: !!data.observer` to that object, e.g.:
 
@@ -642,7 +659,7 @@ JH.currentUser.admin = !!data.admin;
 JH.currentUser.observer = !!data.observer;
 ```
 
-- [ ] **Step 3: Verify**
+- [x] **Step 3: Verify**
 
 ```bash
 grep -n "JH.currentUser.observer" assets/js/admin-auth.js
@@ -657,7 +674,7 @@ Expected: one match.
 **Files:**
 - Modify: `assets/js/admin-auth.js:188-195` (`JH.filterNav`)
 
-- [ ] **Step 1: Change filterNav to accept the observer flag**
+- [x] **Step 1: Change filterNav to accept the observer flag**
 
 Replace `JH.filterNav` with a version that also hides observer-blocked items:
 
@@ -671,7 +688,7 @@ JH.filterNav = function(isAdmin, isObserver) {
 };
 ```
 
-- [ ] **Step 2: Mark `/admin/fee-paid` as observer-hidden in the sidebarNav array**
+- [x] **Step 2: Mark `/admin/fee-paid` as observer-hidden in the sidebarNav array**
 
 Find the `/admin/fee-paid` entry in `JH.sidebarNav` (line 154) and add the new flag:
 
@@ -687,7 +704,7 @@ html += '<a class="nav-item' + active + '" href="' + item.href + '" data-access=
   '<span class="icon">' + item.icon + '</span><span class="nav-item-text">' + item.text + '</span></a>';
 ```
 
-- [ ] **Step 3: Update the `filterNav` call site to pass observer**
+- [x] **Step 3: Update the `filterNav` call site to pass observer**
 
 In `JH.authenticate`, the existing call `JH.filterNav(data.admin)` becomes:
 
@@ -695,7 +712,7 @@ In `JH.authenticate`, the existing call `JH.filterNav(data.admin)` becomes:
 JH.filterNav(data.admin, !!data.observer);
 ```
 
-- [ ] **Step 4: Verify**
+- [x] **Step 4: Verify**
 
 ```bash
 grep -n "observerHide\|data-observer-hide\|filterNav" assets/js/admin-auth.js
@@ -710,7 +727,7 @@ Expected: the new flag, attribute, and call signature are all consistent.
 **Files:**
 - Modify: `assets/js/admin-auth.js:170-183` (`JH.renderSidebar`) and the post-auth block
 
-- [ ] **Step 1: Add a hook in the rendered sidebar HTML**
+- [x] **Step 1: Add a hook in the rendered sidebar HTML**
 
 In `JH.renderSidebar`, append a badge slot inside the sidebar-footer:
 
@@ -718,7 +735,7 @@ In `JH.renderSidebar`, append a badge slot inside the sidebar-footer:
 html += '</div><div class="sidebar-footer"><div id="sidebar-role-badge"></div><a href="/">&#8592; Back to Site</a></div>';
 ```
 
-- [ ] **Step 2: Populate the badge when observer**
+- [x] **Step 2: Populate the badge when observer**
 
 After the `JH.filterNav(data.admin, !!data.observer)` call in `JH.authenticate`, add:
 
@@ -731,7 +748,7 @@ if (data.observer) {
 }
 ```
 
-- [ ] **Step 3: Verify**
+- [x] **Step 3: Verify**
 
 ```bash
 grep -n "sidebar-role-badge\|👀 Observer" assets/js/admin-auth.js
@@ -746,13 +763,13 @@ Expected: two matches (the slot, the population).
 **Files:**
 - Modify: `assets/js/admin-auth.js` (`JH.checkLogisticsPrompt`)
 
-- [ ] **Step 1: Find the function**
+- [x] **Step 1: Find the function**
 
 ```bash
 grep -n "checkLogisticsPrompt" assets/js/admin-auth.js
 ```
 
-- [ ] **Step 2: Early-return for observers at the top of the function**
+- [x] **Step 2: Early-return for observers at the top of the function**
 
 Add at the top of the `JH.checkLogisticsPrompt = function(...) {` body:
 
@@ -760,7 +777,7 @@ Add at the top of the `JH.checkLogisticsPrompt = function(...) {` body:
 if (JH.currentUser && JH.currentUser.observer) return;
 ```
 
-- [ ] **Step 3: Verify**
+- [x] **Step 3: Verify**
 
 ```bash
 grep -n "checkLogisticsPrompt\|currentUser.observer" assets/js/admin-auth.js
@@ -772,7 +789,7 @@ Expected: the early-return appears at the top of the function body.
 
 ### Task 20: Commit Chunk 3
 
-- [ ] **Step 1: Stage and commit**
+- [x] **Step 1: Stage and commit**
 
 ```bash
 git add assets/js/admin-auth.js
@@ -793,13 +810,13 @@ git commit -m "Observer status: sidebar, badge, logistics-prompt skip
 **Files:**
 - Modify: `assets/js/admin-shifts.js`
 
-- [ ] **Step 1: Locate signup button render**
+- [x] **Step 1: Locate signup button render**
 
 ```bash
 grep -n "add-assignee\|remove-assignee\|signup\|Sign up" assets/js/admin-shifts.js
 ```
 
-- [ ] **Step 2: Wrap the rendering of signup/leave buttons with an observer check**
+- [x] **Step 2: Wrap the rendering of signup/leave buttons with an observer check**
 
 For each location where a signup or leave button is appended to the DOM, wrap with:
 
@@ -811,7 +828,7 @@ if (!(JH.currentUser && JH.currentUser.observer)) {
 
 The observer can still see the shift grid (read), just not click sign-up/leave (write).
 
-- [ ] **Step 3: Verify**
+- [x] **Step 3: Verify**
 
 ```bash
 grep -n "currentUser.observer" assets/js/admin-shifts.js
@@ -826,7 +843,7 @@ Expected: at least one match wrapping the signup/leave button render.
 **Files:**
 - Modify: `assets/js/admin-fee-paid.js`
 
-- [ ] **Step 1: Early-return for observers**
+- [x] **Step 1: Early-return for observers**
 
 Near the top of the IIFE in `admin-fee-paid.js`, right after `JH.authenticate()` returns, add:
 
@@ -842,7 +859,7 @@ if (JH.currentUser && JH.currentUser.observer) {
 }
 ```
 
-- [ ] **Step 2: Verify**
+- [x] **Step 2: Verify**
 
 ```bash
 grep -n "currentUser.observer\|Observers don't pay" assets/js/admin-fee-paid.js
@@ -857,13 +874,13 @@ Expected: the early-return is in place.
 **Files:**
 - Modify: `assets/js/admin-logistics.js`
 
-- [ ] **Step 1: Find the own-form submit handler**
+- [x] **Step 1: Find the own-form submit handler**
 
 ```bash
 grep -n "upsert\|My Info\|memberName" assets/js/admin-logistics.js | head
 ```
 
-- [ ] **Step 2: Disable the own-form for observers (scoped to `#logistics-form`)**
+- [x] **Step 2: Disable the own-form for observers (scoped to `#logistics-form`)**
 
 The own-form is rendered into `#my-info-content` as a `<form id="logistics-form">` (admin-logistics.js:129). The form is re-rendered every time the user picks their name, so the disable must be applied **after** each render, not just once at page load. The cleanest hook is inside the function that renders `my-info-content` (around line 109+). Find that function (it builds the HTML and assigns to `wrap.innerHTML`) and add at its end, after innerHTML is set:
 
@@ -884,7 +901,7 @@ if (JH.currentUser && JH.currentUser.observer) {
 
 Note: scoped to `#logistics-form` so the filter/search inputs in the all-members table are unaffected. The observer can still see everyone else's logistics.
 
-- [ ] **Step 3: Verify**
+- [x] **Step 3: Verify**
 
 ```bash
 grep -n "currentUser.observer" assets/js/admin-logistics.js
@@ -896,7 +913,7 @@ Expected: the disabling block is in place.
 
 ### Task 24: Commit Chunk 4
 
-- [ ] **Step 1: Stage and commit**
+- [x] **Step 1: Stage and commit**
 
 ```bash
 git add assets/js/admin-shifts.js assets/js/admin-fee-paid.js assets/js/admin-logistics.js
@@ -913,7 +930,7 @@ git commit -m "Observer status: per-page read-only UI
 
 ### Task 25: Set up two test accounts
 
-- [ ] **Step 1: Start the dev server**
+- [x] **Step 1: Start the dev server**
 
 ```bash
 npm run dev
@@ -921,13 +938,13 @@ npm run dev
 
 Expected: server starts on `http://localhost:3000`, both `.env` and `.env.supabase` load without errors.
 
-- [ ] **Step 2: Identify or create two test accounts in the Members sheet**
+- [x] **Step 2: Identify or create two test accounts in the Members sheet**
 
 Pick (or add) two rows:
 - **Account A** — admin (Admin column = `yes`, Status = `Approved`).
 - **Account B** — currently `Pending` or `Approved` member, will be promoted to Observer.
 
-- [ ] **Step 3: Log into the dashboard as Account A**
+- [x] **Step 3: Log into the dashboard as Account A**
 
 Navigate to `http://localhost:3000/admin`, log in.
 
@@ -935,7 +952,7 @@ Navigate to `http://localhost:3000/admin`, log in.
 
 ### Task 26: Smoke test — promotion to Observer
 
-- [ ] **Step 1: From Applications page, change Account B's status to Observer**
+- [x] **Step 1: From Applications page, change Account B's status to Observer**
 
 Expected:
 - Account B's status row updates without error.
@@ -943,11 +960,11 @@ Expected:
 - Telegram (if configured) receives `👀 X has joined as an Observer …`.
 - An invite email goes to Account B (or "already has an account" if they did).
 
-- [ ] **Step 2: Log out, log in as Account B**
+- [x] **Step 2: Log out, log in as Account B**
 
 Expected: login succeeds (auth gate accepts Observer).
 
-- [ ] **Step 3: Inspect Account B's sidebar**
+- [x] **Step 3: Inspect Account B's sidebar**
 
 Expected:
 - All links visible EXCEPT `/admin/applications` (admin-only) and `/admin/fee-paid` (observer-hidden).
@@ -957,23 +974,23 @@ Expected:
 
 ### Task 27: Smoke test — read-only enforcement
 
-- [ ] **Step 1: As Account B, visit `/admin/shifts`**
+- [x] **Step 1: As Account B, visit `/admin/shifts`**
 
 Expected: shift grid renders. Sign-up / leave buttons are absent.
 
-- [ ] **Step 2: As Account B, visit `/admin/logistics`**
+- [x] **Step 2: As Account B, visit `/admin/logistics`**
 
 Expected: existing logistics table renders. Own-form inputs are disabled. "Observer — logistics is read-only" notice shown.
 
-- [ ] **Step 3: As Account B, visit `/admin/fee-paid` directly**
+- [x] **Step 3: As Account B, visit `/admin/fee-paid` directly**
 
 Expected: replaced with "Observers don't pay barrio fees" notice.
 
-- [ ] **Step 4: As Account B, visit `/admin/profile`**
+- [x] **Step 4: As Account B, visit `/admin/profile`**
 
 Expected: page works. Dietary form can be saved successfully. (Personal-info form will 401 — same behaviour as a non-admin Approved member, per spec.)
 
-- [ ] **Step 5: As Account B, try a write via curl**
+- [x] **Step 5: As Account B, try a write via curl**
 
 ```bash
 TOKEN=<copy-from-browser-devtools>
@@ -989,15 +1006,15 @@ Expected: HTTP 403 with `{"error":"Observer accounts are read-only"}`.
 
 ### Task 28: Smoke test — exclusion from approved counts
 
-- [ ] **Step 1: As Account A, visit `/admin/demographics`**
+- [x] **Step 1: As Account A, visit `/admin/demographics`**
 
 Expected: Account B does NOT appear in the approved-member roster.
 
-- [ ] **Step 2: As Account A, visit `/admin/meals`**
+- [x] **Step 2: As Account A, visit `/admin/meals`**
 
 Expected: headcount on each day reflects approved-with-logistics members; Account B not included.
 
-- [ ] **Step 3: Trigger the weekly fee chase manually**
+- [x] **Step 3: Trigger the weekly fee chase manually**
 
 ```bash
 curl -s "http://localhost:3000/api/members?cron=chase" -H "Authorization: Bearer $CRON_SECRET"
@@ -1009,28 +1026,28 @@ Expected: response `{"outstanding": <n>}` where `<n>` does NOT include Account B
 
 ### Task 29: Smoke test — refund flow
 
-- [ ] **Step 1: Reset Account B to `Approved` with a paid fee**
+- [x] **Step 1: Reset Account B to `Approved` with a paid fee**
 
 In the sheet directly, set Account B's `Status=Approved`, `fee_total_sent=280`, `fee_received=TRUE`.
 
-- [ ] **Step 2: Reload Applications as Account A, change Account B's status to Observer**
+- [x] **Step 2: Reload Applications as Account A, change Account B's status to Observer**
 
 Expected:
 - Portal-access warning fires first ("Approved → Observer will revoke access" — actually wait, Observer KEEPS access; the warning logic only fires on `hasPortalAccess(old) && !hasPortalAccess(new)` — so this should NOT fire).
 - Refund modal fires immediately: "X has paid €280. Type one of: refund / keep / cancel".
 
-- [ ] **Step 3: Type `refund` and confirm**
+- [x] **Step 3: Type `refund` and confirm**
 
 Expected:
 - Sheet shows Account B with `Status=Observer`, `fee_total_sent=0`, `fee_received=FALSE`, low_income fields empty.
 - Telegram receives `💸 X refunded €280 and demoted from Approved → Observer`.
 - Applications grid refreshes with Account B as Observer.
 
-- [ ] **Step 4: Repeat the test with `keep`**
+- [x] **Step 4: Repeat the test with `keep`**
 
 Reset Account B to Approved with paid fee. Demote to Observer, choose `keep`. Expected: status changes, fee fields untouched.
 
-- [ ] **Step 5: Repeat the test with `cancel`**
+- [x] **Step 5: Repeat the test with `cancel`**
 
 Reset Account B to Approved with paid fee. Demote to Observer, choose `cancel`. Expected: status reverts in UI, no API call fired, sheet unchanged.
 
@@ -1038,7 +1055,7 @@ Reset Account B to Approved with paid fee. Demote to Observer, choose `cancel`. 
 
 ### Task 30: Smoke test — promotion back to Approved
 
-- [ ] **Step 1: As Account A, change Account B's status from Observer to Approved**
+- [x] **Step 1: As Account A, change Account B's status from Observer to Approved**
 
 Expected:
 - No additional modals.
@@ -1049,7 +1066,7 @@ Expected:
 
 ### Task 31: Smoke test — Observer → Pending revokes access
 
-- [ ] **Step 1: As Account A, change a different Observer's status to Pending**
+- [x] **Step 1: As Account A, change a different Observer's status to Pending**
 
 Expected:
 - Portal-access warning fires (Observer → Pending loses access).
@@ -1059,7 +1076,7 @@ Expected:
 
 ### Task 32: Final commit + push
 
-- [ ] **Step 1: Verify clean working tree**
+- [x] **Step 1: Verify clean working tree**
 
 ```bash
 git status
@@ -1067,7 +1084,7 @@ git status
 
 Expected: clean.
 
-- [ ] **Step 2: Push branch**
+- [x] **Step 2: Push branch**
 
 ```bash
 git push -u origin feature/observer-status
@@ -1085,3 +1102,93 @@ git push -u origin feature/observer-status
 - **Existing demotion warning logic:** the spec was careful that the warning fires on **portal-access loss**, not specifically "Approved → other". The new logic uses `hasPortalAccess()` so it correctly catches both Approved→{Pending, Rejected, …} AND Observer→{Pending, Rejected, …}, and correctly does NOT warn on Approved↔Observer transitions (both keep access).
 - **If `JH.currentUser` isn't already populated before sidebar render:** the badge population in Task 18 runs after `JH.authenticate`. That's fine because `renderSidebar` runs at module load but `filterNav` and the badge population both run post-auth. The slot exists before the user data does, then gets filled in.
 - **If you find a Status filter the spec missed:** add it to the spec's "Audited locations" list as part of the same PR — the next engineer needs that list to be complete.
+
+---
+
+## Follow-up changes during execution
+
+These weren't in the original plan but were necessary or felt right
+during build-and-test. Keeping them here so the plan reflects what
+actually shipped.
+
+### Design changes
+
+- **Telegram fires on Invite, not on status change** (commit eb8098f). The
+  original plan kept Telegram inside `members.update-status`. The new
+  Observer welcome message and the existing Approved welcome both ride
+  on the explicit Invite action instead, so admin bookkeeping status
+  flips don't accidentally announce people.
+- **Observer welcome flow** (commits a2ef2c5, 95825b3, 1b010c7, a567d9c).
+  Pending → Observer fires the existing `sendInvite()` confirm popup
+  (parity with Approved). The email template is `tplObserverWelcome`
+  (Observer-specific copy: "you have read-only access, talk to a lead
+  to upgrade to full member"). Telegram fires "👀 X joined us as a
+  lurker." but only for first-contact (isNewUser=true); re-invites to
+  existing Observer accounts stay silent.
+- **Demotion warnings dropped entirely** (commit a567d9c). The original
+  spec wanted a portal-access-loss warning; the user decided silent
+  demotion was the right call. `hasPortalAccess()` is still in the
+  code, now used only to scope the auto-invite to promotions.
+- **Tasks 12 + 13 obsoleted** by the silent-demotion choice — no refund
+  modal, no fee fields in row data. The `members.refund-and-demote`
+  backend endpoint stays in place but is unused.
+
+### Bugs fixed during the smoke test
+
+- **register.js check-email** was collapsing Observer → 'pending', so
+  the login form rejected Observers as "still being reviewed". Now
+  returns a distinct 'observer' status (commit 7497fe3).
+- **admin.html gateByApplicationStatus** only accepted 'approved'. Now
+  accepts 'observer' too.
+- **auth.js handlePublicAuthEmailAction** (magic-link / password-reset)
+  only let Approved members receive emails. Now allows Observer.
+- **auth.js invite handler** had a pre-existing race: `createUser({
+  email_confirm:true })` then `generateLink({type:'invite'})` couldn't
+  both succeed — once createUser made the user, generateLink rejected
+  the email with `email_exists`. Replaced with: try
+  `generateLink({type:'invite'})` first (creates the user), fall back
+  to `type:'recovery'` on email_exists. isNewUser is tracked via the
+  fallback outcome, used to gate the lurker Telegram.
+- **auth.js delete-user** was leaving emails locked in `auth.users`
+  (default soft-delete). Now passes `shouldSoftDelete=false`.
+- **Observer invites no longer set `must_change_password`** in user
+  metadata. The flag forces `/admin/profile` and blocks every other
+  page via admin-auth.js:105-108, defeating the transparency purpose.
+- **Timeline + To-Do force-logout** for any non-admin (pre-existing).
+  Both pages were tagged `access='general'` but `/api/timeline` 401s
+  any non-admin write, and `JH.apiFetch` treats 401 as session-dead
+  and bounces to `/admin`. Both moved to `access='admin'` in page meta
+  and sidebar — non-admins now get the clean redirect to demographics
+  instead of a forced logout (commit 73acf79).
+
+### Additional Observer locks added beyond the spec
+
+- **Budget page hidden** from Observer sidebar via `observerHide` and
+  with a direct-nav notice (commit 73acf79).
+- **Budget shopping-request blocked** at the API for Observer
+  (commit c682b04). Frontend was already inaccessible; this is
+  defense in depth against a direct curl.
+- **All three prompt banners** (logistics, shifts, dietary) skip for
+  Observers, not just logistics (commit f1c3b85). One-line additions
+  given they share the same nag-the-user character.
+
+### Dev tooling added
+
+- `scripts/seed-test-applicant.mjs` — append a Pending row directly
+  via the service account, bypassing /api/register so the
+  "new application" Telegram doesn't fire for test rows.
+- `scripts/local-login-link.mjs` — mint a magiclink and rewrite the
+  redirect to `http://localhost:3000/admin`, workaround for Supabase's
+  redirect allowlist refusing the localhost URL.
+- `scripts/clear-must-change-password.mjs` — flip the metadata flag
+  off for an existing user, recovery for Observers invited before
+  the metadata fix landed.
+
+### Chunk 5 (manual smoke test)
+
+Partially executed locally (login + invite + email + Telegram all
+verified end-to-end). The Observer UX sweep (sidebar hide, badge,
+disabled forms, prompt skips) was eyeballed but not fully clicked
+through — to be finished on the deployed site once this branch
+merges.
+
