@@ -148,6 +148,10 @@ access: admin
     </div>
   </div>
   <div class="panel">
+    <div class="view-toggle">
+      <button type="button" id="view-grid" class="view-btn active" data-view="grid">Grid</button>
+      <button type="button" id="view-kanban" class="view-btn" data-view="kanban">Kanban</button>
+    </div>
     <div class="filter-row">
       <select id="statusFilter">
         <option value="" selected>All Applications</option>
@@ -163,7 +167,12 @@ access: admin
       </div>
       <span class="count" id="filter-count"></span>
     </div>
-    <div id="app-grid" class="ag-theme-alpine-dark"></div>
+    <div id="view-grid-wrap" class="view-pane">
+      <div id="app-grid" class="ag-theme-alpine-dark"></div>
+    </div>
+    <div id="view-kanban-wrap" class="view-pane" hidden>
+      <div id="kanban-board" class="kanban-board"></div>
+    </div>
   </div>
 </div>
 

@@ -256,7 +256,7 @@
   };
 
   // ── Columns popover ─────────────────────────────────────────────────────
-  // LS keys: jh.applications.columns (here), .view, .kanban.expanded (added in later chunks)
+  // LS keys: jh.applications.columns, .view, .kanban.expanded
   var LS_COLS_KEY = 'jh.applications.columns';
   var DEFAULT_VISIBLE = ['Name', 'Playa Name', 'Responsible HR', 'Status'];
 
@@ -318,6 +318,155 @@
     popoverEl.hidden = true;
   });
 
+  // ── Kanban view ─────────────────────────────────────────────────────────
+  var LS_VIEW_KEY = 'jh.applications.view';
+  var LS_KB_EXPANDED_KEY = 'jh.applications.kanban.expanded';
+  var DEFAULT_EXPANDED_BUCKETS = ['Pending', 'In Progress'];
+
+  function readView() {
+    try { return localStorage.getItem(LS_VIEW_KEY) || 'grid'; } catch (e) { return 'grid'; }
+  }
+  function writeView(v) {
+    try { localStorage.setItem(LS_VIEW_KEY, v); } catch (e) {}
+  }
+  function readExpandedBuckets() {
+    try {
+      var raw = localStorage.getItem(LS_KB_EXPANDED_KEY);
+      if (raw) {
+        var parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch (e) {}
+    return DEFAULT_EXPANDED_BUCKETS.slice();
+  }
+  function writeExpandedBuckets(arr) {
+    try { localStorage.setItem(LS_KB_EXPANDED_KEY, JSON.stringify(arr)); } catch (e) {}
+  }
+
+  var gridWrap = document.getElementById('view-grid-wrap');
+  var kanbanWrap = document.getElementById('view-kanban-wrap');
+  var gridBtn = document.getElementById('view-grid');
+  var kanbanBtn = document.getElementById('view-kanban');
+
+  function applyView(v) {
+    if (v === 'kanban') {
+      gridWrap.hidden = true;
+      kanbanWrap.hidden = false;
+      gridBtn.classList.remove('active');
+      kanbanBtn.classList.add('active');
+      renderKanban();
+    } else {
+      gridWrap.hidden = false;
+      kanbanWrap.hidden = true;
+      kanbanBtn.classList.remove('active');
+      gridBtn.classList.add('active');
+    }
+    writeView(v);
+  }
+
+  gridBtn.addEventListener('click', function() { applyView('grid'); });
+  kanbanBtn.addEventListener('click', function() { applyView('kanban'); });
+
+  applyView(JH.isMobile ? 'grid' : readView());
+
+  function relativeDays(timestamp) {
+    if (!timestamp) return '';
+    var t = Date.parse(timestamp);
+    if (isNaN(t)) return '';
+    var diff = Date.now() - t;
+    var days = Math.floor(diff / (24 * 60 * 60 * 1000));
+    if (days <= 0) return 'today';
+    if (days === 1) return '1 day ago';
+    if (days < 7) return days + ' days ago';
+    var weeks = Math.floor(days / 7);
+    if (weeks === 1) return '1 week ago';
+    if (weeks < 5) return weeks + ' weeks ago';
+    var months = Math.floor(days / 30);
+    if (months === 1) return '1 month ago';
+    return months + ' months ago';
+  }
+
+  function bucketCssClass(bucket) {
+    return 'bucket-' + bucket.toLowerCase().replace(/\s+/g, '-');
+  }
+
+  function renderKanbanCardHtml(m) {
+    var name = val(m, 'Name') || '(no name)';
+    var playa = val(m, 'Playa Name');
+    var location = (val(m, 'Location') || '').split(',')[0].trim();
+    var applied = relativeDays(m['Timestamp']);
+    var metaBits = [];
+    if (applied) metaBits.push('Applied ' + applied);
+    if (location) metaBits.push(location);
+    var firstBurn = (val(m, 'First Burn') || '').toLowerCase();
+    var hasTicket = (val(m, 'Has Ticket') || '').toLowerCase();
+    var tags = '';
+    if (firstBurn === 'yes' || firstBurn === 'true' || firstBurn === '1') tags += '<span class="kb-tag first-burn">First Burn</span>';
+    if (hasTicket === 'yes' || hasTicket === 'true' || hasTicket === '1') tags += '<span class="kb-tag">Has Ticket</span>';
+    return '<div class="kb-card" data-row="' + m._row + '"' + (isAdmin ? ' draggable="true"' : '') + '>' +
+      (isAdmin ? '<button type="button" class="kb-menu-btn" data-row="' + m._row + '">&#8942;</button>' : '') +
+      '<div class="kb-name">' + JH.esc(name) + '</div>' +
+      (playa ? '<div class="kb-playa">' + JH.esc(playa) + '</div>' : '') +
+      (metaBits.length ? '<div class="kb-meta">' + JH.esc(metaBits.join(' · ')) + '</div>' : '') +
+      (tags ? '<div class="kb-tags">' + tags + '</div>' : '') +
+      '</div>';
+  }
+
+  function renderKanban() {
+    var board = document.getElementById('kanban-board');
+    if (!board) return;
+    var expanded = readExpandedBuckets();
+    var byBucket = { 'Pending': [], 'In Progress': [], 'Approved': [], 'Observer': [], 'Rejected': [] };
+    allMembers.forEach(function(m) {
+      var b = bucketOf(val(m, 'Status'));
+      if (byBucket[b]) byBucket[b].push(m);
+    });
+    var html = '';
+    BUCKET_ORDER.forEach(function(bucket) {
+      var isExpanded = expanded.indexOf(bucket) !== -1;
+      var cls = 'kb-col ' + bucketCssClass(bucket) + (isExpanded ? '' : ' collapsed');
+      var cards = byBucket[bucket].map(renderKanbanCardHtml).join('');
+      html += '<div class="' + cls + '" data-bucket="' + bucket + '">' +
+        '<div class="kb-col-header"><span>' + bucket + '</span><span class="count">' + byBucket[bucket].length + '</span></div>' +
+        '<div class="kb-cards">' + cards + '</div>' +
+        '</div>';
+    });
+    board.innerHTML = html;
+    wireKanbanEvents(board);
+  }
+
+  function wireKanbanEvents(board) {
+    board.querySelectorAll('.kb-col').forEach(function(col) {
+      var header = col.querySelector('.kb-col-header');
+      header.addEventListener('click', function() {
+        var bucket = col.getAttribute('data-bucket');
+        var expanded = readExpandedBuckets();
+        var i = expanded.indexOf(bucket);
+        if (i === -1) expanded.push(bucket); else expanded.splice(i, 1);
+        writeExpandedBuckets(expanded);
+        renderKanban();
+      });
+    });
+    board.querySelectorAll('.kb-card').forEach(function(card) {
+      card.addEventListener('click', function(e) {
+        if (e.target.closest('.kb-menu-btn')) return;
+        var row = parseInt(card.getAttribute('data-row'));
+        var member = allMembers.find(function(m) { return m._row === row; });
+        if (member) openModal(member);
+      });
+    });
+    board.querySelectorAll('.kb-menu-btn').forEach(function(btn) {
+      btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        openStatusMenu(btn);
+      });
+    });
+  }
+
+  function openStatusMenu(/* btn */) {
+    // Stub for Chunk 4 — real implementation comes with drag-and-drop.
+  }
+
   // Mobile: fewer columns, Name as link, Phone as icons only
   JH.mobileColumns(columnDefs, ['Name', 'Phone', 'Status']);
   if (JH.isMobile) {
@@ -375,6 +524,7 @@
       member['Status'] = newStatus;
       refreshStats();
       gridApi.setGridOption('rowData', getRowData());
+      renderKanban();
 
       var shouldInvite =
         (newNorm === 'Approved' && oldNorm !== 'Approved') ||
@@ -385,6 +535,7 @@
     } catch (err) {
       // revert on failure
       gridApi.setGridOption('rowData', getRowData());
+      renderKanban();
     }
   }
 
@@ -475,6 +626,7 @@
           document.getElementById('modal-msg').style.color = '#4caf50';
           refreshStats();
           gridApi.setGridOption('rowData', getRowData());
+          renderKanban();
         } catch (e) {
           document.getElementById('modal-msg').textContent = e.message;
           document.getElementById('modal-msg').style.color = '#f44336';
