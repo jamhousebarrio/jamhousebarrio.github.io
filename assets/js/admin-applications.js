@@ -517,6 +517,12 @@
     if (prev) prev.remove();
     var menu = document.createElement('div');
     menu.className = 'kb-status-menu';
+
+    function dismiss() {
+      menu.remove();
+      document.removeEventListener('click', dismiss);
+    }
+
     ALL_STATUSES.forEach(function(s) {
       var item = document.createElement('button');
       item.type = 'button';
@@ -524,20 +530,17 @@
       if (s === val(member, 'Status')) item.classList.add('current');
       item.addEventListener('click', function(e) {
         e.stopPropagation();
-        menu.remove();
+        dismiss();
         updateStatus(member, s);
       });
       menu.appendChild(item);
     });
     document.body.appendChild(menu);
     var r = btn.getBoundingClientRect();
-    menu.style.left = (r.right - menu.offsetWidth) + 'px';
+    menu.style.left = (r.right - menu.offsetWidth + window.scrollX) + 'px';
     menu.style.top = (r.bottom + 4 + window.scrollY) + 'px';
     setTimeout(function() {
-      document.addEventListener('click', function dismiss() {
-        menu.remove();
-        document.removeEventListener('click', dismiss);
-      });
+      document.addEventListener('click', dismiss);
     }, 0);
   }
 
