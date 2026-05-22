@@ -107,8 +107,11 @@ export default async function handler(req, res) {
       });
     }
 
-    // ── Shopping request (available to ALL authenticated users) ───────────
+    // ── Shopping request (open to approved members; not observers) ───────
     if (action === 'shopping-request') {
+      if ((memberResult.member.Status || '').toLowerCase() === 'observer') {
+        return res.status(403).json({ error: 'Observer accounts are read-only' });
+      }
       const { requestId, category, item, description, link, price, submittedBy } = payload;
       if (!requestId || !category || !item || !submittedBy) {
         return res.status(400).json({ error: 'requestId, category, item, submittedBy required' });

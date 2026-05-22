@@ -166,6 +166,19 @@
 
     wrap.innerHTML = html;
 
+    if (JH.currentUser && JH.currentUser.observer) {
+      var form = document.getElementById('logistics-form');
+      if (form) {
+        form.querySelectorAll('input, select, textarea, button').forEach(function(el) {
+          el.disabled = true;
+        });
+        var observerNotice = document.createElement('div');
+        observerNotice.style.cssText = 'margin-bottom:10px;padding:10px 14px;border:1px solid var(--border);border-radius:6px;color:var(--text-muted);font-size:0.85rem;';
+        observerNotice.textContent = '👀 You\'re an Observer — logistics is read-only for you.';
+        form.parentNode.insertBefore(observerNotice, form);
+      }
+    }
+
     var backLink = document.getElementById('back-to-me');
     if (backLink) {
       backLink.addEventListener('click', function (e) {

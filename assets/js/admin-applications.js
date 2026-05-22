@@ -5,9 +5,9 @@
   var val = JH.val;
   var isAdmin = JH.isAdmin();
   var allMembers = members.map(function(m, i) { m._row = i + 2; return m; });
-  var ALL_STATUSES = ['Pending', 'Review', 'Vibe Check', 'Team Discussion', 'On-boarding', 'Approved', 'Rejected'];
+  var ALL_STATUSES = ['Pending', 'Review', 'Vibe Check', 'Team Discussion', 'On-boarding', 'Approved', 'Observer', 'Rejected'];
   var FOOD_TYPES = ['', 'Carnivore', 'Pescatarian', 'Vegetarian', 'Vegan'];
-  var STATUS_IDS = { 'Pending': 'stat-pending', 'Review': 'stat-review', 'Vibe Check': 'stat-vibe-check', 'Team Discussion': 'stat-team-discussion', 'On-boarding': 'stat-on-boarding', 'Approved': 'stat-approved', 'Rejected': 'stat-rejected' };
+  var STATUS_IDS = { 'Pending': 'stat-pending', 'Review': 'stat-review', 'Vibe Check': 'stat-vibe-check', 'Team Discussion': 'stat-team-discussion', 'On-boarding': 'stat-on-boarding', 'Approved': 'stat-approved', 'Observer': 'stat-observer', 'Rejected': 'stat-rejected' };
 
   function normalizeStatus(s) {
     s = (s || '').toLowerCase();
@@ -89,7 +89,8 @@
   function InviteBtnRenderer() {}
   InviteBtnRenderer.prototype.init = function(params) {
     this.eGui = document.createElement('span');
-    if (normalizeStatus(params.data.Status) !== 'Approved') return;
+    var s = normalizeStatus(params.data.Status);
+    if (s !== 'Approved' && s !== 'Observer') return;
     var btn = document.createElement('button');
     btn.textContent = 'Invite';
     btn.style.cssText = 'background:transparent;color:#e8a84c;border:1px solid #e8a84c;border-radius:4px;padding:2px 10px;font-size:0.75rem;font-weight:600;cursor:pointer;font-family:Inter,sans-serif;';
@@ -239,39 +240,32 @@
     }
   });
 
-  // Inline status update
+  // Statuses that grant portal access (auth gate accepts these).
+  function hasPortalAccess(s) { return s === 'Approved' || s === 'Observer'; }
+
+  // Inline status update. Demotions are silent (no warning popup); the
+  // invite popup only fires on promotion INTO an access state — i.e.
+  // any → Approved, or non-portal → Observer. Approved → Observer is a
+  // demotion and stays silent.
   async function updateStatus(data, newStatus) {
     var member = allMembers.find(function(m) { return m._row === data._row; });
     if (!member) return;
-    var oldStatus = val(member, 'Status') || '';
-    var memberName = val(member, 'Name') || 'this member';
-
-    // Demoting away from Approved revokes portal access — confirm first.
-    if (normalizeStatus(oldStatus) === 'Approved' && normalizeStatus(newStatus) !== 'Approved') {
-      var ok = confirm(
-        'Changing ' + memberName + ' from Approved to "' + newStatus + '" will revoke their access to the portal.\n\n' +
-        'Their Supabase account will remain (so re-approving later restores access without a new invite), but they will be locked out until then.\n\n' +
-        'Continue?'
-      );
-      if (!ok) {
-        gridApi.setGridOption('rowData', getRowData());
-        return;
-      }
-    }
+    var oldNorm = normalizeStatus(val(member, 'Status') || '');
+    var newNorm = normalizeStatus(newStatus);
 
     try {
       var res = await JH.apiFetch('/api/members', { action: 'update-status', row: data._row, status: newStatus });
       if (!res.ok) throw new Error('Failed');
       member['Status'] = newStatus;
       refreshStats();
-
-      // Refresh the row so the Invite button appears for the new Approved status
       gridApi.setGridOption('rowData', getRowData());
 
-      if (newStatus === 'Approved') {
+      var shouldInvite =
+        (newNorm === 'Approved' && oldNorm !== 'Approved') ||
+        (newNorm === 'Observer' && !hasPortalAccess(oldNorm));
+      if (shouldInvite) {
         await sendInvite(member);
       }
-
     } catch (err) {
       // revert on failure
       gridApi.setGridOption('rowData', getRowData());

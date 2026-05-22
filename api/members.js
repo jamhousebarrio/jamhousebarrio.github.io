@@ -53,7 +53,7 @@ function settingIsTrue(v) {
   return s === 'true' || s === '1' || s === 'yes';
 }
 
-const ALLOWED_STATUSES = ['Pending', 'Review', 'Vibe Check', 'Team Discussion', 'On-boarding', 'Approved', 'Rejected'];
+const ALLOWED_STATUSES = ['Pending', 'Review', 'Vibe Check', 'Team Discussion', 'On-boarding', 'Approved', 'Observer', 'Rejected'];
 const BARRIO_FEE = 280;
 const LOW_INCOME_FEE = 180;
 const FEE_COLUMNS = ['fee_total_sent', 'fee_received', 'low_income_request', 'low_income_status'];
@@ -180,7 +180,7 @@ export default async function handler(req, res) {
         headers.forEach((h, j) => { obj[h] = row[j] || ''; });
         return obj;
       });
-      return res.status(200).json({ members, admin: auth.admin });
+      return res.status(200).json({ members, admin: auth.admin, observer: auth.observer });
     }
 
     // ── Fee: fetch (own status for member; full roster for admin) ────────
@@ -229,6 +229,7 @@ export default async function handler(req, res) {
 
     // ── Fee: member saves total sent ─────────────────────────────────────
     if (action === 'save-fee-sent') {
+      if (auth.observer) return res.status(403).json({ error: 'Observer accounts are read-only' });
       const amount = parseFloat(payload.amount);
       if (!isFinite(amount) || amount < 0) return res.status(400).json({ error: 'Invalid amount' });
       const r = await sheets.spreadsheets.values.get({ spreadsheetId, range: 'Sheet1!1:1' });
@@ -253,6 +254,7 @@ export default async function handler(req, res) {
 
     // ── Fee: member submits low income request ───────────────────────────
     if (action === 'submit-low-income') {
+      if (auth.observer) return res.status(403).json({ error: 'Observer accounts are read-only' });
       const enabled = settingIsTrue(await getSetting(sheets, spreadsheetId, LOW_INCOME_ENABLED_KEY, 'true'));
       if (!enabled) return res.status(403).json({ error: 'Low income applications are no longer available' });
       const text = (payload.justification || '').toString().trim();
@@ -268,6 +270,7 @@ export default async function handler(req, res) {
 
     // ── Fee: member withdraws low income request ─────────────────────────
     if (action === 'withdraw-low-income') {
+      if (auth.observer) return res.status(403).json({ error: 'Observer accounts are read-only' });
       const r = await sheets.spreadsheets.values.get({ spreadsheetId, range: 'Sheet1!1:1' });
       let headers = (r.data.values || [[]])[0] || [];
       headers = await ensureFeeColumns(sheets, spreadsheetId, headers);
@@ -393,6 +396,50 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true });
     }
 
+    // ── Refund + demote-to-Observer (single atomic admin op) ─────────────
+    if (action === 'refund-and-demote') {
+      const { row } = payload;
+      if (!row) return res.status(400).json({ error: 'Row required' });
+
+      const r = await sheets.spreadsheets.values.get({ spreadsheetId, range: 'Sheet1!1:1' });
+      let hdrs = (r.data.values || [[]])[0] || [];
+      hdrs = await ensureFeeColumns(sheets, spreadsheetId, hdrs);
+
+      // Capture current row for the Telegram message and the refunded amount
+      const rowRes = await sheets.spreadsheets.values.get({
+        spreadsheetId, range: 'Sheet1!' + row + ':' + row,
+      });
+      const rowData = (rowRes.data.values || [[]])[0] || [];
+      const sentCol = hdrs.indexOf('fee_total_sent');
+      const statusCol = hdrs.indexOf('Status');
+      const refundedAmount = parseFloat(rowData[sentCol]) || 0;
+      const oldStatus = (statusCol !== -1 && rowData[statusCol]) || 'Unknown';
+      const m = {};
+      hdrs.forEach((h, j) => { m[h] = rowData[j] || ''; });
+      const memberName = displayName(m);
+
+      // Batch the five writes
+      const liReqCol = hdrs.indexOf('low_income_request');
+      const liStatusCol = hdrs.indexOf('low_income_status');
+      const recvCol = hdrs.indexOf('fee_received');
+      const data = [
+        { range: 'Sheet1!' + colToLetter(sentCol) + row, values: [[0]] },
+        { range: 'Sheet1!' + colToLetter(recvCol) + row, values: [['FALSE']] },
+        { range: 'Sheet1!' + colToLetter(liReqCol) + row, values: [['']] },
+        { range: 'Sheet1!' + colToLetter(liStatusCol) + row, values: [['']] },
+        { range: 'Sheet1!' + colToLetter(statusCol) + row, values: [['Observer']] },
+      ].filter(d => d.range.match(/[A-Z]+[0-9]+$/)); // drop any if column index is -1
+
+      await sheets.spreadsheets.values.batchUpdate({
+        spreadsheetId,
+        requestBody: { valueInputOption: 'RAW', data },
+      });
+
+      await tgSend('💸 *' + memberName + '* refunded €' + refundedAmount + ' and demoted from ' + oldStatus + ' → Observer.');
+
+      return res.status(200).json({ success: true, refunded: refundedAmount });
+    }
+
     // ── Update status ─────────────────────────────────────────────────────
     if (action === 'update-status') {
       const { row, status } = payload;
@@ -407,43 +454,12 @@ export default async function handler(req, res) {
         return res.status(500).json({ error: 'Status column not found' });
       }
 
-      // Get member name for notification
-      const rowRes = await sheets.spreadsheets.values.get({
-        spreadsheetId,
-        range: 'Sheet1!' + row + ':' + row,
-      });
-      const rowData = (rowRes.data.values || [[]])[0];
-      const nameCol = headers.indexOf('Playa Name');
-      const realNameCol = headers.indexOf('Name');
-      const memberName = (nameCol !== -1 && rowData[nameCol]) || (realNameCol !== -1 && rowData[realNameCol]) || 'Unknown';
-      const oldStatus = (col !== -1 && rowData[col]) || 'Unknown';
-
       await sheets.spreadsheets.values.update({
         spreadsheetId,
         range: 'Sheet1!' + colToLetter(col) + row,
         valueInputOption: 'USER_ENTERED',
         requestBody: { values: [[status]] },
       });
-
-      // Telegram notification
-      if (process.env.TELEGRAM_BOT_TOKEN && process.env.TELEGRAM_CHAT_ID) {
-        try {
-          const tgBody = {
-            chat_id: process.env.TELEGRAM_CHAT_ID,
-            text: status.toLowerCase() === 'approved'
-              ? '🎉 Welcome to the barrio! ' + memberName + ' has been approved — say hi!'
-              : '📋 Application update: ' + memberName + ' moved from ' + oldStatus + ' → ' + status,
-          };
-          if (process.env.TELEGRAM_TOPIC_ID) tgBody.message_thread_id = parseInt(process.env.TELEGRAM_TOPIC_ID);
-          await fetch('https://api.telegram.org/bot' + process.env.TELEGRAM_BOT_TOKEN + '/sendMessage', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(tgBody),
-          });
-        } catch (tgErr) {
-          console.error('Telegram send failed:', tgErr);
-        }
-      }
 
       return res.status(200).json({ success: true });
     }

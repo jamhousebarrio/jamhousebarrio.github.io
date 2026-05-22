@@ -2,7 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 import { verifyToken, getMemberByEmail, isAdmin } from './_lib/auth.js';
 import { getSheets, colToLetter } from './_lib/sheets.js';
 import { logError } from './_lib/error-log.js';
-import { sendEmail, tplInvite, tplPasswordReset, tplDietaryPrompt, tplMagicLink } from './_lib/email.js';
+import { sendEmail, tplInvite, tplObserverWelcome, tplPasswordReset, tplDietaryPrompt, tplMagicLink } from './_lib/email.js';
 
 const SITE_URL = process.env.SITE_URL || 'https://jamhouse.space';
 // Resend free tier is 2 req/s; 500ms keeps us safely under.
@@ -16,6 +16,17 @@ function getSupabaseAdmin() {
   return createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SECRET_KEY, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
+}
+
+async function tgSend(text) {
+  if (!process.env.TELEGRAM_BOT_TOKEN || !process.env.TELEGRAM_CHAT_ID) return;
+  try {
+    const body = { chat_id: process.env.TELEGRAM_CHAT_ID, text, parse_mode: 'Markdown' };
+    if (process.env.TELEGRAM_TOPIC_ID) body.message_thread_id = parseInt(process.env.TELEGRAM_TOPIC_ID);
+    await fetch('https://api.telegram.org/bot' + process.env.TELEGRAM_BOT_TOKEN + '/sendMessage', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+    });
+  } catch (e) { console.error('Telegram send failed:', e); }
 }
 
 // Mints an action link via Supabase and dispatches a branded email through
@@ -38,6 +49,7 @@ async function mintAndSendAuthEmail({ supabase, sheets, email, type, redirectTo,
     actionLink: linkRes.data.properties.action_link,
   });
   await sendEmail({ to: email, subject: tpl.subject, html: tpl.html });
+  return member;
 }
 
 // Public-facing email actions (magic-link, password-reset) share the same
@@ -50,9 +62,10 @@ async function handlePublicAuthEmailAction(req, res, { action, payload, email, t
   try {
     const sheets = getSheets(true);
     const row = await getMemberByEmail(sheets, process.env.SHEET_ID, email, { anyStatus: true });
-    if (!row || (row.member.Status || '').toLowerCase() !== 'approved') {
+    const s = (row?.member?.Status || '').toLowerCase();
+    if (!row || (s !== 'approved' && s !== 'observer')) {
       await logError(req, new Error(`${action} denied`), {
-        action, email, reason: row ? 'not-approved' : 'not-found',
+        action, email, reason: row ? 'not-portal-access' : 'not-found',
       });
       return res.status(200).json({ success: true });
     }
@@ -70,7 +83,13 @@ export default async function handler(req, res) {
   const { action, ...payload } = req.body || {};
 
   try {
-    // ── Invite: create Supabase user + send branded invite email ────────
+    // ── Invite: send a branded invite/recovery email + Telegram ─────────
+    // generateLink(type:'invite') both creates the Supabase user and mints
+    // a confirm link. For users who already exist it errors with
+    // email_exists (422) — we fall back to type:'recovery' so the email
+    // still goes out, just as a password-reset link. We use the fallback
+    // outcome to detect isNewUser, which gates the "joined us as a lurker"
+    // Telegram (first-contact only; re-invites stay silent).
     if (action === 'invite') {
       const user = verifyToken(req);
       const sheets = getSheets(true);
@@ -84,24 +103,52 @@ export default async function handler(req, res) {
 
       const supabase = getSupabaseAdmin();
 
-      // createUser is idempotent: "already registered" falls through to link mint.
-      const createRes = await supabase.auth.admin.createUser({
-        email,
-        email_confirm: true,
-        user_metadata: { must_change_password: true },
-      });
-      if (createRes.error && !/already.*registered|already.*exists/i.test(createRes.error.message || '')) {
-        console.error('Invite createUser error:', createRes.error);
-        return res.status(500).json({ error: createRes.error.message || 'Failed to create user' });
+      const preLookup = await getMemberByEmail(sheets, process.env.SHEET_ID, email, { anyStatus: true }).catch(() => null);
+      const preStatus = (preLookup?.member?.Status || '').toString().toLowerCase().trim();
+      const tplFn = preStatus === 'observer' ? tplObserverWelcome : tplInvite;
+      // Observers don't need to set a portal password — they're read-only and
+      // can re-enter via magic-link. Setting must_change_password forces them
+      // into /admin/profile and blocks every other page, defeating the
+      // "transparency" purpose of the role.
+      const linkOptions = {
+        redirectTo: `${SITE_URL}/admin`,
+        data: preStatus === 'observer' ? {} : { must_change_password: true },
+      };
+
+      let isNewUser = true;
+      let linkRes = await supabase.auth.admin.generateLink({ type: 'invite', email, options: linkOptions });
+      if (linkRes.error) {
+        const code = linkRes.error.code || '';
+        const isEmailExists = code === 'email_exists' || /already.*registered|already.*exists/i.test(linkRes.error.message || '');
+        if (isEmailExists) {
+          isNewUser = false;
+          linkRes = await supabase.auth.admin.generateLink({ type: 'recovery', email, options: linkOptions });
+        }
+      }
+      if (linkRes.error || !linkRes.data?.properties?.action_link) {
+        console.error('Invite generateLink error:', linkRes.error);
+        return res.status(500).json({ error: linkRes.error?.message || 'Failed to generate action link' });
       }
 
-      await mintAndSendAuthEmail({
-        supabase, sheets, email,
-        type: 'invite',
-        redirectTo: `${SITE_URL}/admin`,
-        linkData: { must_change_password: true },
-        tplFn: tplInvite,
+      const targetMember = preLookup?.member || {};
+      const tpl = tplFn({
+        playaName: targetMember['Playa Name'] || '',
+        name: targetMember['Name'] || '',
+        actionLink: linkRes.data.properties.action_link,
       });
+      await sendEmail({ to: email, subject: tpl.subject, html: tpl.html });
+
+      const memberName = (targetMember['Playa Name'] || targetMember['Name'] || email).toString().trim() || email;
+      let tgText = null;
+      if (preStatus === 'observer') {
+        if (isNewUser) tgText = '👀 *' + memberName + '* joined us as a lurker.';
+      } else if (preStatus === 'approved') {
+        tgText = '🎉 Welcome to the barrio! *' + memberName + '* has been approved — say hi!';
+      } else {
+        tgText = '✉️ *' + memberName + '* was invited to the dashboard.';
+      }
+      if (tgText) await tgSend(tgText);
+
       return res.status(200).json({ success: true });
     }
 
@@ -311,14 +358,17 @@ export default async function handler(req, res) {
         return res.status(500).json({ error: 'Failed to find user' });
       }
       const target = users.find(u => u.email.toLowerCase() === targetEmail.toLowerCase());
-      if (target) {
-        const { error } = await supabase.auth.admin.deleteUser(target.id);
-        if (error) {
-          console.error('Delete user error:', error);
-          return res.status(500).json({ error: 'Failed to delete user account' });
-        }
+      if (!target) {
+        return res.status(200).json({ success: true, deleted: false });
       }
-      return res.status(200).json({ success: true });
+      // shouldSoftDelete=false → hard delete. Default behavior leaves the
+      // email locked in auth.users, blocking re-invite of the same address.
+      const { error } = await supabase.auth.admin.deleteUser(target.id, false);
+      if (error) {
+        console.error('Delete user error:', error);
+        return res.status(500).json({ error: 'Failed to delete user account' });
+      }
+      return res.status(200).json({ success: true, deleted: true });
     }
 
     // ── Public email actions (enumeration-safe — always return success) ──
