@@ -157,7 +157,7 @@ JH.authenticate = async function() {
 JH.sidebarNav = [
   { href: '/admin/applications', icon: '&#9993;', text: 'Applications', access: 'admin' },
   { href: '/admin/demographics', icon: '&#9776;', text: 'Approved Members', access: 'general' },
-  { href: '/admin/budget', icon: '&#9733;', text: 'Budget', access: 'general' },
+  { href: '/admin/budget', icon: '&#9733;', text: 'Budget', access: 'general', observerHide: true },
   { href: '/admin/fee-paid', icon: '&#128176;', text: 'Fee Paid', access: 'general', observerHide: true },
   { href: '/admin/shifts', icon: '&#9835;', text: 'Shifts', access: 'general' },
   { href: '/admin/inventory', icon: '&#128722;', text: 'Inventory', access: 'general' },
@@ -167,8 +167,8 @@ JH.sidebarNav = [
   { href: '/admin/drinks', icon: '&#127866;', text: 'Drinks & Snacks', access: 'general' },
   { href: '/admin/events', icon: '&#127926;', text: 'Events', access: 'general' },
   { href: '/admin/roles', icon: '&#128101;', text: 'Roles & Leads', access: 'general' },
-  { href: '/admin/timeline', icon: '&#128197;', text: 'Timeline', access: 'general' },
-  { href: '/admin/todo', icon: '&#9989;', text: 'To-Do', access: 'general' },
+  { href: '/admin/timeline', icon: '&#128197;', text: 'Timeline', access: 'admin' },
+  { href: '/admin/todo', icon: '&#9989;', text: 'To-Do', access: 'admin' },
   { href: '/admin/profile', icon: '&#128100;', text: 'Profile', access: 'general' },
   { href: '/admin/info', icon: '&#128218;', text: 'Useful Info', access: 'general' },
   { href: '/admin/build', icon: '&#128296;', text: 'Build Guide', access: 'general' }
