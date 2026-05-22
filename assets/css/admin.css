@@ -494,6 +494,35 @@ table tbody tr:nth-child(even) td { background: rgba(255,255,255,0.012); }
   text-align: center;
 }
 
+.kb-col.drag-over { box-shadow: inset 0 0 0 2px var(--accent); }
+
+.kb-status-menu {
+  position: absolute;
+  z-index: 50;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 160px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+.kb-status-menu button {
+  background: transparent;
+  border: none;
+  color: var(--text);
+  padding: 6px 10px;
+  text-align: left;
+  font-family: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+  border-radius: 4px;
+}
+.kb-status-menu button:hover { background: var(--surface2); }
+.kb-status-menu button.current { color: var(--accent); }
+
 @media (max-width: 768px) {
   .columns-control { display: none; }
   .view-toggle { display: none; }

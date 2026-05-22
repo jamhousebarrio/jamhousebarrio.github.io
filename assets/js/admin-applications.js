@@ -461,10 +461,84 @@
         openStatusMenu(btn);
       });
     });
+
+    if (isAdmin) {
+      var draggedRow = null;
+
+      board.querySelectorAll('.kb-card').forEach(function(card) {
+        card.addEventListener('dragstart', function(e) {
+          draggedRow = parseInt(card.getAttribute('data-row'));
+          e.dataTransfer.effectAllowed = 'move';
+          card.style.opacity = '0.4';
+        });
+        card.addEventListener('dragend', function() {
+          draggedRow = null;
+          card.style.opacity = '';
+        });
+      });
+
+      // Drop targets include collapsed spines (same .kb-col class, same
+      // data-bucket attribute). On drop into a collapsed spine, updateStatus
+      // → renderKanban re-reads jh.applications.kanban.expanded and re-renders
+      // with the spine still collapsed; only the count badge ticks up.
+      board.querySelectorAll('.kb-col').forEach(function(col) {
+        col.addEventListener('dragover', function(e) {
+          e.preventDefault();
+          e.dataTransfer.dropEffect = 'move';
+          col.classList.add('drag-over');
+        });
+        col.addEventListener('dragleave', function() {
+          col.classList.remove('drag-over');
+        });
+        col.addEventListener('drop', function(e) {
+          e.preventDefault();
+          col.classList.remove('drag-over');
+          if (draggedRow == null) return;
+          var bucket = col.getAttribute('data-bucket');
+          var member = allMembers.find(function(m) { return m._row === draggedRow; });
+          if (!member) return;
+          var currentBucket = bucketOf(val(member, 'Status'));
+          if (currentBucket === bucket) return; // No-op (same bucket — use ⋯ menu to sub-shuffle)
+          // Pick the sub-status to set:
+          //   Pending / Approved / Observer / Rejected → unambiguous
+          //   In Progress → land on 'Review' (first sub-status)
+          var newStatus = bucket === 'In Progress' ? 'Review' : bucket;
+          updateStatus(member, newStatus);
+        });
+      });
+    }
   }
 
-  function openStatusMenu(/* btn */) {
-    // Stub for Chunk 4 — real implementation comes with drag-and-drop.
+  function openStatusMenu(btn) {
+    var row = parseInt(btn.getAttribute('data-row'));
+    var member = allMembers.find(function(m) { return m._row === row; });
+    if (!member) return;
+    var prev = document.querySelector('.kb-status-menu');
+    if (prev) prev.remove();
+    var menu = document.createElement('div');
+    menu.className = 'kb-status-menu';
+    ALL_STATUSES.forEach(function(s) {
+      var item = document.createElement('button');
+      item.type = 'button';
+      item.textContent = s;
+      if (s === val(member, 'Status')) item.classList.add('current');
+      item.addEventListener('click', function(e) {
+        e.stopPropagation();
+        menu.remove();
+        updateStatus(member, s);
+      });
+      menu.appendChild(item);
+    });
+    document.body.appendChild(menu);
+    var r = btn.getBoundingClientRect();
+    menu.style.left = (r.right - menu.offsetWidth) + 'px';
+    menu.style.top = (r.bottom + 4 + window.scrollY) + 'px';
+    setTimeout(function() {
+      document.addEventListener('click', function dismiss() {
+        menu.remove();
+        document.removeEventListener('click', dismiss);
+      });
+    }, 0);
   }
 
   // Mobile: fewer columns, Name as link, Phone as icons only
