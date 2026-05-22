@@ -474,11 +474,14 @@ export default async function handler(req, res) {
         requestBody: { values: [[status]] },
       });
 
-      // Pending → Observer: mint Supabase account (so they can log in to the
-      // read-only dashboard), send Observer welcome email, ping Telegram.
+      // Transition to Observer: if the target doesn't yet have a Supabase
+      // account this is a "first contact" moment — mint the account, send the
+      // Observer welcome email, ping Telegram. If the account already exists
+      // (e.g. demotion from Approved), stay silent. Self-targeted no-ops
+      // (Observer → Observer) skip the whole branch.
       // Failure here doesn't roll back the status change — admin can re-invite
       // manually if the email/Telegram leg fails.
-      if (oldStatus.toLowerCase() === 'pending' && status === 'Observer') {
+      if (status === 'Observer' && oldStatus.toLowerCase() !== 'observer') {
         try {
           const emailCol = headers.indexOf('Email');
           const playaCol = headers.indexOf('Playa Name');
@@ -497,32 +500,42 @@ export default async function handler(req, res) {
               email_confirm: true,
               user_metadata: { must_change_password: true },
             });
-            if (createRes.error && !/already.*registered|already.*exists/i.test(createRes.error.message || '')) {
-              throw new Error(createRes.error.message || 'Failed to create user');
-            }
-            const linkRes = await supabase.auth.admin.generateLink({
-              type: 'invite',
-              email,
-              options: {
-                redirectTo: SITE_URL + '/admin',
-                data: { must_change_password: true },
-              },
-            });
-            if (linkRes.error || !linkRes.data?.properties?.action_link) {
-              throw new Error(linkRes.error?.message || 'Failed to mint invite link');
-            }
-            const tpl = tplObserverWelcome({
-              playaName,
-              name: fullName,
-              actionLink: linkRes.data.properties.action_link,
-            });
-            await sendEmail({ to: email, subject: tpl.subject, html: tpl.html });
-          }
 
-          await tgSend('👀 *' + memberName + '* joined us as a lurker.');
+            let isNewUser;
+            if (createRes.error) {
+              if (/already.*registered|already.*exists/i.test(createRes.error.message || '')) {
+                isNewUser = false;
+              } else {
+                throw new Error(createRes.error.message || 'Failed to create user');
+              }
+            } else {
+              isNewUser = true;
+            }
+
+            if (isNewUser) {
+              const linkRes = await supabase.auth.admin.generateLink({
+                type: 'invite',
+                email,
+                options: {
+                  redirectTo: SITE_URL + '/admin',
+                  data: { must_change_password: true },
+                },
+              });
+              if (linkRes.error || !linkRes.data?.properties?.action_link) {
+                throw new Error(linkRes.error?.message || 'Failed to mint invite link');
+              }
+              const tpl = tplObserverWelcome({
+                playaName,
+                name: fullName,
+                actionLink: linkRes.data.properties.action_link,
+              });
+              await sendEmail({ to: email, subject: tpl.subject, html: tpl.html });
+              await tgSend('👀 *' + memberName + '* joined us as a lurker.');
+            }
+          }
         } catch (e) {
-          console.error('Pending→Observer notify failed:', e);
-          await logError(req, e, { action: 'update-status', transition: 'pending-to-observer', row });
+          console.error('Observer welcome failed:', e);
+          await logError(req, e, { action: 'update-status', transition: 'to-observer', row });
         }
       }
 
