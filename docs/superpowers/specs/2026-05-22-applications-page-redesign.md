@@ -146,6 +146,8 @@ The same status filter dropdown still applies in Kanban:
 
 Text-based filters (e.g., quick search on name) hide non-matching cards within each column. Column counts in the header reflect post-filter counts.
 
+When a text-filter match falls inside a column that's currently collapsed to a spine, the spine **stays collapsed** but its count updates — admin clicks the spine to see matches. Auto-expanding on match was rejected as too jumpy.
+
 #### 3e. Permissions (Observer)
 
 - Cards are not `draggable` for Observers.
@@ -208,7 +210,7 @@ No automated tests (project doctrine: prototype-grade). Manual smoke list:
 - **Kanban → Grid → Kanban**: view switch persists across refresh.
 - **Kanban DnD**: drag Pending → In Progress, card lands as Review; drag In Progress (Review) → Approved, popup fires; drag Approved → Observer, silent demotion; drag Pending → Rejected, silent.
 - **Kanban spine**: Approved column starts collapsed; click expands; refresh — still expanded; click spine again — collapsed.
-- **Observer login**: Observer can see Kanban, can't drag, can't open `⋯` menu, can click card to open read-only modal.
+- **Observer login**: Observer can see Kanban, can't drag, can't open `⋯` menu, can click card to open read-only modal. Observer **can** still open the Columns popover and adjust their own visible columns — read-only on data, not on personal view prefs.
 - **Mobile**: view toggle hidden; only Grid available.
 
 ## Rollout
