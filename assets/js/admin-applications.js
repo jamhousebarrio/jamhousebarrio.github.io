@@ -5,9 +5,9 @@
   var val = JH.val;
   var isAdmin = JH.isAdmin();
   var allMembers = members.map(function(m, i) { m._row = i + 2; return m; });
-  var ALL_STATUSES = ['Pending', 'Review', 'Vibe Check', 'Team Discussion', 'On-boarding', 'Approved', 'Rejected'];
+  var ALL_STATUSES = ['Pending', 'Review', 'Vibe Check', 'Team Discussion', 'On-boarding', 'Approved', 'Observer', 'Rejected'];
   var FOOD_TYPES = ['', 'Carnivore', 'Pescatarian', 'Vegetarian', 'Vegan'];
-  var STATUS_IDS = { 'Pending': 'stat-pending', 'Review': 'stat-review', 'Vibe Check': 'stat-vibe-check', 'Team Discussion': 'stat-team-discussion', 'On-boarding': 'stat-on-boarding', 'Approved': 'stat-approved', 'Rejected': 'stat-rejected' };
+  var STATUS_IDS = { 'Pending': 'stat-pending', 'Review': 'stat-review', 'Vibe Check': 'stat-vibe-check', 'Team Discussion': 'stat-team-discussion', 'On-boarding': 'stat-on-boarding', 'Approved': 'stat-approved', 'Observer': 'stat-observer', 'Rejected': 'stat-rejected' };
 
   function normalizeStatus(s) {
     s = (s || '').toLowerCase();
@@ -89,7 +89,8 @@
   function InviteBtnRenderer() {}
   InviteBtnRenderer.prototype.init = function(params) {
     this.eGui = document.createElement('span');
-    if (normalizeStatus(params.data.Status) !== 'Approved') return;
+    var s = normalizeStatus(params.data.Status);
+    if (s !== 'Approved' && s !== 'Observer') return;
     var btn = document.createElement('button');
     btn.textContent = 'Invite';
     btn.style.cssText = 'background:transparent;color:#e8a84c;border:1px solid #e8a84c;border-radius:4px;padding:2px 10px;font-size:0.75rem;font-weight:600;cursor:pointer;font-family:Inter,sans-serif;';
