@@ -268,7 +268,7 @@
       // Refresh the row so the Invite button appears for the new Approved status
       gridApi.setGridOption('rowData', getRowData());
 
-      if (newStatus === 'Approved') {
+      if (newStatus === 'Approved' || newStatus === 'Observer') {
         await sendInvite(member);
       }
 

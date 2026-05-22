@@ -97,14 +97,24 @@ export default async function handler(req, res) {
       const supabase = getSupabaseAdmin();
 
       // createUser is idempotent: "already registered" falls through to link mint.
+      // Track whether we actually minted a new account — used below to decide
+      // if Observer invites should fire the "joined us as a lurker" Telegram
+      // (first-contact only; re-invites stay silent).
       const createRes = await supabase.auth.admin.createUser({
         email,
         email_confirm: true,
         user_metadata: { must_change_password: true },
       });
-      if (createRes.error && !/already.*registered|already.*exists/i.test(createRes.error.message || '')) {
-        console.error('Invite createUser error:', createRes.error);
-        return res.status(500).json({ error: createRes.error.message || 'Failed to create user' });
+      let isNewUser;
+      if (createRes.error) {
+        if (/already.*registered|already.*exists/i.test(createRes.error.message || '')) {
+          isNewUser = false;
+        } else {
+          console.error('Invite createUser error:', createRes.error);
+          return res.status(500).json({ error: createRes.error.message || 'Failed to create user' });
+        }
+      } else {
+        isNewUser = true;
       }
 
       // Pre-lookup so we can pick an Observer-flavoured email template when
@@ -121,17 +131,19 @@ export default async function handler(req, res) {
         tplFn,
       });
 
-      // Telegram: Observer invites are silent — the Pending→Observer transition
-      // in members.update-status fires "joined us as a lurker"; manual re-invites
-      // on Observer rows shouldn't re-ping the team.
-      if (preStatus !== 'observer') {
-        const targetMember = target?.member || {};
-        const memberName = (targetMember['Playa Name'] || targetMember['Name'] || email).toString().trim() || email;
-        const tgText = preStatus === 'approved'
-          ? '🎉 Welcome to the barrio! *' + memberName + '* has been approved — say hi!'
-          : '✉️ *' + memberName + '* was invited to the dashboard.';
-        await tgSend(tgText);
+      const targetMember = target?.member || {};
+      const memberName = (targetMember['Playa Name'] || targetMember['Name'] || email).toString().trim() || email;
+      let tgText = null;
+      if (preStatus === 'observer') {
+        // First-contact Observer only — re-invites to existing Observer
+        // accounts stay silent.
+        if (isNewUser) tgText = '👀 *' + memberName + '* joined us as a lurker.';
+      } else if (preStatus === 'approved') {
+        tgText = '🎉 Welcome to the barrio! *' + memberName + '* has been approved — say hi!';
+      } else {
+        tgText = '✉️ *' + memberName + '* was invited to the dashboard.';
       }
+      if (tgText) await tgSend(tgText);
 
       return res.status(200).json({ success: true });
     }
