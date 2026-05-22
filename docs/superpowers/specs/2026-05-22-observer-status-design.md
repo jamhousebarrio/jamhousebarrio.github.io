@@ -66,38 +66,83 @@ Three permission tiers result:
 
 Each endpoint below already accepts non-admin authenticated requests for
 the listed action. Add an `if (auth.observer) return 403 'Observer accounts are read-only'`
-check at the top of these specific branches:
+check inside the existing non-admin branch:
 
-- `api/shifts.js`: `signup`, `unassign-self`
-- `api/members.js`: `save-fee-sent`, `submit-low-income`, `withdraw-low-income`
-- `api/logistics.js`: `upsert` (when the caller is editing their own row)
-- `api/timeline.js`: any member-self action
-- `api/meals.js`, `api/drinks.js`, `api/events.js`, `api/budget.js`,
-  `api/inventory.js`, `api/roles.js` — already admin-gated, no change.
+- `api/shifts.js` action `add-assignee` (line ~215): inside the
+  `if (!auth.admin && !isSelfName(...))` predicate path, reject earlier
+  if `auth.observer` regardless of name (observers can't sign themselves
+  up either).
+- `api/shifts.js` action `remove-assignee` (line ~253): same shape — reject
+  observers before the self-check.
+- `api/members.js` actions `save-fee-sent`, `submit-low-income`,
+  `withdraw-low-income`: add at the top of each handler.
+- `api/logistics.js` action `upsert`: the only non-admin write. Reject
+  observers before the existing self-vs-admin check.
 
-### Endpoints unchanged for observers
+### Endpoints already admin-gated (no change)
 
-- `api/members.js`: `save-dietary` — own-profile, OK for observers.
-- `api/auth.js`: password change — own-profile, OK for observers.
-- Any `action === undefined` fetch path that returns rosters — OK, observers
-  can read.
+The "writes require admin" block in `api/members.js:298` and
+`api/timeline.js:25` already 401s all non-admin writes there — observers
+fall under that gate naturally. Same for `api/meals.js`, `api/drinks.js`,
+`api/events.js`, `api/budget.js`, `api/inventory.js`, `api/roles.js`.
+
+### Endpoints unchanged for observers (own-profile, allowed)
+
+- `api/members.js` action `save-dietary` — own-profile, OK for observers.
+- `api/auth.js` password change actions — own-profile, OK for observers.
+- Any `action === undefined` (default) fetch path that returns rosters —
+  OK, observers can read.
+
+**Note on profile name updates:** `assets/js/admin-profile.js:139` calls
+`/api/members` action `update` to save the personal-info form, but
+`members.update` is currently admin-gated (members.js:298). Observers
+will 401 on personal-info save — same as any non-admin Approved member
+does today. Out of scope for this spec; if/when profile name editing
+opens up to non-admin members, observers should be included.
 
 ## Roster & count exclusions
 
 Every existing `Status.toLowerCase() === 'approved'` filter stays exactly
-that — observers are deliberately excluded. Audited locations:
+that — observers are deliberately excluded. **No code change is required
+for any of these** — once Observer is just another non-Approved status,
+the predicate keeps working.
 
-- `api/members.js:140` — weekly fee chase
-- `api/members.js:214` — fee roster
-- `api/auth.js:241` — recovery flow eligibility
-- `assets/js/admin-fee-paid.js` — `liApproved` and roster filter
+Server-side audited locations:
+
+- `api/members.js:140` — weekly fee chase (Telegram chase Saturday cron)
+- `api/members.js:214` — fee roster returned to admins
+- `api/auth.js:53` — recovery / password-reset email gate
+- `api/auth.js:241` — dietary bulk-prompt approved-only filter
+
+Frontend audited locations (each filters its own roster client-side):
+
 - `assets/js/admin-demographics.js` — approved-member roster + charts
-- `JH.getHeadcount()` in `assets/js/admin-auth.js` — meals/drinks/events
-  use this; must NOT include observers.
+- `assets/js/admin-roles.js:8` — role-assignment dropdown source
+- `assets/js/admin-shifts.js:8` — shift signup dropdown source
+- `assets/js/admin-budget.js:484` — barrio-fee table source
+- `assets/js/admin-meals.js:567` — meal attendance source
+- `assets/js/admin-logistics.js:6` — logistics table source
+- `assets/js/admin-timeline.js:18` — timeline persons source
 
-**No code change is required for any of the above** — the existing
-predicate already does the right thing once Observer is just another
-non-Approved status.
+**Headcount — special case:** `JH.getHeadcount()` in
+`assets/js/admin-auth.js:298` filters by `ArrivalDate`/`DepartureDate`
+presence only, **not by Status**. This is fine in practice because:
+1. Observers cannot fill logistics through the UI (logistics form is
+   read-only for them — see UI section below).
+2. The `/api/logistics` fetch returns rows only for members who have
+   submitted logistics; an observer who never submitted won't appear.
+
+If an admin manually creates a MemberLogistics row for an observer (e.g.
+through future admin logistics editing), that observer **would** be
+counted by `getHeadcount`. Acceptable for prototype; flagged here so a
+future filter (`l.Status !== 'Observer'` or a cross-reference with
+`members`) can be added when this becomes a real concern.
+
+**Note on `liApproved` in `admin-fee-paid.js:108`:** `liApproved` checks
+`low_income_status === 'approved'` (a low-income request decision), not
+member Status. Observer exclusion from the fee-paid roster is enforced
+server-side at `api/members.js:214`. Mentioned here so future readers
+don't confuse the two "approved"s.
 
 ## UI changes
 
@@ -115,9 +160,12 @@ non-Approved status.
   parallel confirm for `Observer → Pending/Rejected/Review/etc.`:
   > "Changing X from Observer to '<new>' will revoke their portal access."
 - New flow: **Approved → Observer with paid fee.** When the chosen new
-  status is `Observer` AND `fee_received === TRUE` OR
-  `fee_total_sent > 0` (read from the row's data), show an additional
-  modal *after* the standard demotion confirm:
+  status is `Observer` AND the row's `fee_received === TRUE` OR
+  `fee_total_sent > 0`, show an additional modal *after* the standard
+  demotion confirm. The applications grid's row data is populated from
+  `/api/members` default fetch, which returns every column in `Sheet1`
+  including `fee_total_sent` and `fee_received` — so the frontend has
+  what it needs without an extra request.
 
   ```
   X has paid €Y in barrio fees.
@@ -253,9 +301,31 @@ Prototype-grade: no automated tests. Manual smoke checklist:
 
 ## Change Enforcement Rules
 
-If you add a new admin page → add it to the sidebar with the correct
-visibility (always visible to observers unless it exclusively concerns
-the member's own contribution to the barrio, e.g. fees).
+**If you add/change `ALLOWED_STATUSES` in `api/members.js`** → update
+`ALL_STATUSES` and `STATUS_IDS` in `assets/js/admin-applications.js`,
+and the `<option>` list in `admin/applications.html`. Three places, one
+source of truth, drift-prone.
 
-If you add a new endpoint that allows non-admin authenticated writes →
-add an `if (auth.observer)` 403 check for that action.
+**If you add a new admin page** → add it to the sidebar in
+`assets/js/admin-auth.js` with the correct visibility (always visible to
+observers unless it exclusively concerns the member's own contribution
+to the barrio, e.g. fees).
+
+**If you add a new endpoint that allows non-admin authenticated writes**
+→ add an `if (auth.observer) return 403` check inside the non-admin
+branch of that action.
+
+## Trade-off: refund audit trail
+
+The refund flow zeroes `fee_total_sent`, `fee_received`, and
+`low_income_*` in the sheet with no in-sheet record of the prior values.
+The only trace is the Telegram message
+`💸 X refunded €Y and demoted to Observer`.
+
+This is intentional given expected volumes (≤ a dozen observers over
+the lifetime of this event) and consistent with how the rest of the fee
+flow handles audit (Telegram is the system of record for fee events).
+If Telegram history is later lost or unsearchable, refund reconciliation
+becomes guesswork. A future refund-log tab or
+`fee_refunded_amount`/`fee_refunded_at` columns would cost little if
+that gap matters more after the first event.
