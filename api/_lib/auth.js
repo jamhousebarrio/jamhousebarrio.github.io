@@ -55,7 +55,10 @@ export async function getMemberByEmail(sheets, spreadsheetId, email, { anyStatus
     if ((rows[i][emailCol] || '').toLowerCase().trim() === target) {
       const member = {};
       headers.forEach((h, j) => { member[h] = rows[i][j] || ''; });
-      if (!anyStatus && (member.Status || '').toLowerCase() !== 'approved') return null;
+      if (!anyStatus) {
+        const s = (member.Status || '').toLowerCase();
+        if (s !== 'approved' && s !== 'observer') return null;
+      }
       return { member, row: i + 1, headers };
     }
   }
@@ -79,7 +82,7 @@ export async function authenticateRequest(req) {
   const spreadsheetId = process.env.SHEET_ID;
   const result = await getMemberByEmail(sheets, spreadsheetId, user.email);
   if (!result) {
-    const err = new Error('Member not found or not approved');
+    const err = new Error('Member not found or no portal access');
     err.status = 403;
     throw err;
   }
@@ -90,6 +93,7 @@ export async function authenticateRequest(req) {
     row: result.row,
     headers: result.headers,
     admin: isAdmin(result.member),
+    observer: (result.member.Status || '').toLowerCase() === 'observer',
     sheets,
     spreadsheetId,
   };

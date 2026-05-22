@@ -21,6 +21,7 @@ export default async function handler(req, res) {
     // ── Upsert ────────────────────────────────────────────────────────────
     if (action === 'upsert') {
       if (!memberName) return res.status(400).json({ error: 'memberName required' });
+      if (auth.observer) return res.status(403).json({ error: 'Observer accounts are read-only' });
 
       const myName = ((auth.member && auth.member.Name) || '').trim();
       const myPlaya = ((auth.member && auth.member['Playa Name']) || '').trim();

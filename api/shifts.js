@@ -212,6 +212,7 @@ export default async function handler(req, res) {
       if (!shiftId || !memberName) return res.status(400).json({ error: 'shiftId and memberName required' });
       const clean = memberName.trim();
       if (!clean) return res.status(400).json({ error: 'memberName required' });
+      if (auth.observer) return res.status(403).json({ error: 'Observer accounts are read-only' });
       if (!auth.admin && !isSelfName(auth, clean)) {
         return res.status(403).json({ error: 'Only an admin can sign up another member' });
       }
@@ -250,6 +251,7 @@ export default async function handler(req, res) {
       const { shiftId, memberName } = payload;
       if (!shiftId || !memberName) return res.status(400).json({ error: 'shiftId and memberName required' });
       const clean = memberName.trim();
+      if (auth.observer) return res.status(403).json({ error: 'Observer accounts are read-only' });
       if (!auth.admin && !isSelfName(auth, clean)) {
         return res.status(403).json({ error: 'Only an admin can remove another member' });
       }
