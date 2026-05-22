@@ -15,8 +15,10 @@ export default async function handler(req, res) {
   const b = req.body || {};
 
   // ── check-email: public lookup used by login forms ──────────────────────
-  // Returns { status: 'approved' | 'pending' | 'not_found' } — never leaks
-  // whether a non-approved row is Pending vs Rejected vs anything else.
+  // Returns { status: 'approved' | 'observer' | 'pending' | 'not_found' } —
+  // collapses Pending / Review / Rejected / etc. into 'pending' so the
+  // response never leaks the exact non-portal status. Approved and Observer
+  // both grant portal access so they're surfaced distinctly.
   if (b.action === 'check-email') {
     if (!b.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(b.email)) {
       return res.status(400).json({ error: 'Invalid email' });
@@ -41,7 +43,9 @@ export default async function handler(req, res) {
       for (let i = 1; i < rows.length; i++) {
         if ((rows[i][emailCol] || '').toLowerCase().trim() === target) {
           const s = (rows[i][statusCol] || '').toLowerCase().trim();
-          return res.status(200).json({ status: s === 'approved' ? 'approved' : 'pending' });
+          if (s === 'approved') return res.status(200).json({ status: 'approved' });
+          if (s === 'observer') return res.status(200).json({ status: 'observer' });
+          return res.status(200).json({ status: 'pending' });
         }
       }
       return res.status(200).json({ status: 'not_found' });

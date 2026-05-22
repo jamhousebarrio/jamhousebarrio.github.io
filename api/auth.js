@@ -62,9 +62,10 @@ async function handlePublicAuthEmailAction(req, res, { action, payload, email, t
   try {
     const sheets = getSheets(true);
     const row = await getMemberByEmail(sheets, process.env.SHEET_ID, email, { anyStatus: true });
-    if (!row || (row.member.Status || '').toLowerCase() !== 'approved') {
+    const s = (row?.member?.Status || '').toLowerCase();
+    if (!row || (s !== 'approved' && s !== 'observer')) {
       await logError(req, new Error(`${action} denied`), {
-        action, email, reason: row ? 'not-approved' : 'not-found',
+        action, email, reason: row ? 'not-portal-access' : 'not-found',
       });
       return res.status(200).json({ success: true });
     }
@@ -82,7 +83,13 @@ export default async function handler(req, res) {
   const { action, ...payload } = req.body || {};
 
   try {
-    // ── Invite: create Supabase user + send branded invite email ────────
+    // ── Invite: send a branded invite/recovery email + Telegram ─────────
+    // generateLink(type:'invite') both creates the Supabase user and mints
+    // a confirm link. For users who already exist it errors with
+    // email_exists (422) — we fall back to type:'recovery' so the email
+    // still goes out, just as a password-reset link. We use the fallback
+    // outcome to detect isNewUser, which gates the "joined us as a lurker"
+    // Telegram (first-contact only; re-invites stay silent).
     if (action === 'invite') {
       const user = verifyToken(req);
       const sheets = getSheets(true);
@@ -96,47 +103,44 @@ export default async function handler(req, res) {
 
       const supabase = getSupabaseAdmin();
 
-      // createUser is idempotent: "already registered" falls through to link mint.
-      // Track whether we actually minted a new account — used below to decide
-      // if Observer invites should fire the "joined us as a lurker" Telegram
-      // (first-contact only; re-invites stay silent).
-      const createRes = await supabase.auth.admin.createUser({
-        email,
-        email_confirm: true,
-        user_metadata: { must_change_password: true },
-      });
-      let isNewUser;
-      if (createRes.error) {
-        if (/already.*registered|already.*exists/i.test(createRes.error.message || '')) {
-          isNewUser = false;
-        } else {
-          console.error('Invite createUser error:', createRes.error);
-          return res.status(500).json({ error: createRes.error.message || 'Failed to create user' });
-        }
-      } else {
-        isNewUser = true;
-      }
-
-      // Pre-lookup so we can pick an Observer-flavoured email template when
-      // the target is an Observer.
       const preLookup = await getMemberByEmail(sheets, process.env.SHEET_ID, email, { anyStatus: true }).catch(() => null);
       const preStatus = (preLookup?.member?.Status || '').toString().toLowerCase().trim();
       const tplFn = preStatus === 'observer' ? tplObserverWelcome : tplInvite;
-
-      const target = await mintAndSendAuthEmail({
-        supabase, sheets, email,
-        type: 'invite',
+      // Observers don't need to set a portal password — they're read-only and
+      // can re-enter via magic-link. Setting must_change_password forces them
+      // into /admin/profile and blocks every other page, defeating the
+      // "transparency" purpose of the role.
+      const linkOptions = {
         redirectTo: `${SITE_URL}/admin`,
-        linkData: { must_change_password: true },
-        tplFn,
-      });
+        data: preStatus === 'observer' ? {} : { must_change_password: true },
+      };
 
-      const targetMember = target?.member || {};
+      let isNewUser = true;
+      let linkRes = await supabase.auth.admin.generateLink({ type: 'invite', email, options: linkOptions });
+      if (linkRes.error) {
+        const code = linkRes.error.code || '';
+        const isEmailExists = code === 'email_exists' || /already.*registered|already.*exists/i.test(linkRes.error.message || '');
+        if (isEmailExists) {
+          isNewUser = false;
+          linkRes = await supabase.auth.admin.generateLink({ type: 'recovery', email, options: linkOptions });
+        }
+      }
+      if (linkRes.error || !linkRes.data?.properties?.action_link) {
+        console.error('Invite generateLink error:', linkRes.error);
+        return res.status(500).json({ error: linkRes.error?.message || 'Failed to generate action link' });
+      }
+
+      const targetMember = preLookup?.member || {};
+      const tpl = tplFn({
+        playaName: targetMember['Playa Name'] || '',
+        name: targetMember['Name'] || '',
+        actionLink: linkRes.data.properties.action_link,
+      });
+      await sendEmail({ to: email, subject: tpl.subject, html: tpl.html });
+
       const memberName = (targetMember['Playa Name'] || targetMember['Name'] || email).toString().trim() || email;
       let tgText = null;
       if (preStatus === 'observer') {
-        // First-contact Observer only — re-invites to existing Observer
-        // accounts stay silent.
         if (isNewUser) tgText = '👀 *' + memberName + '* joined us as a lurker.';
       } else if (preStatus === 'approved') {
         tgText = '🎉 Welcome to the barrio! *' + memberName + '* has been approved — say hi!';
@@ -354,14 +358,17 @@ export default async function handler(req, res) {
         return res.status(500).json({ error: 'Failed to find user' });
       }
       const target = users.find(u => u.email.toLowerCase() === targetEmail.toLowerCase());
-      if (target) {
-        const { error } = await supabase.auth.admin.deleteUser(target.id);
-        if (error) {
-          console.error('Delete user error:', error);
-          return res.status(500).json({ error: 'Failed to delete user account' });
-        }
+      if (!target) {
+        return res.status(200).json({ success: true, deleted: false });
       }
-      return res.status(200).json({ success: true });
+      // shouldSoftDelete=false → hard delete. Default behavior leaves the
+      // email locked in auth.users, blocking re-invite of the same address.
+      const { error } = await supabase.auth.admin.deleteUser(target.id, false);
+      if (error) {
+        console.error('Delete user error:', error);
+        return res.status(500).json({ error: 'Failed to delete user account' });
+      }
+      return res.status(200).json({ success: true, deleted: true });
     }
 
     // ── Public email actions (enumeration-safe — always return success) ──
