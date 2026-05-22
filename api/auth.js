@@ -18,6 +18,17 @@ function getSupabaseAdmin() {
   });
 }
 
+async function tgSend(text) {
+  if (!process.env.TELEGRAM_BOT_TOKEN || !process.env.TELEGRAM_CHAT_ID) return;
+  try {
+    const body = { chat_id: process.env.TELEGRAM_CHAT_ID, text, parse_mode: 'Markdown' };
+    if (process.env.TELEGRAM_TOPIC_ID) body.message_thread_id = parseInt(process.env.TELEGRAM_TOPIC_ID);
+    await fetch('https://api.telegram.org/bot' + process.env.TELEGRAM_BOT_TOKEN + '/sendMessage', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+    });
+  } catch (e) { console.error('Telegram send failed:', e); }
+}
+
 // Mints an action link via Supabase and dispatches a branded email through
 // Resend. Runs generateLink + member-lookup in parallel since they're independent.
 // Throws on link-mint failure; sendEmail throws on Resend failure (both are
@@ -38,6 +49,7 @@ async function mintAndSendAuthEmail({ supabase, sheets, email, type, redirectTo,
     actionLink: linkRes.data.properties.action_link,
   });
   await sendEmail({ to: email, subject: tpl.subject, html: tpl.html });
+  return member;
 }
 
 // Public-facing email actions (magic-link, password-reset) share the same
@@ -95,13 +107,27 @@ export default async function handler(req, res) {
         return res.status(500).json({ error: createRes.error.message || 'Failed to create user' });
       }
 
-      await mintAndSendAuthEmail({
+      const target = await mintAndSendAuthEmail({
         supabase, sheets, email,
         type: 'invite',
         redirectTo: `${SITE_URL}/admin`,
         linkData: { must_change_password: true },
         tplFn: tplInvite,
       });
+
+      const targetMember = target?.member || {};
+      const memberName = (targetMember['Playa Name'] || targetMember['Name'] || email).toString().trim() || email;
+      const targetStatus = (targetMember.Status || '').toString().toLowerCase().trim();
+      let tgText;
+      if (targetStatus === 'observer') {
+        tgText = '👀 *' + memberName + '* has joined as an Observer — here for transparency, not as a full barrio member.';
+      } else if (targetStatus === 'approved') {
+        tgText = '🎉 Welcome to the barrio! *' + memberName + '* has been approved — say hi!';
+      } else {
+        tgText = '✉️ *' + memberName + '* was invited to the dashboard.';
+      }
+      await tgSend(tgText);
+
       return res.status(200).json({ success: true });
     }
 

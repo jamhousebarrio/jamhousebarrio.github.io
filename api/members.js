@@ -454,46 +454,12 @@ export default async function handler(req, res) {
         return res.status(500).json({ error: 'Status column not found' });
       }
 
-      // Get member name for notification
-      const rowRes = await sheets.spreadsheets.values.get({
-        spreadsheetId,
-        range: 'Sheet1!' + row + ':' + row,
-      });
-      const rowData = (rowRes.data.values || [[]])[0];
-      const nameCol = headers.indexOf('Playa Name');
-      const realNameCol = headers.indexOf('Name');
-      const memberName = (nameCol !== -1 && rowData[nameCol]) || (realNameCol !== -1 && rowData[realNameCol]) || 'Unknown';
-      const oldStatus = (col !== -1 && rowData[col]) || 'Unknown';
-
       await sheets.spreadsheets.values.update({
         spreadsheetId,
         range: 'Sheet1!' + colToLetter(col) + row,
         valueInputOption: 'USER_ENTERED',
         requestBody: { values: [[status]] },
       });
-
-      // Telegram notification
-      if (process.env.TELEGRAM_BOT_TOKEN && process.env.TELEGRAM_CHAT_ID) {
-        try {
-          const tgBody = {
-            chat_id: process.env.TELEGRAM_CHAT_ID,
-            text: (function() {
-              var s = status.toLowerCase();
-              if (s === 'approved') return '🎉 Welcome to the barrio! ' + memberName + ' has been approved — say hi!';
-              if (s === 'observer') return '👀 ' + memberName + ' has joined as an Observer — here for transparency, not as a full barrio member.';
-              return '📋 Application update: ' + memberName + ' moved from ' + oldStatus + ' → ' + status;
-            })(),
-          };
-          if (process.env.TELEGRAM_TOPIC_ID) tgBody.message_thread_id = parseInt(process.env.TELEGRAM_TOPIC_ID);
-          await fetch('https://api.telegram.org/bot' + process.env.TELEGRAM_BOT_TOKEN + '/sendMessage', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(tgBody),
-          });
-        } catch (tgErr) {
-          console.error('Telegram send failed:', tgErr);
-        }
-      }
 
       return res.status(200).json({ success: true });
     }
