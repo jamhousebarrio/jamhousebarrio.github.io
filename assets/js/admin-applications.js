@@ -404,7 +404,7 @@
     if (firstBurn === 'yes' || firstBurn === 'true' || firstBurn === '1') tags += '<span class="kb-tag first-burn">First Burn</span>';
     if (hasTicket === 'yes' || hasTicket === 'true' || hasTicket === '1') tags += '<span class="kb-tag">Has Ticket</span>';
     return '<div class="kb-card" data-row="' + m._row + '"' + (isAdmin ? ' draggable="true"' : '') + '>' +
-      (isAdmin ? '<button type="button" class="kb-menu-btn" data-row="' + m._row + '">&#8942;</button>' : '') +
+      (isAdmin ? '<button type="button" class="kb-menu-btn" data-row="' + m._row + '" draggable="false">&#8942;</button>' : '') +
       '<div class="kb-name">' + JH.esc(name) + '</div>' +
       (playa ? '<div class="kb-playa">' + JH.esc(playa) + '</div>' : '') +
       (metaBits.length ? '<div class="kb-meta">' + JH.esc(metaBits.join(' · ')) + '</div>' : '') +
@@ -412,20 +412,29 @@
       '</div>';
   }
 
+  function currentBucketFilter() {
+    var el = document.getElementById('statusFilter');
+    return (el && el.value) ? el.value : null;
+  }
+
   function renderKanban() {
     var board = document.getElementById('kanban-board');
     if (!board) return;
     var expanded = readExpandedBuckets();
+    var filterBucket = currentBucketFilter();
     var byBucket = { 'Pending': [], 'In Progress': [], 'Approved': [], 'Observer': [], 'Rejected': [] };
     allMembers.forEach(function(m) {
       var b = bucketOf(val(m, 'Status'));
       if (byBucket[b]) byBucket[b].push(m);
     });
     var html = '';
+    var visibleCardCount = 0;
     BUCKET_ORDER.forEach(function(bucket) {
-      var isExpanded = expanded.indexOf(bucket) !== -1;
+      if (filterBucket && filterBucket !== bucket) return; // hide non-matching columns
+      var isExpanded = filterBucket ? true : (expanded.indexOf(bucket) !== -1);
       var cls = 'kb-col ' + bucketCssClass(bucket) + (isExpanded ? '' : ' collapsed');
       var cards = byBucket[bucket].map(renderKanbanCardHtml).join('');
+      visibleCardCount += byBucket[bucket].length;
       html += '<div class="' + cls + '" data-bucket="' + bucket + '">' +
         '<div class="kb-col-header"><span>' + bucket + '</span><span class="count">' + byBucket[bucket].length + '</span></div>' +
         '<div class="kb-cards">' + cards + '</div>' +
@@ -433,6 +442,12 @@
     });
     board.innerHTML = html;
     wireKanbanEvents(board);
+    // Keep the filter-count chip in sync when Kanban is the visible view.
+    var kanbanWrap = document.getElementById('view-kanban-wrap');
+    if (kanbanWrap && !kanbanWrap.hidden) {
+      var countEl = document.getElementById('filter-count');
+      if (countEl) countEl.textContent = visibleCardCount + ' applications';
+    }
   }
 
   function wireKanbanEvents(board) {
@@ -487,7 +502,8 @@
           e.dataTransfer.dropEffect = 'move';
           col.classList.add('drag-over');
         });
-        col.addEventListener('dragleave', function() {
+        col.addEventListener('dragleave', function(e) {
+          if (col.contains(e.relatedTarget)) return;
           col.classList.remove('drag-over');
         });
         col.addEventListener('drop', function(e) {
@@ -572,6 +588,7 @@
       gridApi.setColumnFilterModel('Status', null).then(function() {
         gridApi.onFilterChanged();
       });
+      renderKanban();
       return;
     }
     var model = filterVal === 'In Progress'
@@ -580,6 +597,7 @@
     gridApi.setColumnFilterModel('Status', model).then(function() {
       gridApi.onFilterChanged();
     });
+    renderKanban();
   });
 
   // Statuses that grant portal access (auth gate accepts these).
