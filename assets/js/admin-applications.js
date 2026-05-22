@@ -7,8 +7,24 @@
   var allMembers = members.map(function(m, i) { m._row = i + 2; return m; });
   var ALL_STATUSES = ['Pending', 'Review', 'Vibe Check', 'Team Discussion', 'On-boarding', 'Approved', 'Observer', 'Rejected'];
   var FOOD_TYPES = ['', 'Carnivore', 'Pescatarian', 'Vegetarian', 'Vegan'];
-  var STATUS_IDS = { 'Pending': 'stat-pending', 'Review': 'stat-review', 'Vibe Check': 'stat-vibe-check', 'Team Discussion': 'stat-team-discussion', 'On-boarding': 'stat-on-boarding', 'Approved': 'stat-approved', 'Observer': 'stat-observer', 'Rejected': 'stat-rejected' };
-
+  var STATUS_BUCKETS = {
+    'Pending':         'Pending',
+    'Review':          'In Progress',
+    'Vibe Check':      'In Progress',
+    'Team Discussion': 'In Progress',
+    'On-boarding':     'In Progress',
+    'Approved':        'Approved',
+    'Observer':        'Observer',
+    'Rejected':        'Rejected',
+  };
+  var BUCKET_ORDER = ['Pending', 'In Progress', 'Approved', 'Observer', 'Rejected'];
+  var BUCKET_STAT_IDS = {
+    'Pending': 'stat-pending',
+    'In Progress': 'stat-in-progress',
+    'Approved': 'stat-approved',
+    'Observer': 'stat-observer',
+    'Rejected': 'stat-rejected',
+  };
   function normalizeStatus(s) {
     s = (s || '').toLowerCase();
     for (var i = 0; i < ALL_STATUSES.length; i++) {
@@ -17,14 +33,37 @@
     return 'Pending';
   }
 
+  function bucketOf(status) {
+    var norm = normalizeStatus(status);
+    return STATUS_BUCKETS[norm] || 'Pending';
+  }
+
   function refreshStats() {
-    document.getElementById('stat-total').textContent = allMembers.length;
-    ALL_STATUSES.forEach(function(status) {
-      var count = allMembers.filter(function(x) { return normalizeStatus(val(x, 'Status')) === status; }).length;
-      document.getElementById(STATUS_IDS[status]).textContent = count;
+    var counts = { 'Pending': 0, 'In Progress': 0, 'Approved': 0, 'Observer': 0, 'Rejected': 0 };
+    allMembers.forEach(function(m) {
+      var b = bucketOf(val(m, 'Status'));
+      if (counts.hasOwnProperty(b)) counts[b] += 1;
+    });
+    BUCKET_ORDER.forEach(function(bucket) {
+      var el = document.getElementById(BUCKET_STAT_IDS[bucket]);
+      if (el) el.textContent = counts[bucket];
     });
   }
   refreshStats();
+
+  // Stat-card clicks set the bucket filter dropdown and trigger filtering
+  BUCKET_ORDER.forEach(function(bucket) {
+    var el = document.getElementById(BUCKET_STAT_IDS[bucket]);
+    if (!el) return;
+    var card = el.closest('.stat-card');
+    if (!card) return;
+    card.style.cursor = 'pointer';
+    card.addEventListener('click', function() {
+      var filter = document.getElementById('statusFilter');
+      filter.value = bucket;
+      filter.dispatchEvent(new Event('change'));
+    });
+  });
 
   function getRowData() {
     return allMembers.map(function(m) {
@@ -103,6 +142,34 @@
   };
   InviteBtnRenderer.prototype.getGui = function() { return this.eGui; };
 
+  // Custom AG Grid filter that matches a full bucket ('In Progress' → any of its sub-statuses)
+  // or an exact status string. Used by the #statusFilter dropdown.
+  function BucketFilter() {}
+  BucketFilter.prototype.init = function(params) {
+    this.filterActive = false;
+    this.targetBucket = null;
+    this.targetStatus = null;
+  };
+  BucketFilter.prototype.doesFilterPass = function(params) {
+    // params.data.Status arrives pre-normalized via getRowData()
+    var v = params.data && params.data.Status;
+    if (this.targetBucket === 'In Progress') return bucketOf(v) === 'In Progress';
+    if (this.targetStatus) return v === this.targetStatus;
+    return true;
+  };
+  BucketFilter.prototype.isFilterActive = function() { return this.filterActive; };
+  BucketFilter.prototype.getModel = function() {
+    if (!this.filterActive) return null;
+    return { bucket: this.targetBucket, status: this.targetStatus };
+  };
+  BucketFilter.prototype.setModel = function(model) {
+    if (!model) { this.filterActive = false; this.targetBucket = null; this.targetStatus = null; return; }
+    this.filterActive = true;
+    this.targetBucket = model.bucket || null;
+    this.targetStatus = model.status || null;
+  };
+  BucketFilter.prototype.getGui = function() { return document.createElement('div'); };
+
   // Shared invite flow — used by status change to Approved AND the Invite button.
   async function sendInvite(member) {
     var memberEmail = val(member, 'Email');
@@ -161,7 +228,7 @@
     { field: 'Has Ticket', sortable: true, filter: true, hide: true },
     { field: 'Volunteer', sortable: true, filter: true, hide: true },
     { field: 'Responsible HR', sortable: true, filter: true, editable: isAdmin },
-    { field: 'Status', sortable: true, filter: true, cellRenderer: StatusCellRenderer }
+    { field: 'Status', sortable: true, filter: BucketFilter, cellRenderer: StatusCellRenderer }
   ];
 
   var gridOptions = {
@@ -188,6 +255,311 @@
     }
   };
 
+  // ── Columns popover ─────────────────────────────────────────────────────
+  // LS keys: jh.applications.columns, .view, .kanban.expanded
+  var LS_COLS_KEY = 'jh.applications.columns';
+  var DEFAULT_VISIBLE = ['Name', 'Playa Name', 'Responsible HR', 'Status'];
+
+  function readVisibleCols() {
+    try {
+      var raw = localStorage.getItem(LS_COLS_KEY);
+      if (raw) {
+        var parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch (e) { /* fall through */ }
+    return DEFAULT_VISIBLE.slice();
+  }
+  function writeVisibleCols(arr) {
+    try { localStorage.setItem(LS_COLS_KEY, JSON.stringify(arr)); } catch (e) {}
+  }
+
+  // visibleSet must be readable in the popover-build block below — declare
+  // outside the mobile gate. On mobile, JH.mobileColumns is the only
+  // authority on column visibility; we read visibleSet only to check the
+  // popover boxes (the popover itself is hidden on mobile via CSS), but
+  // we DO NOT mutate columnDefs[i].hide on mobile.
+  var visibleSet = readVisibleCols();
+  if (!JH.isMobile) {
+    columnDefs.forEach(function(col) {
+      if (!col.field || col.field.indexOf('_') === 0) return; // skip View/Invite buttons
+      col.hide = visibleSet.indexOf(col.field) === -1;
+    });
+  }
+
+  // Build popover (idempotent — runs on both desktop and mobile, but the
+  // popover button is hidden on mobile via CSS @media query)
+  var popoverEl = document.getElementById('columns-popover');
+  var btnEl = document.getElementById('columns-btn');
+  columnDefs.filter(function(col) { return col.field && col.field.indexOf('_') !== 0; }).forEach(function(col) {
+    var label = document.createElement('label');
+    var cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = visibleSet.indexOf(col.field) !== -1;
+    cb.addEventListener('change', function() {
+      var current = readVisibleCols();
+      if (cb.checked && current.indexOf(col.field) === -1) current.push(col.field);
+      if (!cb.checked) current = current.filter(function(c) { return c !== col.field; });
+      writeVisibleCols(current);
+      gridApi.setColumnsVisible([col.field], cb.checked);
+    });
+    label.appendChild(cb);
+    label.appendChild(document.createTextNode(' ' + (col.headerName || col.field)));
+    popoverEl.appendChild(label);
+  });
+
+  btnEl.addEventListener('click', function(e) {
+    e.stopPropagation();
+    popoverEl.hidden = !popoverEl.hidden;
+  });
+  document.addEventListener('click', function(e) {
+    if (popoverEl.hidden) return;
+    if (popoverEl.contains(e.target) || btnEl.contains(e.target)) return;
+    popoverEl.hidden = true;
+  });
+
+  // ── Kanban view ─────────────────────────────────────────────────────────
+  var LS_VIEW_KEY = 'jh.applications.view';
+  var LS_KB_EXPANDED_KEY = 'jh.applications.kanban.expanded';
+  var DEFAULT_EXPANDED_BUCKETS = ['Pending', 'In Progress'];
+
+  function readView() {
+    try { return localStorage.getItem(LS_VIEW_KEY) || 'grid'; } catch (e) { return 'grid'; }
+  }
+  function writeView(v) {
+    try { localStorage.setItem(LS_VIEW_KEY, v); } catch (e) {}
+  }
+  function readExpandedBuckets() {
+    try {
+      var raw = localStorage.getItem(LS_KB_EXPANDED_KEY);
+      if (raw) {
+        var parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch (e) {}
+    return DEFAULT_EXPANDED_BUCKETS.slice();
+  }
+  function writeExpandedBuckets(arr) {
+    try { localStorage.setItem(LS_KB_EXPANDED_KEY, JSON.stringify(arr)); } catch (e) {}
+  }
+
+  var gridWrap = document.getElementById('view-grid-wrap');
+  var kanbanWrap = document.getElementById('view-kanban-wrap');
+  var gridBtn = document.getElementById('view-grid');
+  var kanbanBtn = document.getElementById('view-kanban');
+
+  function applyView(v) {
+    if (v === 'kanban') {
+      gridWrap.hidden = true;
+      kanbanWrap.hidden = false;
+      gridBtn.classList.remove('active');
+      kanbanBtn.classList.add('active');
+      renderKanban();
+    } else {
+      gridWrap.hidden = false;
+      kanbanWrap.hidden = true;
+      kanbanBtn.classList.remove('active');
+      gridBtn.classList.add('active');
+    }
+    writeView(v);
+  }
+
+  gridBtn.addEventListener('click', function() { applyView('grid'); });
+  kanbanBtn.addEventListener('click', function() { applyView('kanban'); });
+
+  applyView(JH.isMobile ? 'grid' : readView());
+
+  function relativeDays(timestamp) {
+    if (!timestamp) return '';
+    var t = Date.parse(timestamp);
+    if (isNaN(t)) return '';
+    var diff = Date.now() - t;
+    var days = Math.floor(diff / (24 * 60 * 60 * 1000));
+    if (days <= 0) return 'today';
+    if (days === 1) return '1 day ago';
+    if (days < 7) return days + ' days ago';
+    var weeks = Math.floor(days / 7);
+    if (weeks === 1) return '1 week ago';
+    if (weeks < 5) return weeks + ' weeks ago';
+    var months = Math.floor(days / 30);
+    if (months === 1) return '1 month ago';
+    return months + ' months ago';
+  }
+
+  function bucketCssClass(bucket) {
+    return 'bucket-' + bucket.toLowerCase().replace(/\s+/g, '-');
+  }
+
+  function renderKanbanCardHtml(m) {
+    var name = val(m, 'Name') || '(no name)';
+    var playa = val(m, 'Playa Name');
+    var location = (val(m, 'Location') || '').split(',')[0].trim();
+    var applied = relativeDays(m['Timestamp']);
+    var metaBits = [];
+    if (applied) metaBits.push('Applied ' + applied);
+    if (location) metaBits.push(location);
+    var firstBurn = (val(m, 'First Burn') || '').toLowerCase();
+    var hasTicket = (val(m, 'Has Ticket') || '').toLowerCase();
+    var tags = '';
+    if (firstBurn === 'yes' || firstBurn === 'true' || firstBurn === '1') tags += '<span class="kb-tag first-burn">First Burn</span>';
+    if (hasTicket === 'yes' || hasTicket === 'true' || hasTicket === '1') tags += '<span class="kb-tag">Has Ticket</span>';
+    return '<div class="kb-card" data-row="' + m._row + '"' + (isAdmin ? ' draggable="true"' : '') + '>' +
+      (isAdmin ? '<button type="button" class="kb-menu-btn" data-row="' + m._row + '" draggable="false">&#8942;</button>' : '') +
+      '<div class="kb-name">' + JH.esc(name) + '</div>' +
+      (playa ? '<div class="kb-playa">' + JH.esc(playa) + '</div>' : '') +
+      (metaBits.length ? '<div class="kb-meta">' + JH.esc(metaBits.join(' · ')) + '</div>' : '') +
+      (tags ? '<div class="kb-tags">' + tags + '</div>' : '') +
+      '</div>';
+  }
+
+  function currentBucketFilter() {
+    var el = document.getElementById('statusFilter');
+    return (el && el.value) ? el.value : null;
+  }
+
+  function renderKanban() {
+    var board = document.getElementById('kanban-board');
+    if (!board) return;
+    var expanded = readExpandedBuckets();
+    var filterBucket = currentBucketFilter();
+    var byBucket = { 'Pending': [], 'In Progress': [], 'Approved': [], 'Observer': [], 'Rejected': [] };
+    allMembers.forEach(function(m) {
+      var b = bucketOf(val(m, 'Status'));
+      if (byBucket[b]) byBucket[b].push(m);
+    });
+    var html = '';
+    var visibleCardCount = 0;
+    BUCKET_ORDER.forEach(function(bucket) {
+      if (filterBucket && filterBucket !== bucket) return; // hide non-matching columns
+      var isExpanded = filterBucket ? true : (expanded.indexOf(bucket) !== -1);
+      var cls = 'kb-col ' + bucketCssClass(bucket) + (isExpanded ? '' : ' collapsed');
+      var cards = byBucket[bucket].map(renderKanbanCardHtml).join('');
+      visibleCardCount += byBucket[bucket].length;
+      html += '<div class="' + cls + '" data-bucket="' + bucket + '">' +
+        '<div class="kb-col-header"><span>' + bucket + '</span><span class="count">' + byBucket[bucket].length + '</span></div>' +
+        '<div class="kb-cards">' + cards + '</div>' +
+        '</div>';
+    });
+    board.innerHTML = html;
+    wireKanbanEvents(board);
+    // Keep the filter-count chip in sync when Kanban is the visible view.
+    var kanbanWrap = document.getElementById('view-kanban-wrap');
+    if (kanbanWrap && !kanbanWrap.hidden) {
+      var countEl = document.getElementById('filter-count');
+      if (countEl) countEl.textContent = visibleCardCount + ' applications';
+    }
+  }
+
+  function wireKanbanEvents(board) {
+    board.querySelectorAll('.kb-col').forEach(function(col) {
+      var header = col.querySelector('.kb-col-header');
+      header.addEventListener('click', function() {
+        var bucket = col.getAttribute('data-bucket');
+        var expanded = readExpandedBuckets();
+        var i = expanded.indexOf(bucket);
+        if (i === -1) expanded.push(bucket); else expanded.splice(i, 1);
+        writeExpandedBuckets(expanded);
+        renderKanban();
+      });
+    });
+    board.querySelectorAll('.kb-card').forEach(function(card) {
+      card.addEventListener('click', function(e) {
+        if (e.target.closest('.kb-menu-btn')) return;
+        var row = parseInt(card.getAttribute('data-row'));
+        var member = allMembers.find(function(m) { return m._row === row; });
+        if (member) openModal(member);
+      });
+    });
+    board.querySelectorAll('.kb-menu-btn').forEach(function(btn) {
+      btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        openStatusMenu(btn);
+      });
+    });
+
+    if (isAdmin) {
+      var draggedRow = null;
+
+      board.querySelectorAll('.kb-card').forEach(function(card) {
+        card.addEventListener('dragstart', function(e) {
+          draggedRow = parseInt(card.getAttribute('data-row'));
+          e.dataTransfer.effectAllowed = 'move';
+          card.style.opacity = '0.4';
+        });
+        card.addEventListener('dragend', function() {
+          draggedRow = null;
+          card.style.opacity = '';
+        });
+      });
+
+      // Drop targets include collapsed spines (same .kb-col class, same
+      // data-bucket attribute). On drop into a collapsed spine, updateStatus
+      // → renderKanban re-reads jh.applications.kanban.expanded and re-renders
+      // with the spine still collapsed; only the count badge ticks up.
+      board.querySelectorAll('.kb-col').forEach(function(col) {
+        col.addEventListener('dragover', function(e) {
+          e.preventDefault();
+          e.dataTransfer.dropEffect = 'move';
+          col.classList.add('drag-over');
+        });
+        col.addEventListener('dragleave', function(e) {
+          if (col.contains(e.relatedTarget)) return;
+          col.classList.remove('drag-over');
+        });
+        col.addEventListener('drop', function(e) {
+          e.preventDefault();
+          col.classList.remove('drag-over');
+          if (draggedRow == null) return;
+          var bucket = col.getAttribute('data-bucket');
+          var member = allMembers.find(function(m) { return m._row === draggedRow; });
+          if (!member) return;
+          var currentBucket = bucketOf(val(member, 'Status'));
+          if (currentBucket === bucket) return; // No-op (same bucket — use ⋯ menu to sub-shuffle)
+          // Pick the sub-status to set:
+          //   Pending / Approved / Observer / Rejected → unambiguous
+          //   In Progress → land on 'Review' (first sub-status)
+          var newStatus = bucket === 'In Progress' ? 'Review' : bucket;
+          updateStatus(member, newStatus);
+        });
+      });
+    }
+  }
+
+  function openStatusMenu(btn) {
+    var row = parseInt(btn.getAttribute('data-row'));
+    var member = allMembers.find(function(m) { return m._row === row; });
+    if (!member) return;
+    var prev = document.querySelector('.kb-status-menu');
+    if (prev) prev.remove();
+    var menu = document.createElement('div');
+    menu.className = 'kb-status-menu';
+
+    function dismiss() {
+      menu.remove();
+      document.removeEventListener('click', dismiss);
+    }
+
+    ALL_STATUSES.forEach(function(s) {
+      var item = document.createElement('button');
+      item.type = 'button';
+      item.textContent = s;
+      if (s === val(member, 'Status')) item.classList.add('current');
+      item.addEventListener('click', function(e) {
+        e.stopPropagation();
+        dismiss();
+        updateStatus(member, s);
+      });
+      menu.appendChild(item);
+    });
+    document.body.appendChild(menu);
+    var r = btn.getBoundingClientRect();
+    menu.style.left = (r.right - menu.offsetWidth + window.scrollX) + 'px';
+    menu.style.top = (r.bottom + 4 + window.scrollY) + 'px';
+    setTimeout(function() {
+      document.addEventListener('click', dismiss);
+    }, 0);
+  }
+
   // Mobile: fewer columns, Name as link, Phone as icons only
   JH.mobileColumns(columnDefs, ['Name', 'Phone', 'Status']);
   if (JH.isMobile) {
@@ -208,36 +580,24 @@
     });
   }
 
-  // Column toggles
-  var togglesEl = document.getElementById('colToggles');
-  columnDefs.filter(function(col) { return col.field && col.field !== '_view'; }).forEach(function(col) {
-    var label = document.createElement('label');
-    label.className = 'col-toggle' + (col.hide ? '' : ' active');
-    var cb = document.createElement('input');
-    cb.type = 'checkbox';
-    cb.checked = !col.hide;
-    cb.addEventListener('change', function() {
-      label.className = 'col-toggle' + (this.checked ? ' active' : '');
-      gridApi.setColumnsVisible([col.field], this.checked);
-    });
-    label.appendChild(cb);
-    label.appendChild(document.createTextNode(col.field));
-    togglesEl.appendChild(label);
-  });
-
-  // Status filter
+  // Status filter — uses BucketFilter; 'In Progress' matches all 4 sub-statuses
   document.getElementById('statusFilter').addEventListener('change', function() {
     var filterVal = this.value;
-    if (filterVal) {
+    if (!filterVal) {
       gridApi.setGridOption('quickFilterText', null);
-      gridApi.setColumnFilterModel('Status', { type: 'equals', filter: filterVal }).then(function() {
-        gridApi.onFilterChanged();
-      });
-    } else {
       gridApi.setColumnFilterModel('Status', null).then(function() {
         gridApi.onFilterChanged();
       });
+      renderKanban();
+      return;
     }
+    var model = filterVal === 'In Progress'
+      ? { bucket: 'In Progress' }
+      : { status: filterVal };
+    gridApi.setColumnFilterModel('Status', model).then(function() {
+      gridApi.onFilterChanged();
+    });
+    renderKanban();
   });
 
   // Statuses that grant portal access (auth gate accepts these).
@@ -259,6 +619,7 @@
       member['Status'] = newStatus;
       refreshStats();
       gridApi.setGridOption('rowData', getRowData());
+      renderKanban();
 
       var shouldInvite =
         (newNorm === 'Approved' && oldNorm !== 'Approved') ||
@@ -269,6 +630,7 @@
     } catch (err) {
       // revert on failure
       gridApi.setGridOption('rowData', getRowData());
+      renderKanban();
     }
   }
 
@@ -359,6 +721,7 @@
           document.getElementById('modal-msg').style.color = '#4caf50';
           refreshStats();
           gridApi.setGridOption('rowData', getRowData());
+          renderKanban();
         } catch (e) {
           document.getElementById('modal-msg').textContent = e.message;
           document.getElementById('modal-msg').style.color = '#f44336';
