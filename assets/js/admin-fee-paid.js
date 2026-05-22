@@ -2,6 +2,16 @@
   var members = await JH.authenticate();
   if (!members) return;
 
+  if (JH.currentUser && JH.currentUser.observer) {
+    var container = document.querySelector('.main') || document.body;
+    var notice = document.createElement('div');
+    notice.style.cssText = 'margin:24px;padding:20px;border:1px solid var(--border);border-radius:8px;color:var(--text-muted);';
+    notice.textContent = 'Observers don\'t pay barrio fees. This page is hidden from your sidebar by default — you reached it via a direct link.';
+    container.innerHTML = '';
+    container.appendChild(notice);
+    return;
+  }
+
   var EXPECTED = 280;
   var LOW_INCOME = 180;
   function targetFor(rec) {

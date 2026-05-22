@@ -3,6 +3,7 @@
   if (!members) return;
 
   var isAdmin = JH.isAdmin();
+  var isObserver = !!(JH.currentUser && JH.currentUser.observer);
 
   var approvedMembers = members.filter(function (m) {
     return (JH.val(m, 'Status') || '').toLowerCase() === 'approved';
@@ -159,10 +160,10 @@
             });
             if (isFull) {
               html += '<span class="shift-full-tag">Full' + (maxNum ? ' (' + maxNum + ')' : '') + '</span>';
-              if (isAdmin) {
+              if (isAdmin && !isObserver) {
                 html += '<button class="signup-btn assign-btn override-btn" data-id="' + JH.esc(s.ShiftID) + '" data-name="' + JH.esc(type.name) + '" data-date="' + JH.esc(date) + '" title="Override cap (admin only)">+ Override</button>';
               }
-            } else {
+            } else if (!isObserver) {
               var capNote = (!isNaN(maxNum) && maxNum > 0) ? ' (' + people.length + '/' + maxNum + ')' : '';
               html += '<button class="signup-btn assign-btn" data-id="' + JH.esc(s.ShiftID) + '" data-name="' + JH.esc(type.name) + '" data-date="' + JH.esc(date) + '">+ Sign Up' + capNote + '</button>';
             }
