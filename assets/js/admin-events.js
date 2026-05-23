@@ -3,6 +3,8 @@
   if (!members) return;
 
   var isAdmin = JH.isAdmin();
+  var isObserver = !!(JH.currentUser && JH.currentUser.observer);
+  var canWrite = !isObserver;
   var state = { events: [] };
   var activeFilter = 'all';
   var viewYear = 2026;
@@ -92,8 +94,8 @@
     html += '</div>';
     wrap.innerHTML = html;
 
-    // Bind event clicks
-    if (isAdmin) {
+    // Bind event clicks — any approved (non-observer) member can edit.
+    if (canWrite) {
       document.querySelectorAll('.cal-event').forEach(function (el) {
         el.addEventListener('click', function () {
           var ev = state.events.find(function (e) { return e.Name === el.dataset.name; });
@@ -209,7 +211,37 @@
 
   // ── Init ──────────────────────────────────────────────────────────────────
 
-  if (isAdmin) document.getElementById('add-event-btn').style.display = '';
+  if (canWrite) document.getElementById('add-event-btn').style.display = '';
+  document.getElementById('export-csv-btn').addEventListener('click', exportCsv);
 
   await reload();
+
+  // ── CSV export ──────────────────────────────────────────────────────────
+  function exportCsv() {
+    var headers = ['Name', 'Date', 'Time', 'EndTime', 'Description', 'Responsible', 'Status', 'Notes'];
+    var rows = (state.events || []).slice().sort(function (a, b) {
+      var ad = (a.Date || '') + ' ' + (a.Time || '');
+      var bd = (b.Date || '') + ' ' + (b.Time || '');
+      return ad < bd ? -1 : ad > bd ? 1 : 0;
+    });
+    var csv = headers.join(',') + '\n' + rows.map(function (ev) {
+      return headers.map(function (h) { return csvCell(ev[h]); }).join(',');
+    }).join('\n');
+    var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    var stamp = new Date().toISOString().slice(0, 10);
+    a.href = url;
+    a.download = 'jamhouse-events-' + stamp + '.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  function csvCell(value) {
+    var s = value == null ? '' : String(value);
+    if (/[",\n\r]/.test(s)) s = '"' + s.replace(/"/g, '""') + '"';
+    return s;
+  }
 })();
