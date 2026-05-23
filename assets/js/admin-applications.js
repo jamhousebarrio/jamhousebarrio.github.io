@@ -319,12 +319,12 @@
   });
 
   // ── Kanban view ─────────────────────────────────────────────────────────
-  var LS_VIEW_KEY = 'jh.applications.view';
+  var LS_VIEW_KEY = 'jh.applications.view.v2';
   var LS_KB_EXPANDED_KEY = 'jh.applications.kanban.expanded';
   var DEFAULT_EXPANDED_BUCKETS = ['Pending', 'In Progress'];
 
   function readView() {
-    try { return localStorage.getItem(LS_VIEW_KEY) || 'grid'; } catch (e) { return 'grid'; }
+    try { return localStorage.getItem(LS_VIEW_KEY) || 'kanban'; } catch (e) { return 'kanban'; }
   }
   function writeView(v) {
     try { localStorage.setItem(LS_VIEW_KEY, v); } catch (e) {}
