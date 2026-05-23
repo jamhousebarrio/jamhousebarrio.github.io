@@ -66,7 +66,13 @@
     });
 
     eventDates.forEach(function (dateStr) {
-      var dayEvents = filtered.filter(function (ev) { return ev.Date === dateStr; });
+      var dayEvents = filtered.filter(function (ev) { return ev.Date === dateStr; }).sort(function (a, b) {
+        // Sort earliest-first. Normalize to 24h so "9:00 AM" sorts before "10:00".
+        // Events without a time fall to the bottom of the day.
+        var at = a.Time ? JH.to24h(a.Time) : '99:99';
+        var bt = b.Time ? JH.to24h(b.Time) : '99:99';
+        return at < bt ? -1 : at > bt ? 1 : 0;
+      });
       var hasEvents = dayEvents.length > 0;
       var day = parseInt(dateStr.split('-')[2]);
 
