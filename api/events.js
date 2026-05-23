@@ -11,7 +11,7 @@ export default async function handler(req, res) {
 
     const spreadsheetId = auth.spreadsheetId;
     const TAB = 'Events';
-    const HEADERS = ['Name', 'Date', 'Time', 'EndTime', 'Description', 'Responsible', 'Status', 'Notes'];
+    const HEADERS = ['Name', 'Date', 'Time', 'EndTime', 'Description', 'Responsible', 'Status', 'Notes', 'Id'];
 
     // ── Fetch (default) ───────────────────────────────────────────────────
     if (!action) {
@@ -29,42 +29,21 @@ export default async function handler(req, res) {
 
     switch (action) {
       case 'upsert': {
-        const { name, originalName, date, time, endTime, description, responsible, status, notes } = payload;
+        const { id, name, date, time, endTime, description, responsible, status, notes } = payload;
         if (!name) return res.status(400).json({ error: 'name required' });
-
-        // Honor originalName on edits: look up by the OLD name, then write the new
-        // row (including the renamed Name column). Without this, renaming an event
-        // to a name that already exists silently overwrites that other row.
-        const lookupName = originalName || name;
-        const isEdit = !!originalName;
-
-        if (!isEdit) {
-          // Create: reject if an event with this name already exists.
-          const rows = await getRows(sheets, spreadsheetId, TAB);
-          if (rows.length > 1) {
-            const nameCol = rows[0].indexOf('Name');
-            const collision = rows.slice(1).some(r => (r[nameCol] || '') === name);
-            if (collision) return res.status(409).json({ error: 'An event with this name already exists' });
-          }
-        } else if (name !== originalName) {
-          // Rename: reject if the new name already belongs to a different event.
-          const rows = await getRows(sheets, spreadsheetId, TAB);
-          if (rows.length > 1) {
-            const nameCol = rows[0].indexOf('Name');
-            const collision = rows.slice(1).some(r => (r[nameCol] || '') === name);
-            if (collision) return res.status(409).json({ error: 'Another event already uses this name' });
-          }
-        }
-
-        await upsertRow(sheets, spreadsheetId, TAB, 'Name', lookupName, HEADERS,
-          [name, date || '', time || '', endTime || '', description || '', responsible || '', status || '', notes || '']);
+        if (!id) return res.status(400).json({ error: 'id required' });
+        // Events are keyed on Id, so the same name can be reused across days
+        // (e.g. a recurring workshop). The client generates the Id on create
+        // and sends back the same Id on edit.
+        await upsertRow(sheets, spreadsheetId, TAB, 'Id', id, HEADERS,
+          [name, date || '', time || '', endTime || '', description || '', responsible || '', status || '', notes || '', id]);
         break;
       }
       case 'delete': {
         if (!auth.admin) return res.status(403).json({ error: 'Admin required to delete events' });
-        const { name } = payload;
-        if (!name) return res.status(400).json({ error: 'name required' });
-        const deleted = await deleteRowById(sheets, spreadsheetId, TAB, 'Name', name);
+        const { id } = payload;
+        if (!id) return res.status(400).json({ error: 'id required' });
+        const deleted = await deleteRowById(sheets, spreadsheetId, TAB, 'Id', id);
         if (!deleted) return res.status(404).json({ error: 'Event not found' });
         break;
       }

@@ -81,7 +81,7 @@
           if (ev.EndTime) timeStr += ' - ' + JH.to24h(ev.EndTime);
         }
 
-        html += '<div class="cal-event ' + sClass + '" data-name="' + JH.esc(ev.Name) + '">';
+        html += '<div class="cal-event ' + sClass + '" data-id="' + JH.esc(ev.Id) + '">';
         html += '<div class="cal-event-name">' + JH.esc(ev.Name) + '</div>';
         if (timeStr) html += '<div class="cal-event-time">' + JH.esc(timeStr) + '</div>';
         if (ev.Responsible) html += '<div class="cal-event-lead">' + JH.esc(ev.Responsible) + '</div>';
@@ -98,7 +98,7 @@
     if (canWrite) {
       document.querySelectorAll('.cal-event').forEach(function (el) {
         el.addEventListener('click', function () {
-          var ev = state.events.find(function (e) { return e.Name === el.dataset.name; });
+          var ev = state.events.find(function (e) { return e.Id === el.dataset.id; });
           if (ev) openModal(ev);
         });
       });
@@ -108,10 +108,10 @@
   // ── Modal ─────────────────────────────────────────────────────────────────
 
   var modal = document.getElementById('event-modal');
-  var editingName = null;
+  var editingId = null;
 
   function openModal(event) {
-    editingName = event ? event.Name : null;
+    editingId = event ? event.Id : null;
     document.getElementById('event-modal-title').innerHTML = (event ? 'Edit Event' : 'Add Event') +
       ' <button class="modal-close" data-close="event-modal">&times;</button>';
     bindCloseButtons();
@@ -144,7 +144,7 @@
       delBtn.textContent = 'Delete';
       delBtn.addEventListener('click', async function () {
         if (!confirm('Delete "' + event.Name + '"?')) return;
-        var r = await JH.apiFetch('/api/events', { action: 'delete', name: event.Name });
+        var r = await JH.apiFetch('/api/events', { action: 'delete', id: event.Id });
         if (!r.ok) { alert('Delete failed.'); return; }
         closeModal();
         await reload();
@@ -155,7 +155,7 @@
 
   function closeModal() {
     modal.classList.remove('active');
-    editingName = null;
+    editingId = null;
   }
 
   function bindCloseButtons() {
@@ -183,8 +183,8 @@
 
     var r = await JH.apiFetch('/api/events', {
       action: 'upsert',
+      id: editingId || crypto.randomUUID(),
       name: name,
-      originalName: editingName,
       date: document.getElementById('event-date').value,
       time: document.getElementById('event-time').value,
       endTime: document.getElementById('event-end-time').value,
