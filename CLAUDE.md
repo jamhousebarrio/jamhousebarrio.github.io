@@ -105,7 +105,7 @@ vercel.json                     # URL rewrites & framework config
 | Tab | Used by | Purpose |
 |-----|---------|---------|
 | Sheet1 | members.js, register.js | Application data + Status column |
-| Inventory | inventory.js | Equipment & materials |
+| Inventory | inventory.js | Equipment & materials. Cols: ItemID, Name, Labels, Description, PhotoURL, Quantity, Location |
 | MemberLogistics | logistics.js, meals.js, drinks.js, timeline.js | Arrival/departure, transport, camping |
 | Meals | meals.js | Meal definitions |
 | MealIngredients | meals.js | Ingredients per meal |
@@ -115,6 +115,8 @@ vercel.json                     # URL rewrites & framework config
 | Roles | roles.js | Role assignments |
 | Timeline | timeline.js | Setup schedule entries |
 | ErrorLog | error-log.js | 500-error log: timestamp, endpoint, action, method, status, message, stack, context |
+
+> Inventory `Labels` is a comma-separated multi-value column (mirrors `BuildPhotos.Labels`); label values cannot contain commas. The former single `Category` column was renamed to `Labels` and the `Notes` column was folded into `Description` and dropped by the one-shot `scripts/migrate-inventory-labels.mjs` (run 2026-05-25). Pure label parse/serialize/filter logic lives in `assets/js/inventory-labels.js` (unit-tested via `npm test`).
 
 ### Budget Sheet (BUDGET_SHEET_ID)
 | Tab | Used by | Purpose |
