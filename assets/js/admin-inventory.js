@@ -1,3 +1,5 @@
+import { parseLabels, itemHasLabel } from './inventory-labels.js';
+
 (async function () {
   var session = await JH.authenticate();
   if (!session) return;
@@ -30,14 +32,14 @@
   function filteredItems() {
     var items = state.items;
     if (state.filter !== 'all') {
-      items = items.filter(function (item) { return item.Category === state.filter; });
+      items = items.filter(function (item) { return itemHasLabel(item, state.filter); });
     }
     if (state.search) {
       var q = state.search.toLowerCase();
       items = items.filter(function (item) {
         return (item.Name || '').toLowerCase().indexOf(q) !== -1 ||
-               (item.Category || '').toLowerCase().indexOf(q) !== -1 ||
-               (item.Notes || '').toLowerCase().indexOf(q) !== -1;
+               (item.Labels || '').toLowerCase().indexOf(q) !== -1 ||
+               (item.Description || '').toLowerCase().indexOf(q) !== -1;
       });
     }
     return items;
@@ -56,13 +58,16 @@
     }
 
     container.innerHTML = items.map(function (item) {
-      var catLabel = item.Category || 'Other';
-      var cc = catColor(catLabel);
+      var labels = parseLabels(item.Labels);
+      var badges = labels.map(function (l) {
+        var cc = catColor(l);
+        return '<span class="item-label" style="background:' + cc + '20;color:' + cc + ';border-color:' + cc + '">' + JH.esc(l) + '</span>';
+      }).join('');
       return '<div class="item-row" data-item-id="' + JH.esc(item.ItemID) + '">' +
         '<p class="item-name">' + JH.esc(item.Name) + '</p>' +
-        '<span class="item-category" style="background:' + cc + '20;color:' + cc + ';border-color:' + cc + '">' + JH.esc(catLabel) + '</span>' +
+        '<span class="item-labels">' + badges + '</span>' +
         (item.Quantity ? '<span class="item-qty">' + JH.esc(item.Quantity) + '</span>' : '') +
-        '<span class="item-notes">' + JH.esc(item.Notes || '') + '</span>' +
+        '<span class="item-desc">' + JH.esc(item.Description || '') + '</span>' +
         (isAdmin ? '<div class="item-actions">' +
         '<button class="btn-edit" data-edit="' + JH.esc(item.ItemID) + '">Edit</button>' +
         '<button class="btn-delete" data-delete="' + JH.esc(item.ItemID) + '">Del</button>' +
@@ -113,8 +118,9 @@
     container.innerHTML = '<button class="filter-btn active" data-filter="all">All</button>';
     var cats = [];
     state.items.forEach(function (item) {
-      var c = item.Category || 'Other';
-      if (cats.indexOf(c) === -1) cats.push(c);
+      parseLabels(item.Labels).forEach(function (l) {
+        if (cats.indexOf(l) === -1) cats.push(l);
+      });
     });
     cats.sort();
     cats.forEach(function (cat) {
@@ -138,6 +144,88 @@
     });
   }
 
+  // ── Labels chip input ───────────────────────────────────────────────────
+  var currentLabels = [];
+  var activeSuggestion = -1;
+  var chipsEl = document.getElementById('labels-chips');
+  var labelText = document.getElementById('field-labels-text');
+  var suggestionsEl = document.getElementById('labels-suggestions');
+
+  function allKnownLabels() {
+    var set = [];
+    state.items.forEach(function (item) {
+      parseLabels(item.Labels).forEach(function (l) { if (set.indexOf(l) === -1) set.push(l); });
+    });
+    return set.sort();
+  }
+
+  function renderChips() {
+    chipsEl.innerHTML = currentLabels.map(function (l) {
+      return '<span class="chip">' + JH.esc(l) +
+        '<button type="button" data-remove="' + JH.esc(l) + '" aria-label="Remove">&times;</button></span>';
+    }).join('');
+    chipsEl.querySelectorAll('[data-remove]').forEach(function (btn) {
+      btn.addEventListener('click', function () { removeLabel(btn.dataset.remove); });
+    });
+  }
+
+  function addLabel(raw) {
+    var label = (raw || '').trim();
+    if (label && currentLabels.indexOf(label) === -1) currentLabels.push(label);
+    labelText.value = '';
+    renderChips();
+    hideSuggestions();
+  }
+
+  function removeLabel(label) {
+    currentLabels = currentLabels.filter(function (l) { return l !== label; });
+    renderChips();
+  }
+
+  function hideSuggestions() {
+    suggestionsEl.classList.remove('open');
+    suggestionsEl.innerHTML = '';
+    activeSuggestion = -1;
+  }
+
+  function showSuggestions() {
+    var q = labelText.value.trim().toLowerCase();
+    var matches = allKnownLabels().filter(function (l) {
+      return currentLabels.indexOf(l) === -1 && (!q || l.toLowerCase().indexOf(q) !== -1);
+    });
+    if (!matches.length) { hideSuggestions(); return; }
+    activeSuggestion = -1;
+    suggestionsEl.innerHTML = matches.map(function (l, i) {
+      return '<div class="chip-suggestion" data-idx="' + i + '" data-label="' + JH.esc(l) + '">' + JH.esc(l) + '</div>';
+    }).join('');
+    suggestionsEl.querySelectorAll('.chip-suggestion').forEach(function (el) {
+      el.addEventListener('mousedown', function (e) { e.preventDefault(); addLabel(el.dataset.label); });
+    });
+    suggestionsEl.classList.add('open');
+  }
+
+  labelText.addEventListener('input', showSuggestions);
+  labelText.addEventListener('focus', showSuggestions);
+  labelText.addEventListener('blur', function () { setTimeout(hideSuggestions, 120); });
+  labelText.addEventListener('keydown', function (e) {
+    var opts = suggestionsEl.querySelectorAll('.chip-suggestion');
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      if (activeSuggestion >= 0 && opts[activeSuggestion]) addLabel(opts[activeSuggestion].dataset.label);
+      else addLabel(labelText.value);
+    } else if (e.key === 'Backspace' && !labelText.value && currentLabels.length) {
+      removeLabel(currentLabels[currentLabels.length - 1]);
+    } else if (e.key === 'ArrowDown' && opts.length) {
+      e.preventDefault();
+      activeSuggestion = Math.min(activeSuggestion + 1, opts.length - 1);
+      opts.forEach(function (o, i) { o.classList.toggle('active', i === activeSuggestion); });
+    } else if (e.key === 'ArrowUp' && opts.length) {
+      e.preventDefault();
+      activeSuggestion = Math.max(activeSuggestion - 1, 0);
+      opts.forEach(function (o, i) { o.classList.toggle('active', i === activeSuggestion); });
+    }
+  });
+
   // ── Modal ─────────────────────────────────────────────────────────────────
 
   var modal = document.getElementById('item-modal');
@@ -150,12 +238,14 @@
     document.getElementById('modal-close').addEventListener('click', closeModal);
 
     document.getElementById('field-name').value = item ? item.Name : '';
-    document.getElementById('field-category').value = item ? item.Category : '';
+    currentLabels = item ? parseLabels(item.Labels) : [];
+    labelText.value = '';
+    hideSuggestions();
+    renderChips();
     document.getElementById('field-description').value = item ? item.Description : '';
     document.getElementById('field-photo').value = item ? item.PhotoURL : '';
     document.getElementById('field-quantity').value = item ? item.Quantity : '';
     document.getElementById('field-location').value = item ? item.Location : '';
-    document.getElementById('field-notes').value = item ? item.Notes : '';
 
     modal.classList.add('active');
     document.getElementById('field-name').focus();
@@ -187,16 +277,17 @@
     btn.textContent = 'Saving...';
     btn.disabled = true;
 
+    if (labelText.value.trim()) addLabel(labelText.value);
+
     var r = await JH.apiFetch('/api/inventory', {
       action: 'upsert',
       itemId: itemId,
       name: name,
-      category: document.getElementById('field-category').value,
+      labels: currentLabels,
       description: document.getElementById('field-description').value,
       photoUrl: document.getElementById('field-photo').value,
       quantity: document.getElementById('field-quantity').value,
       location: document.getElementById('field-location').value,
-      notes: document.getElementById('field-notes').value,
     });
 
     btn.textContent = 'Save Item';
