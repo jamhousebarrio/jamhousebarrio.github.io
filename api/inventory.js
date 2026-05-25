@@ -129,13 +129,11 @@ export default async function handler(req, res) {
       return res.status(200).json({ items: toObjects(rows) });
     }
 
-    // ── Inventory write actions require admin ─────────────────────────────
-    if (!auth.admin) {
-      return res.status(401).json({ error: 'Admin required' });
-    }
-
+    // ── Inventory write actions ───────────────────────────────────────────
+    // upsert: any approved member (observers are read-only). delete: admin only.
     switch (action) {
       case 'upsert': {
+        if (auth.observer) return res.status(403).json({ error: 'Observers are read-only' });
         const { itemId, name, labels, description, photoUrl, quantity, location } = payload;
         if (!itemId || !name) return res.status(400).json({ error: 'itemId and name required' });
         const labelsStr = Array.isArray(labels) ? labels.join(', ') : (labels || '');
@@ -144,6 +142,7 @@ export default async function handler(req, res) {
         break;
       }
       case 'delete': {
+        if (!auth.admin) return res.status(403).json({ error: 'Admin required' });
         const { itemId } = payload;
         if (!itemId) return res.status(400).json({ error: 'itemId required' });
         const deleted = await deleteRowById(sheets, spreadsheetId, 'Inventory', 'ItemID', itemId);
