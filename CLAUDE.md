@@ -116,7 +116,7 @@ vercel.json                     # URL rewrites & framework config
 | Timeline | timeline.js | Setup schedule entries |
 | ErrorLog | error-log.js | 500-error log: timestamp, endpoint, action, method, status, message, stack, context |
 
-> Inventory `Labels` is a comma-separated multi-value column (mirrors `BuildPhotos.Labels`); label values cannot contain commas. The former single `Category` column was renamed to `Labels` and the `Notes` column was folded into `Description` and dropped by the one-shot `scripts/migrate-inventory-labels.mjs` (run 2026-05-25). Pure label parse/serialize/filter logic lives in `assets/js/inventory-labels.js` (unit-tested via `npm test`).
+> Inventory `Labels` is a comma-separated multi-value column (mirrors `BuildPhotos.Labels`); label values cannot contain commas. The former single `Category` column was renamed to `Labels` and the `Notes` column was folded into `Description` and dropped by the one-shot `scripts/migrate-inventory-labels.mjs` (run 2026-05-25). Pure label parse/serialize/filter logic lives in `assets/js/inventory-labels.js` (unit-tested via `npm test`). Write tiers: `upsert` (add/edit) is open to approved members; **observers are read-only**; `delete` is **admin-only** — all enforced server-side in `api/inventory.js`.
 
 ### Budget Sheet (BUDGET_SHEET_ID)
 | Tab | Used by | Purpose |
