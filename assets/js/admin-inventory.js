@@ -1,4 +1,4 @@
-import { parseLabels, itemHasLabel } from './inventory-labels.js';
+import { parseLabels, itemHasLabel, labelSuggestions } from './inventory-labels.js';
 
 (async function () {
   var session = await JH.authenticate();
@@ -184,15 +184,16 @@ import { parseLabels, itemHasLabel } from './inventory-labels.js';
   }
 
   function showSuggestions() {
-    var q = labelText.value.trim().toLowerCase();
-    var matches = allKnownLabels().filter(function (l) {
-      return currentLabels.indexOf(l) === -1 && (!q || l.toLowerCase().indexOf(q) !== -1);
+    var result = labelSuggestions(labelText.value, allKnownLabels(), currentLabels);
+    var rows = result.matches.map(function (l) {
+      return '<div class="chip-suggestion" data-label="' + JH.esc(l) + '">' + JH.esc(l) + '</div>';
     });
-    if (!matches.length) { hideSuggestions(); return; }
+    if (result.create) {
+      rows.push('<div class="chip-suggestion chip-create" data-label="' + JH.esc(result.create) + '">+ Create &ldquo;' + JH.esc(result.create) + '&rdquo;</div>');
+    }
+    if (!rows.length) { hideSuggestions(); return; }
     activeSuggestion = -1;
-    suggestionsEl.innerHTML = matches.map(function (l, i) {
-      return '<div class="chip-suggestion" data-idx="' + i + '" data-label="' + JH.esc(l) + '">' + JH.esc(l) + '</div>';
-    }).join('');
+    suggestionsEl.innerHTML = rows.join('');
     suggestionsEl.querySelectorAll('.chip-suggestion').forEach(function (el) {
       el.addEventListener('mousedown', function (e) { e.preventDefault(); addLabel(el.dataset.label); });
     });

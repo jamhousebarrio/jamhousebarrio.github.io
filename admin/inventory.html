@@ -45,6 +45,8 @@ access: general
     .chip-suggestions.open { display: block; }
     .chip-suggestion { padding: 6px 10px; font-size: 0.82rem; color: var(--text); cursor: pointer; }
     .chip-suggestion:hover, .chip-suggestion.active { background: var(--surface2); color: var(--accent); }
+    .chip-create { color: var(--accent); font-style: italic; }
+    .field-hint { display: block; margin-top: 4px; font-size: 0.72rem; color: var(--text-muted); }
     .item-actions { display: flex; gap: 6px; margin-left: auto; flex-shrink: 0; }
     .btn-edit { padding: 4px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 4px; color: var(--text-muted); font-family: var(--heading); font-size: 0.75rem; cursor: pointer; }
     .btn-edit:hover { border-color: var(--accent); color: var(--accent); }
@@ -115,9 +117,10 @@ access: general
         <label>Labels</label>
         <div class="chip-input" id="labels-chip-input">
           <span class="chips" id="labels-chips"></span>
-          <input id="field-labels-text" class="chip-text" placeholder="Add label…" autocomplete="off">
+          <input id="field-labels-text" class="chip-text" placeholder="Type a label, Enter to add" autocomplete="off">
           <div class="chip-suggestions" id="labels-suggestions"></div>
         </div>
+        <small class="field-hint">Type any label and press Enter — new ones are created automatically.</small>
       </div>
       <div>
         <label>Description</label>
