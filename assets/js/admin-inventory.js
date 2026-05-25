@@ -5,6 +5,7 @@ import { parseLabels, itemHasLabel } from './inventory-labels.js';
   if (!session) return;
 
   var isAdmin = JH.isAdmin();
+  var canEdit = !(JH.currentUser && JH.currentUser.observer); // approved members + admins; observers read-only
   var state = { items: [], filter: 'all', search: '' };
 
   // ── Helpers ───────────────────────────────────────────────────────────────
@@ -68,9 +69,9 @@ import { parseLabels, itemHasLabel } from './inventory-labels.js';
         '<span class="item-labels">' + badges + '</span>' +
         (item.Quantity ? '<span class="item-qty">' + JH.esc(item.Quantity) + '</span>' : '') +
         '<span class="item-desc">' + JH.esc(item.Description || '') + '</span>' +
-        (isAdmin ? '<div class="item-actions">' +
+        (canEdit ? '<div class="item-actions">' +
         '<button class="btn-edit" data-edit="' + JH.esc(item.ItemID) + '">Edit</button>' +
-        '<button class="btn-delete" data-delete="' + JH.esc(item.ItemID) + '">Del</button>' +
+        (isAdmin ? '<button class="btn-delete" data-delete="' + JH.esc(item.ItemID) + '">Del</button>' : '') +
         '</div>' : '') +
         '</div>';
     }).join('');
@@ -294,7 +295,7 @@ import { parseLabels, itemHasLabel } from './inventory-labels.js';
 
   // ── Init ──────────────────────────────────────────────────────────────────
 
-  if (isAdmin) document.getElementById('add-item-btn').style.display = '';
+  if (canEdit) document.getElementById('add-item-btn').style.display = '';
 
   await fetchItems();
   buildFilterButtons();
