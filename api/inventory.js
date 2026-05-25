@@ -38,7 +38,7 @@ export default async function handler(req, res) {
 
     const spreadsheetId = auth.spreadsheetId;
     const sheets = auth.sheets;
-    const HEADERS = ['ItemID', 'Name', 'Category', 'Description', 'PhotoURL', 'Quantity', 'Location', 'Notes'];
+    const HEADERS = ['ItemID', 'Name', 'Labels', 'Description', 'PhotoURL', 'Quantity', 'Location'];
 
     // ── Build Photos (any authenticated member) ───────────────────────────
     if (action === 'photo-list') {
@@ -136,10 +136,11 @@ export default async function handler(req, res) {
 
     switch (action) {
       case 'upsert': {
-        const { itemId, name, category, description, photoUrl, quantity, location, notes } = payload;
+        const { itemId, name, labels, description, photoUrl, quantity, location } = payload;
         if (!itemId || !name) return res.status(400).json({ error: 'itemId and name required' });
+        const labelsStr = Array.isArray(labels) ? labels.join(', ') : (labels || '');
         await upsertRow(sheets, spreadsheetId, 'Inventory', 'ItemID', itemId, HEADERS,
-          [itemId, name, category || '', description || '', photoUrl || '', quantity || '', location || '', notes || '']);
+          [itemId, name, labelsStr, description || '', photoUrl || '', quantity || '', location || '']);
         break;
       }
       case 'delete': {
