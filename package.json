@@ -3,7 +3,7 @@
   "type": "module",
   "scripts": {
     "dev": "node dev-server.mjs",
-    "test": "node --test"
+    "test": "node --test test/"
   },
   "dependencies": {
     "@googleapis/sheets": "^13.0.1",
