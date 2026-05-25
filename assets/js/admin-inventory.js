@@ -9,13 +9,13 @@ import { parseLabels, itemHasLabel } from './inventory-labels.js';
 
   // ── Helpers ───────────────────────────────────────────────────────────────
 
-  var CAT_COLORS = ['#4caf50','#42a5f5','#e8a84c','#ce93d8','#26a69a','#ef5350','#78909c','#ffb74d','#29b6f6','#ab47bc','#8d6e63','#66bb6a'];
-  var catColorMap = {};
-  var catColorIdx = 0;
-  function catColor(cat) {
-    if (!cat) cat = 'Other';
-    if (!catColorMap[cat]) catColorMap[cat] = CAT_COLORS[catColorIdx++ % CAT_COLORS.length];
-    return catColorMap[cat];
+  var LABEL_COLORS = ['#4caf50','#42a5f5','#e8a84c','#ce93d8','#26a69a','#ef5350','#78909c','#ffb74d','#29b6f6','#ab47bc','#8d6e63','#66bb6a'];
+  var labelColorMap = {};
+  var labelColorIdx = 0;
+  function labelColor(label) {
+    if (!label) label = 'Other';
+    if (!labelColorMap[label]) labelColorMap[label] = LABEL_COLORS[labelColorIdx++ % LABEL_COLORS.length];
+    return labelColorMap[label];
   }
 
   // ── Data fetching ─────────────────────────────────────────────────────────
@@ -60,7 +60,7 @@ import { parseLabels, itemHasLabel } from './inventory-labels.js';
     container.innerHTML = items.map(function (item) {
       var labels = parseLabels(item.Labels);
       var badges = labels.map(function (l) {
-        var cc = catColor(l);
+        var cc = labelColor(l);
         return '<span class="item-label" style="background:' + cc + '20;color:' + cc + ';border-color:' + cc + '">' + JH.esc(l) + '</span>';
       }).join('');
       return '<div class="item-row" data-item-id="' + JH.esc(item.ItemID) + '">' +
@@ -111,24 +111,18 @@ import { parseLabels, itemHasLabel } from './inventory-labels.js';
     renderList();
   });
 
-  // ── Category filter ───────────────────────────────────────────────────────
+  // ── Label filter ────────────────────────────────────────────────────────
 
   function buildFilterButtons() {
     var container = document.getElementById('filter-btns');
     container.innerHTML = '<button class="filter-btn active" data-filter="all">All</button>';
-    var cats = [];
-    state.items.forEach(function (item) {
-      parseLabels(item.Labels).forEach(function (l) {
-        if (cats.indexOf(l) === -1) cats.push(l);
-      });
-    });
-    cats.sort();
-    cats.forEach(function (cat) {
+    var labels = allKnownLabels();
+    labels.forEach(function (label) {
       var btn = document.createElement('button');
       btn.className = 'filter-btn';
-      if (cat === state.filter) btn.classList.add('active');
-      btn.dataset.filter = cat;
-      btn.textContent = cat;
+      if (label === state.filter) btn.classList.add('active');
+      btn.dataset.filter = label;
+      btn.textContent = label;
       container.appendChild(btn);
     });
     if (state.filter !== 'all') {
