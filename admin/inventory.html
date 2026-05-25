@@ -31,9 +31,20 @@ access: general
     .item-row:only-child { border-bottom: 1px solid var(--border); border-radius: 8px; }
     .item-row:hover { border-color: var(--accent); position: relative; z-index: 1; }
     .item-name { font-family: var(--heading); font-size: 0.88rem; font-weight: 600; color: var(--text); margin: 0; white-space: nowrap; min-width: 180px; }
-    .item-category { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 0.7rem; font-weight: 600; font-family: var(--heading); text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; }
+    .item-labels { display: flex; gap: 4px; flex-wrap: wrap; }
+    .item-label { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 0.7rem; font-weight: 600; font-family: var(--heading); text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; }
     .item-qty { font-size: 0.82rem; color: var(--text-muted); min-width: 50px; }
-    .item-notes { font-size: 0.78rem; color: var(--text-muted); font-style: italic; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .item-desc { font-size: 0.78rem; color: var(--text-muted); font-style: italic; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .chip-input { position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 5px 8px; }
+    .chip-input:focus-within { border-color: var(--accent); }
+    .chip { display: inline-flex; align-items: center; gap: 5px; background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; padding: 2px 6px 2px 9px; font-size: 0.78rem; color: var(--text); }
+    .chip button { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 0.95rem; line-height: 1; padding: 0; }
+    .chip button:hover { color: #f44336; }
+    .chip-text { flex: 1; min-width: 90px; background: none; border: none; color: var(--text); font-family: var(--body); font-size: 0.85rem; padding: 2px; outline: none; }
+    .chip-suggestions { display: none; position: absolute; top: 100%; left: 0; right: 0; margin-top: 2px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; max-height: 160px; overflow-y: auto; z-index: 10; }
+    .chip-suggestions.open { display: block; }
+    .chip-suggestion { padding: 6px 10px; font-size: 0.82rem; color: var(--text); cursor: pointer; }
+    .chip-suggestion:hover, .chip-suggestion.active { background: var(--surface2); color: var(--accent); }
     .item-actions { display: flex; gap: 6px; margin-left: auto; flex-shrink: 0; }
     .btn-edit { padding: 4px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 4px; color: var(--text-muted); font-family: var(--heading); font-size: 0.75rem; cursor: pointer; }
     .btn-edit:hover { border-color: var(--accent); color: var(--accent); }
@@ -44,7 +55,7 @@ access: general
     @media (max-width: 680px) {
       .item-row { flex-wrap: wrap; gap: 6px; }
       .item-name { min-width: auto; }
-      .item-notes { width: 100%; }
+      .item-desc { width: 100%; }
       .search-box { width: 100%; }
     }
     .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 100; justify-content: center; align-items: center; }
@@ -101,8 +112,12 @@ access: general
         <input id="field-name" placeholder="Display name">
       </div>
       <div>
-        <label>Category</label>
-        <input id="field-category" placeholder="e.g. Kitchen, Music, Lights">
+        <label>Labels</label>
+        <div class="chip-input" id="labels-chip-input">
+          <span class="chips" id="labels-chips"></span>
+          <input id="field-labels-text" class="chip-text" placeholder="Add label…" autocomplete="off">
+          <div class="chip-suggestions" id="labels-suggestions"></div>
+        </div>
       </div>
       <div>
         <label>Description</label>
@@ -120,10 +135,6 @@ access: general
         <label>Location</label>
         <input id="field-location" placeholder="e.g. Storage trailer, Tent A">
       </div>
-      <div>
-        <label>Notes</label>
-        <textarea id="field-notes" placeholder="Any additional notes"></textarea>
-      </div>
     </div>
     <div class="modal-actions" style="margin-top:16px">
       <button class="btn-primary" id="modal-save-btn">Save Item</button>
@@ -133,6 +144,6 @@ access: general
 </div>
 
 <script src="/assets/js/admin-auth.js"></script>
-<script src="/assets/js/admin-inventory.js"></script>
+<script type="module" src="/assets/js/admin-inventory.js"></script>
 </body>
 </html>
