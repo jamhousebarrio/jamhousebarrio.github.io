@@ -23,3 +23,18 @@ export function serializeLabels(value) {
 export function itemHasLabel(item, label) {
   return parseLabels(item && item.Labels).indexOf(label) !== -1;
 }
+
+// Decide what the label autocomplete shows for a typed query:
+//   matches — existing labels (case-insensitive substring of query) not already added
+//   create  — the trimmed query when it is a novel label worth offering to create,
+//             else null. "Novel" = non-empty, not already added, and not an exact
+//             (case-sensitive) existing label — matching parseLabels' dedupe semantics.
+export function labelSuggestions(query, known, current) {
+  const q = String(query || '').trim();
+  const ql = q.toLowerCase();
+  const cur = current || [];
+  const kn = known || [];
+  const matches = kn.filter(l => cur.indexOf(l) === -1 && (!ql || l.toLowerCase().indexOf(ql) !== -1));
+  const create = (q && cur.indexOf(q) === -1 && kn.indexOf(q) === -1) ? q : null;
+  return { matches, create };
+}
