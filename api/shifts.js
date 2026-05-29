@@ -93,6 +93,14 @@ export default async function handler(req, res) {
         });
         return res.status(200).json({ success: true });
       }
+      // Idempotent: never append a second row with the same ShiftID. Without
+      // this guard, re-saving a shift type (e.g. re-adding a slot via the edit
+      // flow) stacks duplicate rows. The API then writes assignees to the first
+      // duplicate while the grid renders the last, so signups silently vanish.
+      const existingIdCol = existing[0].indexOf('ShiftID');
+      if (existingIdCol !== -1 && existing.some((r, i) => i > 0 && r[existingIdCol] === shiftId)) {
+        return res.status(200).json({ success: true, alreadyExists: true });
+      }
       let headers = existing[0];
       headers = await ensureColumn(sheets, spreadsheetId, headers, 'Description');
       headers = await ensureColumn(sheets, spreadsheetId, headers, 'MaxPerSlot');
