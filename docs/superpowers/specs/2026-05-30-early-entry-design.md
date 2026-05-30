@@ -80,6 +80,18 @@ Extracted to `assets/js/early-entry-logic.js`, mirroring the unit-tested
 
 Constants: `GATE = 2026-07-06`.
 
+**`approvedCount` source:** the page fetches members (the same `JH.authenticate()`
+member list the other admin pages use) and counts those with
+`Status === 'approved'` — the filter already used in `admin-demographics.js` and
+`admin-shifts.js`. No new endpoint.
+
+**Name lookup / playa↔legal fallback:** an `EarlyEntry.MemberName` is matched
+against a member by comparing it to **either** the member's `Playa Name` **or**
+`Name`, reusing the two-field comparison already in `api/logistics.js` upsert
+(the `target !== myName && target !== myPlaya` pattern) and the frontend
+`findLogisticsRow` fallback in `admin-logistics.js`. This keeps EE rows resolvable
+even if a member is later edited to prefer their other name.
+
 ## UI — `admin/early-entry.html` + `assets/js/admin-early-entry.js`
 
 Admin-only page (coordinator tool). New nav link added to **every** admin
@@ -102,8 +114,11 @@ sidebar; rewrite added to `vercel.json`.
 
 - **Stats bar:** early count, covered, uncovered (warning), barrio pool
   `used / cap (remaining)` with a red state when over cap.
-- **Table**, sorted by arrival date: Name · Arrives · NoOrg-setup badge ·
-  EE-source `<select>` (— none — / Barrio / NoOrg / Artist) · Notes (inline).
+- **Table**, sorted by arrival date **using `parseDate`** (not raw string compare
+  — `ArrivalDate` is `dd/mm/yyyy`, which string-sorts wrong; note that
+  `admin-logistics.js` sorts on the raw string and is the wrong precedent to copy
+  here): Name · Arrives · NoOrg-setup badge · EE-source `<select>`
+  (— none — / Barrio / NoOrg / Artist) · Notes (inline).
 - **Uncovered rows** (no source) get the highlighted/warning background — the
   "highlight those who don't have it" requirement.
 - **Barrio when pool full →** confirm dialog ("Barrio pool is full — assign
@@ -124,6 +139,14 @@ sidebar; rewrite added to `vercel.json`.
   `UpdatedAt` + `UpdatedBy` from the authed admin. Admin-only; observers rejected
   (403).
 - Default `fetch` (arrival data) unchanged — the page makes both calls.
+
+**Handler-collision note:** `logistics.js` currently destructures a fixed field
+list (including `memberName` and `notes`) from `req.body` at the top of the
+handler. The EE actions reuse those same field names but for a *different* tab —
+the existing `upsert` writes `notes` to `MemberLogistics.Notes`. To avoid any
+cross-action bleed, the `set-early-entry` branch must read its own
+`memberName` / `source` / `notes` and write only to `EarlyEntry`; it must not
+fall through into the logistics `upsert` path.
 
 ### Permissions
 
