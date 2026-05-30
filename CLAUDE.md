@@ -5,7 +5,7 @@ Admin dashboard and public site for JamHouse, a live music barrio at the Elsewhe
 ## Tech Stack
 - **Frontend**: Jekyll static site, vanilla JS (no frameworks), Chart.js for charts, Flatpickr for date/time pickers, AG Grid for data tables
 - **Auth**: Supabase Auth (user accounts, sessions, magic links) — no Supabase DB
-- **Backend**: Vercel serverless functions (Node.js, 12 of 12 max)
+- **Backend**: Vercel serverless functions (Node.js). **Hard cap: 12 functions.** Vercel Hobby plan rejects the deploy with _"No more than 12 Serverless Functions can be added to a Deployment on the Hobby plan."_ We are currently at 12/12 (`api/*.js`), so **new backend logic must reuse an existing function** (add an `action` to the closest-fit endpoint) rather than adding a new `api/*.js` file. Adding a 13th breaks the deploy.
 - **Data**: Google Sheets via `@googleapis/sheets` + `google-auth-library`
 - **Deployment**: Vercel (auto-deploys from GitHub, Jekyll build)
 
@@ -95,7 +95,7 @@ vercel.json                     # URL rewrites & framework config
 ## Adding an Admin Page
 1. Create `admin/{page}.html` with sidebar nav (copy from an existing page)
 2. Create `assets/js/admin-{page}.js` that calls `JH.authenticate()`
-3. Create `api/{page}.js` importing helpers from `./_lib/sheets.js`
+3. **Do NOT add a new `api/{page}.js`** — we are at the 12/12 Vercel function cap. Add the page's backend actions to the closest-fit existing `api/*.js` (e.g. Early Entry reuses `logistics.js`).
 4. Add URL rewrite in `vercel.json`
 5. Add nav link to **all** existing admin pages' sidebar
 
