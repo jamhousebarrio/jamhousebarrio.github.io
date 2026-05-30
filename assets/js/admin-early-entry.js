@@ -4,8 +4,6 @@ import { GATE, parseDate, isEarlyArrival, hasSetupNoOrg, barrioCap } from '/asse
   var members = await JH.authenticate();
   if (!members) return;
 
-  var isObserver = !!(JH.currentUser && JH.currentUser.observer);
-
   var approvedMembers = members.filter(function (m) {
     return (JH.val(m, 'Status') || '').toLowerCase() === 'approved';
   });
@@ -28,9 +26,12 @@ import { GATE, parseDate, isEarlyArrival, hasSetupNoOrg, barrioCap } from '/asse
   }
 
   async function fetchAll() {
-    var r1 = await JH.apiFetch('/api/logistics', {});
+    var results = await Promise.all([
+      JH.apiFetch('/api/logistics', {}),
+      JH.apiFetch('/api/logistics', { action: 'early-entry-fetch' }),
+    ]);
+    var r1 = results[0], r2 = results[1];
     logistics = r1.ok ? ((await r1.json()).logistics || []) : [];
-    var r2 = await JH.apiFetch('/api/logistics', { action: 'early-entry-fetch' });
     earlyEntry = r2.ok ? ((await r2.json()).earlyEntry || []) : [];
   }
 
@@ -76,8 +77,7 @@ import { GATE, parseDate, isEarlyArrival, hasSetupNoOrg, barrioCap } from '/asse
     var opts = SOURCES.map(function (s) {
       return '<option value="' + s[0] + '"' + (row.source === s[0] ? ' selected' : '') + '>' + s[1] + '</option>';
     }).join('');
-    var dis = isObserver ? ' disabled' : '';
-    return '<select class="ee-select" data-name="' + JH.esc(row.name) + '"' + dis + '>' + opts + '</select>';
+    return '<select class="ee-select" data-name="' + JH.esc(row.name) + '">' + opts + '</select>';
   }
 
   function renderTable(rows, pool) {
@@ -103,7 +103,7 @@ import { GATE, parseDate, isEarlyArrival, hasSetupNoOrg, barrioCap } from '/asse
       html += '<td>' + (r.arrival ? JH.esc(JH.formatDate(r.arrival)) : '<span class="muted">—</span>') + '</td>';
       html += '<td>' + (r.setupNoOrg ? '<span class="ee-badge">✓ setup</span>' : '<span class="muted">—</span>') + '</td>';
       html += '<td>' + sourceSelect(r) + (r.source ? '' : '<span class="ee-warn-tag">⚠</span>') + '</td>';
-      html += '<td><input class="ee-notes" data-name="' + JH.esc(r.name) + '" value="' + JH.esc(r.notes) + '"' + (isObserver ? ' disabled' : '') + ' placeholder="optional"></td>';
+      html += '<td><input class="ee-notes" data-name="' + JH.esc(r.name) + '" value="' + JH.esc(r.notes) + '" placeholder="optional"></td>';
       html += '</tr>';
     });
     html += '</tbody></table>';
@@ -141,13 +141,16 @@ import { GATE, parseDate, isEarlyArrival, hasSetupNoOrg, barrioCap } from '/asse
 
   function wireRow(pool) {
     document.querySelectorAll('.ee-select').forEach(function (sel) {
+      // Stash the value before a change so we can restore it if the user
+      // cancels the over-cap confirm (avoids a needless server reload).
+      sel.addEventListener('focus', function () { sel.dataset.prev = sel.value; });
       sel.addEventListener('change', async function () {
         var name = sel.dataset.name;
         var source = sel.value;
         // Warn (but allow) if assigning Barrio would exceed the pool.
         if (source === 'barrio' && pool.barrioUsed >= pool.cap) {
           if (!confirm('Barrio pool is full (' + pool.barrioUsed + '/' + pool.cap + '). Assign anyway?')) {
-            await reload();
+            sel.value = sel.dataset.prev || '';
             return;
           }
         }
