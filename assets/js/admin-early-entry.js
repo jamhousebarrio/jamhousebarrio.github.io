@@ -162,12 +162,14 @@ import { GATE, parseDate, isEarlyArrival, hasSetupNoOrg, barrioCap } from '/asse
     });
     document.querySelectorAll('.ee-notes').forEach(function (inp) {
       inp.addEventListener('blur', async function () {
+        // Skip if the notes weren't actually edited (avoids a save on every blur).
+        if (inp.value === inp.defaultValue) return;
         var name = inp.dataset.name;
-        var row = buildRows().find(function (r) { return r.name === name; });
-        var source = row ? row.source : '';
-        // Notes only persist alongside a source (no source = no EE row).
-        if (!source) return;
-        await save(name, source, inp.value);
+        // Persist notes with whatever source is currently selected — including
+        // none, so notes can be added before a pass type is picked.
+        var sel = document.querySelector('.ee-select[data-name="' + cssEscape(name) + '"]');
+        var source = sel ? sel.value : '';
+        if (await save(name, source, inp.value)) await reload();
       });
     });
   }

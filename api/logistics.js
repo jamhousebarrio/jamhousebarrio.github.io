@@ -36,8 +36,10 @@ export default async function handler(req, res) {
       if (['', 'barrio', 'noorg', 'artist'].indexOf(source) === -1) {
         return res.status(400).json({ error: 'invalid source' });
       }
-      if (source === '') {
-        // Clearing the pass removes the row entirely.
+      // A row with neither a pass nor notes carries no information — remove it.
+      // Notes alone (no source yet) are kept, so context can be jotted before a
+      // pass type is picked.
+      if (source === '' && eeNotes === '') {
         await deleteRowById(sheets, id, 'EarlyEntry', 'MemberName', eeName);
         return res.status(200).json({ ok: true, cleared: true });
       }
