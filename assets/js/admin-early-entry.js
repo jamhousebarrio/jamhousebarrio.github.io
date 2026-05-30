@@ -58,7 +58,10 @@ import { GATE, parseDate, isEarlyArrival, hasSetupNoOrg, barrioCap } from '/asse
     var covered = early.filter(function (r) { return r.source; }).length;
     var uncovered = early.length - covered;
     var cap = barrioCap(approvedMembers.length);
-    var barrioUsed = rows.filter(function (r) { return r.source === 'barrio'; }).length;
+    // Count barrio passes from the EE rows directly, so an assignment still
+    // counts against the pool even if its member is no longer in approvedMembers
+    // (un-approved or a name edit that breaks the join).
+    var barrioUsed = earlyEntry.filter(function (r) { return (r.Source || '') === 'barrio'; }).length;
     var remaining = cap - barrioUsed;
     var over = barrioUsed > cap;
 
@@ -124,7 +127,7 @@ import { GATE, parseDate, isEarlyArrival, hasSetupNoOrg, barrioCap } from '/asse
     var input = document.querySelector('.ee-notes[data-name="' + cssEscape(name) + '"]');
     return input ? input.value : '';
   }
-  function cssEscape(s) { return (s || '').replace(/"/g, '\\"'); }
+  function cssEscape(s) { return (s || '').replace(/\\/g, '\\\\').replace(/"/g, '\\"'); }
 
   async function save(name, source, notes) {
     var r = await JH.apiFetch('/api/logistics', {
