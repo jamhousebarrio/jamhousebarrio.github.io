@@ -21,6 +21,7 @@ admin/
   shifts.html                   # Volunteer shift grid (shift types × event days)
   inventory.html                # Equipment & materials tracker with photos
   logistics.html                # Member arrival/departure, transport, camping
+  early-entry.html              # Early-entry assignment (who arrives before the gate)
   meals.html                    # Meal planning, ingredients, shopping list, PDF export
   drinks.html                   # Drinks & snacks tracker by headcount
   events.html                   # Event calendar (July 7-12)
@@ -55,6 +56,8 @@ assets/
   js/admin-events.js            # Events page logic
   js/admin-inventory.js         # Inventory page logic
   js/admin-logistics.js         # Logistics page logic
+  js/admin-early-entry.js       # Early Entry page logic
+  js/early-entry-logic.js       # Pure date/cap logic (unit-tested)
   js/admin-meals.js             # Meals page logic
   js/admin-roles.js             # Roles page logic
   js/admin-shifts.js            # Shifts page logic
@@ -114,6 +117,7 @@ vercel.json                     # URL rewrites & framework config
 | Events | events.js | Event planning |
 | Roles | roles.js | Role assignments |
 | Timeline | timeline.js | Setup schedule entries |
+| EarlyEntry | logistics.js | Early-entry passes. Cols: MemberName, Source (barrio/noorg/artist), Notes, UpdatedAt, UpdatedBy |
 | ErrorLog | error-log.js | 500-error log: timestamp, endpoint, action, method, status, message, stack, context |
 
 > Inventory `Labels` is a comma-separated multi-value column (mirrors `BuildPhotos.Labels`); label values cannot contain commas. The former single `Category` column was renamed to `Labels` and the `Notes` column was folded into `Description` and dropped by the one-shot `scripts/migrate-inventory-labels.mjs` (run 2026-05-25). Pure label parse/serialize/filter logic lives in `assets/js/inventory-labels.js` (unit-tested via `npm test`). Write tiers: `upsert` (add/edit) is open to approved members; **observers are read-only**; `delete` is **admin-only** — all enforced server-side in `api/inventory.js`.
