@@ -58,8 +58,9 @@ other API.
 
 ### Reused, unchanged
 
-- `MemberLogistics` — `MemberName`, `ArrivalDate` (`dd/mm/yyyy`), `NoOrgDates`
-  (comma-separated `yyyy-mm-dd`).
+- `MemberLogistics` — `MemberName`, `ArrivalDate` and `NoOrgDates`
+  (comma-separated) both stored as `yyyy-mm-dd` (Flatpickr `dateFormat:'Y-m-d'`;
+  the `d/m/Y` shown in the input is `altInput` display only).
 - `Sheet1` (members) — approved members + their `Playa Name` / `Name`.
 
 Nothing is duplicated: arrival and NoOrg facts stay in `MemberLogistics`; only the
@@ -70,8 +71,9 @@ EE assignment lives in `EarlyEntry`.
 Extracted to `assets/js/early-entry-logic.js`, mirroring the unit-tested
 `assets/js/inventory-labels.js`:
 
-- `parseDate(s)` — accepts both `dd/mm/yyyy` (ArrivalDate) and `yyyy-mm-dd`
-  (NoOrgDates); returns a UTC `Date` or `null`.
+- `parseDate(s)` — accepts `yyyy-mm-dd` (both ArrivalDate and NoOrgDates are
+  stored this way) plus a defensive `dd/mm/yyyy` fallback; returns a UTC `Date`
+  or `null`.
 - `isEarlyArrival(arrivalDate, gate)` — `true` when a parseable arrival date is
   strictly before `gate` (i.e. `≤ 2026-07-05` for `gate = 2026-07-06`).
 - `hasSetupNoOrg(noOrgDates, gate)` — `true` when any comma-separated NoOrg day
@@ -114,11 +116,10 @@ sidebar; rewrite added to `vercel.json`.
 
 - **Stats bar:** early count, covered, uncovered (warning), barrio pool
   `used / cap (remaining)` with a red state when over cap.
-- **Table**, sorted by arrival date **using `parseDate`** (not raw string compare
-  — `ArrivalDate` is `dd/mm/yyyy`, which string-sorts wrong; note that
-  `admin-logistics.js` sorts on the raw string and is the wrong precedent to copy
-  here): Name · Arrives · NoOrg-setup badge · EE-source `<select>`
-  (— none — / Barrio / NoOrg / Artist) · Notes (inline).
+- **Table**, sorted by arrival date via **`parseDate` (numeric Date compare)** —
+  robust regardless of stored format, and the natural choice since the page
+  already parses each date: Name · Arrives · NoOrg-setup badge · EE-source
+  `<select>` (— none — / Barrio / NoOrg / Artist) · Notes (inline).
 - **Uncovered rows** (no source) get the highlighted/warning background — the
   "highlight those who don't have it" requirement.
 - **Barrio when pool full →** confirm dialog ("Barrio pool is full — assign
