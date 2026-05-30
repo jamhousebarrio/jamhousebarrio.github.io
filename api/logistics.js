@@ -1,4 +1,4 @@
-import { getSheets, safeGet, toObjects } from './_lib/sheets.js';
+import { getSheets, safeGet, toObjects, upsertRow, deleteRowById } from './_lib/sheets.js';
 import { authenticateRequest } from './_lib/auth.js';
 import { logError } from './_lib/error-log.js';
 
@@ -16,6 +16,37 @@ export default async function handler(req, res) {
     if (!action) {
       const rows = await safeGet(sheets, id, 'MemberLogistics');
       return res.status(200).json({ logistics: toObjects(rows) });
+    }
+
+    // ── Early Entry: read assignments ─────────────────────────────────────
+    if (action === 'early-entry-fetch') {
+      if (!auth.admin) return res.status(401).json({ error: 'Admin required' });
+      const rows = await safeGet(sheets, id, 'EarlyEntry');
+      return res.status(200).json({ earlyEntry: toObjects(rows) });
+    }
+
+    // ── Early Entry: assign / clear a member's pass ───────────────────────
+    if (action === 'set-early-entry') {
+      if (auth.observer) return res.status(403).json({ error: 'Observer accounts are read-only' });
+      if (!auth.admin) return res.status(401).json({ error: 'Admin required' });
+      const eeName = (memberName || '').trim();
+      const source = (req.body.source || '').trim();
+      const eeNotes = (req.body.notes || '').trim();
+      if (!eeName) return res.status(400).json({ error: 'memberName required' });
+      if (['', 'barrio', 'noorg', 'artist'].indexOf(source) === -1) {
+        return res.status(400).json({ error: 'invalid source' });
+      }
+      if (source === '') {
+        // Clearing the pass removes the row entirely.
+        await deleteRowById(sheets, id, 'EarlyEntry', 'MemberName', eeName);
+        return res.status(200).json({ ok: true, cleared: true });
+      }
+      const EE_HEADERS = ['MemberName', 'Source', 'Notes', 'UpdatedAt', 'UpdatedBy'];
+      const updatedBy = ((auth.member && (auth.member['Playa Name'] || auth.member.Name)) || '').trim();
+      const updatedAt = new Date().toISOString();
+      await upsertRow(sheets, id, 'EarlyEntry', 'MemberName', eeName, EE_HEADERS,
+        [eeName, source, eeNotes, updatedAt, updatedBy]);
+      return res.status(200).json({ ok: true });
     }
 
     // ── Upsert ────────────────────────────────────────────────────────────
