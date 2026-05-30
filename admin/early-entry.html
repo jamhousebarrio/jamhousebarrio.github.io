@@ -1,0 +1,61 @@
+---
+layout: none
+title: Early Entry - JamHouse Admin
+access: admin
+---
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Early Entry - JamHouse Admin</title>
+  <meta name="access" content="admin">
+  <link rel="icon" type="image/svg+xml" href="/images/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/admin.css">
+  <style>
+    .ee-stats { display: flex; gap: 18px; flex-wrap: wrap; margin-bottom: 18px; }
+    .ee-stat { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 10px 16px; }
+    .ee-stat .num { font-family: var(--heading); font-size: 1.3rem; font-weight: 700; color: var(--text); }
+    .ee-stat .lbl { font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+    .ee-stat.warn .num { color: #f44336; }
+    .ee-stat.over { border-color: #f44336; }
+    .ee-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    .ee-table th, .ee-table td { padding: 8px 10px; border-bottom: 1px solid var(--border); text-align: left; vertical-align: middle; }
+    .ee-table th { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); }
+    .ee-table tr.uncovered td { background: rgba(244,67,54,0.08); }
+    .ee-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 0.7rem; font-weight: 600; background: var(--surface2); color: var(--accent); }
+    .ee-select, .ee-notes { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-family: var(--body); font-size: 0.82rem; padding: 5px 8px; }
+    .ee-notes { width: 100%; }
+    .ee-warn-tag { color: #f44336; font-size: 0.8rem; margin-left: 6px; }
+    .muted { color: var(--text-muted); }
+    .ee-unknown { margin-top: 28px; }
+    .ee-unknown h2 { font-family: var(--heading); font-size: 0.95rem; color: var(--text-muted); }
+    .empty-state { color: var(--text-muted); font-size: 0.9rem; padding: 40px; text-align: center; }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/assets/js/supabase-client.js"></script>
+</head>
+<body>
+<nav class="sidebar"></nav>
+
+<div class="main">
+  <div class="page-header">
+    <h1><span class="icon" style="color:var(--accent)">&#127903;</span> Early Entry</h1>
+    <div class="subtitle">Who arrives before the gate (Mon 6 Jul) &mdash; assign each a pass</div>
+  </div>
+
+  <div class="ee-stats" id="ee-stats"></div>
+
+  <div id="ee-table-wrap">
+    <div class="empty-state">Loading&hellip;</div>
+  </div>
+
+  <div class="ee-unknown" id="ee-unknown"></div>
+</div>
+
+<script src="/assets/js/admin-auth.js"></script>
+<script type="module" src="/assets/js/admin-early-entry.js"></script>
+</body>
+</html>
