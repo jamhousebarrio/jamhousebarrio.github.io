@@ -8,6 +8,8 @@ test('num coerces strings, guards NaN/blank to 0', () => {
   assert.equal(num('2 big pieces'), 0); // count-word -> 0
   assert.equal(num(''), 0);
   assert.equal(num(undefined), 0);
+  assert.equal(num(null), 0);
+  assert.equal(num('Infinity'), 0); // runaway value -> 0, not Infinity
 });
 
 test('perPerson divides by servings, falls back to 30, guards 0', () => {
@@ -44,4 +46,6 @@ test('targets and status', () => {
   assert.equal(targetFor('unknown'), 0);
   assert.equal(energyStatus(1000, 1000), 'ok');
   assert.equal(energyStatus(720, 1000), 'under');
+  assert.equal(energyStatus(0, 0), 'ok');     // no target (unknown type) -> ok
+  assert.equal(energyStatus(500, 0), 'ok');
 });

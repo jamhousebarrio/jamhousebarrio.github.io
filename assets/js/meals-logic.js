@@ -9,7 +9,7 @@
 
 export function num(v) {
   const n = Number(v);
-  return isNaN(n) ? 0 : n;
+  return (isNaN(n) || !isFinite(n)) ? 0 : n; // count-words, blanks, and Infinity -> 0
 }
 
 export function perPerson(quantity, servings) {
@@ -38,6 +38,8 @@ export function targetFor(mealType) {
   return MEAL_TARGETS[(mealType || '').toLowerCase()] || 0;
 }
 
+// Dessert is informational (soft target) — callers decide whether to warn.
+// A 0/absent target (unknown meal type) is treated as "no target" -> 'ok'.
 export function energyStatus(kcal, target) {
   if (!target) return 'ok';
   return kcal >= target ? 'ok' : 'under';
