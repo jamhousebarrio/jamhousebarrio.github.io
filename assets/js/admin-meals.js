@@ -436,17 +436,43 @@ import { num, perPerson, scaledTotal, mealKcalPerPerson, targetFor, energyStatus
 
   // ── Ingredient modal ──────────────────────────────────────────────────────
 
+  // Servings basis for the open ingredient modal — used to convert the
+  // (display-only) per-person input to/from the stored Total quantity.
+  var ingredientModalServings = 30;
+
   function openIngredientModal(ing, mealId) {
+    var meal = state.meals.find(function (m) { return m.MealID === mealId; });
+    ingredientModalServings = (meal && parseInt(meal.Servings, 10)) || 30;
+    document.getElementById('ingredient-servings-note').textContent = ingredientModalServings;
     document.getElementById('ingredient-modal-title').childNodes[0].textContent = ing ? 'Edit Ingredient ' : 'Add Ingredient ';
     document.getElementById('ingredient-id').value = ing ? ing.IngredientID : '';
     document.getElementById('ingredient-meal-id').value = mealId || '';
     document.getElementById('ingredient-name').value = ing ? ing.Name : '';
-    document.getElementById('ingredient-quantity').value = ing ? (ing.Quantity || '') : '';
+    var q = ing ? (ing.Quantity || '') : '';
+    document.getElementById('ingredient-quantity').value = q;
+    document.getElementById('ingredient-perperson').value = q === '' ? '' : fmtNum(num(q) / ingredientModalServings);
     document.getElementById('ingredient-unit').value = ing ? (ing.Unit || '') : '';
     document.getElementById('ingredient-prep').value = ing ? (ing.Prep || 'on-site') : 'on-site';
     document.getElementById('ingredient-kcal').value = ing ? (ing.KcalPerUnit || '') : '';
     document.getElementById('ingredient-modal').classList.add('active');
   }
+
+  // Two-way link: editing the total updates per-person and vice-versa. The
+  // stored value is always the Total (ingredient-quantity); per-person is a
+  // helper that back-computes it via the meal's Servings.
+  (function () {
+    var qtyEl = document.getElementById('ingredient-quantity');
+    var ppEl = document.getElementById('ingredient-perperson');
+    if (!qtyEl || !ppEl) return;
+    qtyEl.addEventListener('input', function () {
+      var v = qtyEl.value.trim();
+      ppEl.value = v === '' ? '' : fmtNum(num(v) / (ingredientModalServings || 30));
+    });
+    ppEl.addEventListener('input', function () {
+      var v = ppEl.value.trim();
+      qtyEl.value = v === '' ? '' : fmtNum(num(v) * (ingredientModalServings || 30));
+    });
+  })();
 
   document.getElementById('ingredient-save-btn').addEventListener('click', async function () {
     var mealId = document.getElementById('ingredient-meal-id').value.trim();

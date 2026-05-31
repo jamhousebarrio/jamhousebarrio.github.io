@@ -263,8 +263,12 @@ access: general
         <input id="ingredient-name" placeholder="e.g. Oats">
       </div>
       <div>
-        <label>Quantity (total for the whole meal, at Servings)</label>
+        <label>Quantity (total for the whole meal, at <span id="ingredient-servings-note">30</span> servings)</label>
         <input id="ingredient-quantity" type="number" step="any" min="0" placeholder="e.g. 4.5">
+      </div>
+      <div>
+        <label>&hellip; or per person (auto-fills the total)</label>
+        <input id="ingredient-perperson" type="number" step="any" min="0" placeholder="e.g. 0.15">
       </div>
       <div>
         <label>Unit</label>
