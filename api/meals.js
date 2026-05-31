@@ -1,6 +1,7 @@
 import { getSheets, safeGet, toObjects, getRows, getSheetId, deleteRowById, upsertRow } from './_lib/sheets.js';
 import { authenticateRequest } from './_lib/auth.js';
 import { logError } from './_lib/error-log.js';
+import { isAssignedToRole } from './_lib/roles.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -10,37 +11,42 @@ export default async function handler(req, res) {
     const { action, ...payload } = req.body || {};
 
     const spreadsheetId = auth.spreadsheetId;
-    const MEAL_HEADERS = ['MealID', 'Name', 'Date', 'MealType', 'Description', 'Instructions'];
-    const INGREDIENT_HEADERS = ['IngredientID', 'MealID', 'Name', 'Quantity', 'Unit'];
+    const MEAL_HEADERS = ['MealID', 'Name', 'Date', 'MealType', 'Servings', 'Description', 'Instructions', 'PreCook', 'PhotoURL'];
+    const INGREDIENT_HEADERS = ['IngredientID', 'MealID', 'Name', 'Quantity', 'Unit', 'Prep', 'KcalPerUnit'];
 
     // ── Fetch (default) ───────────────────────────────────────────────────
     if (!action) {
       const sheets = auth.sheets;
-      const [mealsRows, ingredientsRows, logisticsRows] = await Promise.all([
+      const [mealsRows, ingredientsRows, logisticsRows, kitchenLead] = await Promise.all([
         safeGet(sheets, spreadsheetId, 'Meals'),
         safeGet(sheets, spreadsheetId, 'MealIngredients'),
         safeGet(sheets, spreadsheetId, 'MemberLogistics'),
+        isAssignedToRole(sheets, spreadsheetId, 'Kitchen lead', auth.member),
       ]);
+      const canEdit = !auth.observer && (auth.admin || kitchenLead);
       return res.status(200).json({
         meals: toObjects(mealsRows),
         ingredients: toObjects(ingredientsRows),
         logistics: toObjects(logisticsRows),
+        canEdit,
       });
     }
 
-    // ── Write actions require admin ───────────────────────────────────────
-    if (!auth.admin) {
-      return res.status(401).json({ error: 'Admin required' });
-    }
-
+    // ── Write actions: admin or Kitchen lead; observers always read-only ──
     const sheets = auth.sheets;
+    if (auth.observer) return res.status(403).json({ error: 'Observer accounts are read-only' });
+    const kitchenLead = await isAssignedToRole(sheets, spreadsheetId, 'Kitchen lead', auth.member);
+    if (!auth.admin && !kitchenLead) {
+      return res.status(401).json({ error: 'Admin or Kitchen lead required' });
+    }
 
     switch (action) {
       case 'upsert-meal': {
-        const { mealId, name, date, mealType, description, instructions } = payload;
-        if (!mealId || !name || !date) return res.status(400).json({ error: 'mealId, name, date required' });
+        const { mealId, name, date, mealType, servings, description, instructions, preCook, photoURL } = payload;
+        if (!mealId || !name) return res.status(400).json({ error: 'mealId, name required' });
         await upsertRow(sheets, spreadsheetId, 'Meals', 'MealID', mealId, MEAL_HEADERS,
-          [mealId, name, date, mealType || '', description || '', instructions || '']);
+          [mealId, name, date || '', mealType || '', servings != null ? String(servings) : '',
+           description || '', instructions || '', preCook || '', photoURL || '']);
         break;
       }
       case 'delete-meal': {
@@ -71,10 +77,11 @@ export default async function handler(req, res) {
         break;
       }
       case 'upsert-ingredient': {
-        const { ingredientId, mealId, name, quantity, unit } = payload;
+        const { ingredientId, mealId, name, quantity, unit, prep, kcalPerUnit } = payload;
         if (!ingredientId || !mealId || !name) return res.status(400).json({ error: 'ingredientId, mealId, name required' });
         await upsertRow(sheets, spreadsheetId, 'MealIngredients', 'IngredientID', ingredientId, INGREDIENT_HEADERS,
-          [ingredientId, mealId, name, quantity != null ? String(quantity) : '', unit || '']);
+          [ingredientId, mealId, name, quantity != null ? String(quantity) : '', unit || '',
+           prep || '', kcalPerUnit != null ? String(kcalPerUnit) : '']);
         break;
       }
       case 'delete-ingredient': {
