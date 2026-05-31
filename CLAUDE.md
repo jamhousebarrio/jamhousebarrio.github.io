@@ -110,8 +110,8 @@ vercel.json                     # URL rewrites & framework config
 | Sheet1 | members.js, register.js | Application data + Status column |
 | Inventory | inventory.js | Equipment & materials. Cols: ItemID, Name, Labels, Description, PhotoURL, Quantity, Location |
 | MemberLogistics | logistics.js, meals.js, drinks.js, timeline.js | Arrival/departure, transport, camping |
-| Meals | meals.js | Meal definitions |
-| MealIngredients | meals.js | Ingredients per meal |
+| Meals | meals.js | Meal definitions. Cols: MealID, Name, Date (optional — blank = Unscheduled), MealType (breakfast/lunch/dinner/dessert), Servings (baseline headcount, default 30), Description, Instructions, PreCook (prep-ahead notes), PhotoURL |
+| MealIngredients | meals.js | Ingredients per meal. Cols: IngredientID, MealID, Name, Quantity (TOTAL at the meal's Servings baseline — not per-person), Unit, Prep (pre-cook/on-site), KcalPerUnit (kcal per one Unit) |
 | ShiftData | shifts.js | Shift assignments |
 | DrinksSnacks | drinks.js | Drink/snack items |
 | Events | events.js | Event planning |
@@ -121,6 +121,8 @@ vercel.json                     # URL rewrites & framework config
 | ErrorLog | error-log.js | 500-error log: timestamp, endpoint, action, method, status, message, stack, context |
 
 > Inventory `Labels` is a comma-separated multi-value column (mirrors `BuildPhotos.Labels`); label values cannot contain commas. The former single `Category` column was renamed to `Labels` and the `Notes` column was folded into `Description` and dropped by the one-shot `scripts/migrate-inventory-labels.mjs` (run 2026-05-25). Pure label parse/serialize/filter logic lives in `assets/js/inventory-labels.js` (unit-tested via `npm test`). Write tiers: `upsert` (add/edit) is open to approved members; **observers are read-only**; `delete` is **admin-only** — all enforced server-side in `api/inventory.js`.
+
+> Meals/MealIngredients write tier: editing meals & ingredients is open to **admins + members assigned to the "Kitchen lead" role** (in the Roles tab), **observers read-only** — enforced server-side in `api/meals.js` via `api/_lib/roles.js` `isAssignedToRole` (the fetch returns a `canEdit` flag the page uses to show/hide edit controls). Meal quantities are **totals at a per-meal `Servings` baseline (30)**; the page scales them by an adjustable headcount counter (defaults to approved-member count) and computes per-person portions + calories. Pure quantity/calorie math is in `assets/js/meals-logic.js` (unit-tested via `npm test`); kcal targets per meal type (B 550 / L 750 / D 1000 / dessert 250; 2300/day) live there too. The menu was loaded by the one-shot `scripts/seed-meals.mjs` (run 2026-05-31; recipe notes kept verbatim). Drinks & Snacks were intentionally left out of this pass.
 
 ### Budget Sheet (BUDGET_SHEET_ID)
 | Tab | Used by | Purpose |
