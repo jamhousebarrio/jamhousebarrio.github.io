@@ -1,4 +1,4 @@
-import { perPerson, scaledTotal, mealKcalPerPerson, targetFor, energyStatus, DAILY_TARGET } from '/assets/js/meals-logic.js';
+import { num, perPerson, scaledTotal, mealKcalPerPerson, targetFor, energyStatus, DAILY_TARGET } from '/assets/js/meals-logic.js';
 
 (async function () {
   var members = await JH.authenticate();
@@ -222,7 +222,7 @@ import { perPerson, scaledTotal, mealKcalPerPerson, targetFor, energyStatus, DAI
       var pre = (ing.Prep || '').toLowerCase() === 'pre-cook';
       var pp = perPerson(ing.Quantity, meal.Servings);
       var tot = scaledTotal(ing.Quantity, meal.Servings, hc);
-      var kcp = Math.round(perPerson(ing.Quantity, meal.Servings) * (parseFloat(ing.KcalPerUnit) || 0));
+      var kcp = Math.round(perPerson(ing.Quantity, meal.Servings) * num(ing.KcalPerUnit));
       var prepCtl = canEdit
         ? '<span class="prep-toggle ' + (pre ? 'pre' : 'site') + '" data-ingredient-id="' + JH.esc(ing.IngredientID) + '">' + (pre ? '❄ pre-cook' : 'on-site') + '</span>'
         : (pre ? '<span class="prep-toggle pre">❄ pre-cook</span>' : '<span class="prep-toggle site">on-site</span>');
@@ -287,6 +287,13 @@ import { perPerson, scaledTotal, mealKcalPerPerson, targetFor, energyStatus, DAI
         '<div class="meal-cards">' + dayMeals.map(mealCardHtml).join('') + '</div></div>';
     });
     wrap.innerHTML = html;
+    // Initialise Flatpickr on every inline date input so picking a date stores
+    // it in Y-m-d format (the altInput display is dd/mm/yyyy). Flatpickr fires
+    // a `change` event on the original hidden input when a date is selected,
+    // which the delegated `change` listener below catches to save + reload.
+    if (canEdit) {
+      document.querySelectorAll('.meal-date-inline').forEach(function (el) { JH.initDate(el); });
+    }
   }
 
   // Event delegation — single listener on container, never accumulates
@@ -305,7 +312,11 @@ import { perPerson, scaledTotal, mealKcalPerPerson, targetFor, energyStatus, DAI
     var pt = e.target.closest('.prep-toggle');
     if (pt && canEdit) {
       var ing = state.ingredients.find(function (i) { return i.IngredientID === pt.dataset.ingredientId; });
-      if (ing) { await saveIngredient(Object.assign({}, ing, { Prep: (ing.Prep || '').toLowerCase() === 'pre-cook' ? 'on-site' : 'pre-cook' })); await reload(); }
+      if (ing) {
+        var r = await saveIngredient(Object.assign({}, ing, { Prep: (ing.Prep || '').toLowerCase() === 'pre-cook' ? 'on-site' : 'pre-cook' }));
+        if (!r.ok) { alert('Action failed. Please try again.'); return; }
+        await reload();
+      }
       return;
     }
 
@@ -313,7 +324,11 @@ import { perPerson, scaledTotal, mealKcalPerPerson, targetFor, energyStatus, DAI
     if (cp && canEdit) {
       var m = state.meals.find(function (x) { return x.MealID === cp.dataset.mealId; });
       var url = prompt('Photo URL for "' + (m ? m.Name : '') + '":', m ? (m.PhotoURL || '') : '');
-      if (url !== null && m) { await saveMeal(Object.assign({}, m, { PhotoURL: url })); await reload(); }
+      if (url !== null && m) {
+        var r = await saveMeal(Object.assign({}, m, { PhotoURL: url }));
+        if (!r.ok) { alert('Action failed. Please try again.'); return; }
+        await reload();
+      }
       return;
     }
 
