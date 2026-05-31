@@ -23,7 +23,7 @@ access: general
     .date-btn.active { background: var(--accent); border-color: var(--accent); color: var(--bg); font-weight: 600; }
     .meals-date-group { margin-bottom: 28px; }
     .meals-date-heading { font-family: var(--heading); font-size: 1rem; font-weight: 700; color: var(--accent); margin: 0 0 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
-    .meals-date-heading .headcount-note { font-size: 0.78rem; font-weight: 400; color: var(--text-muted); font-family: var(--body); }
+    .meals-date-heading .headcount-note, .meal-card-title .headcount-note { font-size: 0.78rem; font-weight: 400; color: var(--text-muted); font-family: var(--body); }
     .meal-slots { display: flex; gap: 4px; margin-left: auto; }
     .meal-slot { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 4px; font-size: 0.68rem; font-weight: 700; font-family: var(--heading); }
     .slot-ok { background: rgba(76,175,80,0.2); color: #4caf50; border: 1px solid #4caf50; }
@@ -263,8 +263,8 @@ access: general
         <input id="ingredient-name" placeholder="e.g. Oats">
       </div>
       <div>
-        <label>Quantity per person</label>
-        <input id="ingredient-quantity" type="number" step="any" min="0" placeholder="e.g. 0.08">
+        <label>Quantity (total for the whole meal, at Servings)</label>
+        <input id="ingredient-quantity" type="number" step="any" min="0" placeholder="e.g. 4.5">
       </div>
       <div>
         <label>Unit</label>
