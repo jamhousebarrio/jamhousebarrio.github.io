@@ -105,6 +105,24 @@ access: general
       .meal-card-header { flex-direction: column; gap: 8px; }
       .meal-card-actions { align-self: flex-start; }
     }
+    .headcount-bar{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 14px;margin-bottom:14px;flex-wrap:wrap}
+    .headcount-bar input{width:60px;background:var(--bg);border:1px solid var(--accent);border-radius:6px;color:var(--text);font-size:17px;font-weight:700;padding:3px 8px;text-align:center}
+    .headcount-bar .lab{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted)}
+    .meal-photo{height:120px;background:#1a1a1a center/cover no-repeat;border-radius:10px 10px 0 0;position:relative}
+    .meal-photo .change-photo{position:absolute;right:8px;bottom:8px;background:rgba(0,0,0,.6);border:1px solid #555;border-radius:6px;color:#fff;font-size:11px;padding:3px 9px;cursor:pointer}
+    .energy-strip{display:flex;align-items:center;gap:10px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:7px 11px;margin:8px 0}
+    .energy-strip .kc{font-weight:700}.energy-strip .vs{font-size:12px;color:var(--text-muted)}
+    .energy-bar{flex:1;height:7px;background:#000;border-radius:5px;overflow:hidden;min-width:90px}
+    .energy-bar>i{display:block;height:100%}.energy-bar>i.ok{background:#5fae6a}.energy-bar>i.under{background:#e8a84c}
+    .energy-tag{font-size:11px;font-weight:700;border-radius:8px;padding:2px 8px}
+    .energy-tag.ok{background:#1d3a22;color:#5fae6a}.energy-tag.under{background:#3a3320;color:#e8a84c}
+    .precook-callout{background:rgba(91,192,222,.08);border:1px solid #2f5b66;border-left:3px solid #5bc0de;border-radius:8px;padding:8px 11px;margin:8px 0;font-size:12.5px}
+    .precook-callout b{color:#5bc0de}
+    tr.precook td{background:rgba(91,192,222,.06)}
+    .prep-toggle{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;font-weight:700;border-radius:9px;padding:2px 8px;cursor:pointer;border:1px solid transparent;user-select:none}
+    .prep-toggle.pre{background:#11343d;color:#5bc0de;border-color:#2f5b66}
+    .prep-toggle.site{background:var(--surface2);color:var(--text-muted);border-color:var(--border)}
+    .prep-toggle:hover{border-color:var(--accent)}
     /* Print styles for PDF export */
     #print-container { display: none; }
     @media print {
@@ -144,6 +162,14 @@ access: general
     <a href="/admin/menu" class="btn-secondary" style="margin-left:8px">Menu</a>
   </div>
 
+  <div class="headcount-bar">
+    <span class="lab">Cooking for</span>
+    <input type="number" id="headcount-input" min="1">
+    <span class="lab">people</span>
+    <button class="btn-secondary btn-sm" id="headcount-reset">⟳ Approved (<span id="approved-count">0</span>)</button>
+    <span class="lab" style="margin-left:auto">per-person portions &amp; kcal don't change with this</span>
+  </div>
+
   <div class="date-filter" id="date-filter"></div>
 
   <div class="panel" style="margin-bottom:20px;padding:16px">
@@ -170,6 +196,7 @@ access: general
     </div>
     <p style="color:var(--text-muted);font-size:0.82rem;margin:0 0 12px">All ingredients totalled across meals, scaled by daily headcount.</p>
     <div id="shopping-list-content"><div class="empty-state">Loading...</div></div>
+    <div id="prep-ahead-content"></div>
   </div>
 </div>
 
@@ -193,7 +220,7 @@ access: general
           <option value="breakfast">Breakfast</option>
           <option value="lunch">Lunch</option>
           <option value="dinner">Dinner</option>
-          <option value="snack">Snack</option>
+          <option value="dessert">Dessert</option>
         </select>
       </div>
       <div>
@@ -203,6 +230,18 @@ access: general
       <div>
         <label>Instructions</label>
         <textarea id="meal-instructions" placeholder="Cooking instructions..."></textarea>
+      </div>
+      <div>
+        <label>Servings</label>
+        <input id="meal-servings" type="number" placeholder="Servings (default 30)">
+      </div>
+      <div>
+        <label>Pre-cook Notes</label>
+        <textarea id="meal-precook" placeholder="Pre-cook ahead notes (verbatim recipe)"></textarea>
+      </div>
+      <div>
+        <label>Photo URL</label>
+        <input id="meal-photo" placeholder="Photo URL">
       </div>
     </div>
     <div class="modal-actions">
@@ -231,6 +270,17 @@ access: general
         <label>Unit</label>
         <input id="ingredient-unit" placeholder="e.g. kg, g, L, units, slices">
       </div>
+      <div>
+        <label>Prep</label>
+        <select id="ingredient-prep">
+          <option value="on-site">on-site</option>
+          <option value="pre-cook">pre-cook</option>
+        </select>
+      </div>
+      <div>
+        <label>kcal per unit</label>
+        <input id="ingredient-kcal" type="number" placeholder="kcal per unit">
+      </div>
     </div>
     <div class="modal-actions">
       <button id="ingredient-save-btn" class="btn-primary">Save Ingredient</button>
@@ -242,6 +292,6 @@ access: general
 <div id="print-container"></div>
 
 <script src="/assets/js/admin-auth.js"></script>
-<script src="/assets/js/admin-meals.js"></script>
+<script type="module" src="/assets/js/admin-meals.js"></script>
 </body>
 </html>
