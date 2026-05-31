@@ -71,14 +71,20 @@ are cleared by the seed.
 New module `assets/js/meals-logic.js` (no browser/node globals; dual-use, mirrors the
 unit-tested `inventory-labels.js`):
 
-- `perPerson(quantity, servings)` → `quantity / servings` (servings falls back to 30; guards 0/blank)
+- `num(v)` → `Number(v)` coercion with a NaN→0 guard. **Sheet values arrive as strings**
+  (`Quantity` is stored via `String(quantity)`), and a few seed quantities are count-words
+  (e.g. "2 big pieces", flagged item #5) that don't parse — those coerce to 0 and contribute
+  no calories rather than `NaN`-poisoning a meal's total.
+- `perPerson(quantity, servings)` → `num(quantity) / (num(servings) || 30)` (baseline fallback 30; 0/blank-safe)
 - `scaledTotal(quantity, servings, headcount)` → `perPerson × headcount`
-- `ingredientKcalPerPerson(quantity, servings, kcalPerUnit)` → `perPerson × kcalPerUnit`
-- `mealKcalPerPerson(ingredients, servings)` → Σ over ingredients
+- `ingredientKcalPerPerson(quantity, servings, kcalPerUnit)` → `perPerson × num(kcalPerUnit)`
+- `mealKcalPerPerson(ingredients, servings)` → Σ over ingredients (blank/non-numeric rows add 0)
 - `MEAL_TARGETS = { breakfast:550, lunch:750, dinner:1000, dessert:250 }`, `DAILY_TARGET = 2300`
 - `targetFor(mealType)` and `energyStatus(kcal, target)` → `'ok' | 'under'`
 
-All quantity/calorie math lives here so it's testable and the page/seed stay thin.
+All quantity/calorie math lives here so it's testable and the page/seed stay thin. Tests must
+cover string quantities (`"4.5"`), non-numeric count-words (`"2 big pieces"` → 0), blank
+quantity, and the baseline-fallback/0-servings guard.
 
 ## Permissions
 
@@ -87,12 +93,16 @@ All quantity/calorie math lives here so it's testable and the page/seed stay thi
   - New shared helper `api/_lib/roles.js` → `isAssignedToRole(sheets, spreadsheetId, roleName, member)`:
     reads the `Roles` tab, finds the row whose `Name` equals `roleName` (case-insensitive),
     splits `AssignedTo` on commas, and matches the member's `Playa Name` **or** `Name`
-    (normalized/trim/lowercase). Returns boolean.
-  - `meals.js` write actions: replace `if (!auth.admin)` with
+    (normalized/trim/lowercase). Returns boolean. (Reads the whole Roles tab per call — no
+    caching, consistent with the codebase's other per-request sheet reads. Fine at this scale.)
+  - `meals.js` write actions, in order: **observers rejected first** —
+    `if (auth.observer) return 403` — then
     `const canEdit = auth.admin || await isAssignedToRole(sheets, id, 'Kitchen lead', auth.member); if (!canEdit) return 401`.
-  - `meals.js` default fetch returns a **`canEdit`** boolean (computed the same way) so the
-    frontend shows edit controls without re-implementing role logic. Server remains the
-    source of truth.
+    (Observer-first means a Kitchen-lead-who-is-also-an-observer stays read-only, matching the
+    inventory/logistics observer rule.)
+  - `meals.js` default fetch returns a **`canEdit`** boolean — `!auth.observer && (auth.admin || isAssignedToRole(...))`
+    — so the frontend shows edit controls without re-implementing role logic. Server remains
+    the source of truth.
 
 | Action | Observer | Member | Kitchen lead | Admin |
 |--------|----------|--------|--------------|-------|
@@ -112,8 +122,10 @@ All quantity/calorie math lives here so it's testable and the page/seed stay thi
 (Lo-fi approved in the visual companion.)
 
 - **Headcount counter** (top): number input driving every total + the per-person column;
-  defaults to the **approved-member count**, one-click reset, manual override (e.g. 30).
-  Client-side only (a viewing control; not persisted). Per-person & kcal/person are
+  defaults to the **approved-member count** — `members.filter(Status === 'approved').length`,
+  using the member list the page already loads via `JH.authenticate()` (same filter as
+  `admin-shifts.js`/`admin-demographics.js`) — with one-click reset and a manual override
+  (e.g. 30). Client-side only (a viewing control; not persisted). Per-person & kcal/person are
   headcount-independent.
 - **Per-day view**: meals grouped by `Date`, plus an **"Unscheduled"** group for date-less
   meals; each meal card has an inline **type dropdown** and **date picker** (assign/change).
@@ -121,7 +133,9 @@ All quantity/calorie math lives here so it's testable and the page/seed stay thi
   **day kcal roll-up vs 2300**.
 - **Meal photo banner** per card with a **"Change photo"** control (edits `PhotoURL`).
 - **Energy strip** per card: `≈ kcal/person` (Σ ingredients) with a bar vs `targetFor(type)`,
-  tagged "✓ enough" / "⚠ a bit light". A `kcal/p` column per ingredient.
+  tagged "✓ enough" / "⚠ a bit light". A `kcal/p` column per ingredient (blank/non-numeric
+  quantity shows "—" and adds 0). **Dessert** uses its soft target and is informational only —
+  no "a bit light" warning (its fruit quantities are intentionally blank at seed time).
 - **Pre-cook** (the "both"): a per-meal **❄ Pre-cook ahead** callout (`PreCook` text), and
   per-ingredient **❄ pre-cook rows highlighted** with an inline **Prep toggle** (click to flip
   pre-cook ↔ on-site → writes `Prep`; the row, ❄, callout count and prep-ahead list update).
