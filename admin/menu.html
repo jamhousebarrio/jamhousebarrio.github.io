@@ -318,7 +318,7 @@ access: general
 <script>
 var nights = [
   {
-    night: 1, theme: 'Middle East', emoji: '🌙',
+    night: 1, theme: 'Middle East', emoji: '🌙', meal: 'smoky-shakshuka',
     color: '#7C6FCD', colorLight: '#EEEDFE', colorBorder: '#AFA9EC',
     main: {
       title: 'Smoky Shakshuka Fiesta',
@@ -334,7 +334,7 @@ var nights = [
     },
   },
   {
-    night: 2, theme: 'Greece', emoji: '🫙',
+    night: 2, theme: 'Greece', emoji: '🫙', meal: 'pita-night',
     color: '#1E9E78', colorLight: '#E1F5EE', colorBorder: '#5DCAA5',
     main: {
       title: 'Pita Gyros Night',
@@ -350,7 +350,7 @@ var nights = [
     },
   },
   {
-    night: 3, theme: 'India', emoji: '🪔',
+    night: 3, theme: 'India', emoji: '🪔', meal: 'dal-mango',
     color: '#C4511A', colorLight: '#FAECE7', colorBorder: '#F0997B',
     main: {
       title: 'The Great Dal & Mango Feast',
@@ -366,14 +366,14 @@ var nights = [
     },
   },
   {
-    night: 4, theme: 'Korea', emoji: '🥢',
-    color: '#B05E0D', colorLight: '#FEF3E7', colorBorder: '#FAC775',
+    night: 4, theme: 'Italy', emoji: '🍕', meal: 'pizza-night',
+    color: '#C0392B', colorLight: '#FBEAEA', colorBorder: '#E8908A',
     main: {
-      title: 'Korean Japchae & Banchan',
-      description: 'Glass sweet potato noodles stir-fried in the wok with sesame oil, colourful vegetables and crispy tofu. Served with a full spread of Korean banchan side dishes.',
-      vegan: 'Crispy tofu japchae',
-      meat: '+ Bulgogi beef',
-      sides: ['Gochujang sauce', 'Pickled daikon', 'Seasoned spinach (sigeumchi)', 'Kimchi-style cabbage', 'Sesame seeds'],
+      title: 'Pizza Night',
+      description: 'Make-your-own pizza night — stretched dough fired in batches and built three ways: a loaded vegan, a meat-lovers, and a four-cheese. Slice, swap, go back for more.',
+      vegan: 'Vegan cheese, mushroom, red onion, eggplant & olive',
+      meat: '+ Meatlovers — chorizo, minced beef & marinated peppers',
+      sides: ['Four cheeses (4 formaggi)', 'Chilli oil', 'Fresh basil', 'Extra tomato sauce'],
     },
     dessert: {
       title: 'Tiramisù in a Tub',
@@ -382,7 +382,7 @@ var nights = [
     },
   },
   {
-    night: 5, theme: 'Morocco', emoji: '🏺',
+    night: 5, theme: 'Morocco', emoji: '🏺', meal: 'couscous',
     color: '#9C2F5B', colorLight: '#FBEAF0', colorBorder: '#ED93B1',
     main: {
       title: 'Moroccan Magic Night',
@@ -398,7 +398,7 @@ var nights = [
     },
   },
   {
-    night: 6, theme: 'Italy', emoji: '🍝',
+    night: 6, theme: 'Italy', emoji: '🍝', meal: 'big-pot-pasta',
     color: '#3B7A2E', colorLight: '#EAF3DE', colorBorder: '#97C459',
     main: {
       title: 'Big Pot Pasta — Three Sauces',
@@ -414,15 +414,14 @@ var nights = [
     },
   },
   {
-    night: 7, theme: 'Grand Finale', emoji: '🔥',
-    color: '#1A6BB5', colorLight: '#E6F1FB', colorBorder: '#85B7EB',
-    isFinale: true,
+    night: 7, theme: 'Burger Night', emoji: '🍔', meal: 'chef-gautier-s-burger', isFinale: true,
+    color: '#B05E0D', colorLight: '#FEF3E7', colorBorder: '#FAC775',
     main: {
-      title: 'Persian-Levantine Skewer & Mezze Feast',
-      description: 'The closing night table. Saffron & lemon chicken skewers and halloumi & vegetable skewers, reheated to perfection, served alongside a sprawling mezze spread. The feast that keeps giving.',
-      vegan: 'Halloumi & vegetable skewers + full mezze spread',
-      meat: '+ Saffron & lemon chicken skewers',
-      sides: ['Hummus', 'Baba ganoush', 'Tabbouleh', 'Tahini sauce', 'Pickled red onion', 'Yoghurt & herb dip', 'Warm flatbreads', 'Sumac oil', 'Olives & chilli'],
+      title: "Chef Gautier's Burger",
+      description: 'Closing night, off the grill: build-your-own burgers with juicy patties, melty cheese and a loaded fixings bar. Gautier’s cinnamon tomato chutney is the secret weapon.',
+      vegan: 'Veggie patties',
+      meat: '+ Beef patties',
+      sides: ['Cinnamon tomato chutney', 'Sauerkraut-style cabbage', 'Cheese slices', 'Crème fraîche', 'Lettuce & tomato', 'Curry-dusted onions'],
     },
     dessert: {
       title: 'Honey-Chilli Glazed Fruit Skewers',
@@ -433,6 +432,15 @@ var nights = [
 ];
 
 var selected = 0;
+
+var mealDates = {}; // MealID -> 'yyyy-mm-dd', loaded from /api/meals
+var DOW_FULL = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+var DOW_SHORT = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+var MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function nightDate(n) { return mealDates[n.meal] || ''; }
+function isoToDate(iso) { var p = (iso || '').split('-'); return new Date(Date.UTC(+p[0], +p[1] - 1, +p[2])); }
+function dayLabel(iso) { if (!iso) return ''; var d = isoToDate(iso); return DOW_FULL[d.getUTCDay()] + ' ' + d.getUTCDate() + ' ' + MON[d.getUTCMonth()]; }
+function shortDay(iso) { if (!iso) return ''; var d = isoToDate(iso); return DOW_SHORT[d.getUTCDay()] + ' ' + d.getUTCDate(); }
 
 function esc(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -455,7 +463,7 @@ function renderCard(n) {
     + '<div class="jh-card-header" style="background:' + headerBg + '">'
     +   '<div class="jh-card-header-bg" style="color:' + n.color + '"></div>'
     +   '<div class="jh-night-row">'
-    +     '<span class="jh-night-badge" style="color:' + n.color + ';border-color:' + n.colorBorder + '80;background:' + n.colorLight + '15">Night ' + n.night + '</span>'
+    +     '<span class="jh-night-badge" style="color:' + n.color + ';border-color:' + n.colorBorder + '80;background:' + n.colorLight + '15">' + (dayLabel(nightDate(n)) || ('Night ' + n.night)) + '</span>'
     +     '<span class="jh-theme-badge">' + esc(n.theme) + '</span>'
     +   '</div>'
     +   '<span class="jh-emoji">' + n.emoji + '</span>'
@@ -499,7 +507,7 @@ function renderNav() {
     var style = isActive ? 'background:' + n.color + ';border-color:' + n.color : '';
     var cls = 'jh-nav-btn' + (isActive ? ' active' : '');
     return '<button class="' + cls + '" style="' + style + '" data-index="' + i + '">'
-      + n.emoji + ' Night ' + n.night + (n.isFinale ? ' \u2605' : '')
+      + n.emoji + ' ' + (shortDay(nightDate(n)) || ('Night ' + n.night)) + (n.isFinale ? ' \u2605' : '')
       + '</button>';
   }).join('');
 }
@@ -523,7 +531,17 @@ function render() {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-  JH.authenticate().then(function() { render(); });
+  JH.authenticate().then(function() {
+    return JH.apiFetch('/api/meals', {}).then(function(res) { return res.ok ? res.json() : null; });
+  }).then(function(data) {
+    (data && data.meals || []).forEach(function(m) { mealDates[m.MealID] = m.Date || ''; });
+    // Order nights by their meal's date (undated fall to the end).
+    nights.sort(function(a, b) {
+      var da = nightDate(a) || '9999-99-99', db = nightDate(b) || '9999-99-99';
+      return da < db ? -1 : da > db ? 1 : 0;
+    });
+    render();
+  }).catch(function() { render(); });
 });
 </script>
 </body>
