@@ -1,3 +1,5 @@
+import { parseISO, ganttRange, enumerateDays, barCells, isEventDay, eeColorKey } from '/assets/js/logistics-gantt-logic.js';
+
 (async function () {
   var members = await JH.authenticate();
   if (!members) return;
@@ -101,6 +103,7 @@
     if (!res.ok) { console.error('logistics fetch failed'); return; }
     var data = await res.json();
     state.logistics = data.logistics || [];
+    state.earlyEntrySources = data.earlyEntrySources || [];
   }
 
   // ── My Info panel ─────────────────────────────────────────────────────────
@@ -253,6 +256,7 @@
       if (state.editingMember) state.editingMember = null;
       renderAllMembers();
       renderMyInfo();
+      renderGantt();
     });
   }
 
@@ -343,12 +347,77 @@
     }
   }
 
+  // ── Gantt chart ───────────────────────────────────────────────────────────
+
+  function renderGantt() {
+    var wrap = document.getElementById('gantt-content');
+    if (!wrap) return;
+    var eeMap = {};
+    (state.earlyEntrySources || []).forEach(function (e) {
+      if (e && e.MemberName) eeMap[e.MemberName.toLowerCase().trim()] = e.Source;
+    });
+    function eeFor(m) {
+      var playa = (m['Playa Name'] || '').toLowerCase().trim();
+      var legal = (m['Name'] || '').toLowerCase().trim();
+      return eeColorKey(eeMap[playa] || eeMap[legal] || '');
+    }
+    var entries = approvedMembers.map(function (m) {
+      var name = m['Playa Name'] || m['Name'] || '';
+      var found = findLogisticsRow(name);
+      var row = (found && found.row) || {};
+      return { name: name, arrival: row['ArrivalDate'] || '', departure: row['DepartureDate'] || '', ee: eeFor(m) };
+    }).filter(function (e) { return e.name; });
+
+    var dated = entries.filter(function (e) { return parseISO(e.arrival); });
+    var undated = entries.length - dated.length;
+    if (!dated.length) { wrap.innerHTML = '<div class="empty-state">No arrival dates filled in yet.</div>'; return; }
+
+    var range = ganttRange(dated.map(function (e) { return { ArrivalDate: e.arrival, DepartureDate: e.departure }; }));
+    var days = enumerateDays(range.startISO, range.endISO);
+    dated.sort(function (a, b) { return parseISO(a.arrival) < parseISO(b.arrival) ? -1 : 1; });
+
+    var legend = '<div class="gantt-legend">' +
+      '<span><i class="swatch" style="background:var(--accent)"></i>barrio</span>' +
+      '<span><i class="swatch" style="background:#5bc0de"></i>noorg</span>' +
+      '<span><i class="swatch" style="background:#c8a8e8"></i>artist</span>' +
+      '<span><i class="swatch" style="background:#5a5a5a"></i>no EE</span>' +
+      '<span style="margin-left:auto"><i class="swatch" style="background:rgba(232,168,76,0.10);border:1px solid var(--border)"></i>event week</span></div>';
+
+    var DOW = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+    var head = '<tr><th class="g-name"></th>';
+    days.forEach(function (d) {
+      var dt = new Date(Date.UTC(+d.slice(0, 4), +d.slice(5, 7) - 1, +d.slice(8, 10)));
+      head += '<th class="g-day' + (isEventDay(d) ? ' event' : '') + '"><span class="dow">' + DOW[dt.getUTCDay()] + '</span><br>' + dt.getUTCDate() + '</th>';
+    });
+    head += '</tr>';
+
+    var body = dated.map(function (e) {
+      var bc = barCells(e.arrival, e.departure, range.startISO, range.endISO);
+      var tds = '<td class="g-name" title="' + JH.esc(e.name) + '">' + JH.esc(e.name) + '</td>';
+      days.forEach(function (d, i) {
+        var cls = 'g-cell' + (isEventDay(d) ? ' event' : '');
+        if (bc && i >= bc.startIdx && i <= bc.endIdx) {
+          cls += ' fill' + (e.ee ? ' ee-' + e.ee : '');
+          if (i === bc.startIdx) cls += ' bar-start';
+          if (i === bc.endIdx) cls += ' bar-end';
+        }
+        var ttl = (bc && i === bc.startIdx) ? ' title="' + JH.esc(e.name + ': ' + JH.formatDate(e.arrival) + (e.departure ? ' → ' + JH.formatDate(e.departure) : '')) + '"' : '';
+        tds += '<td class="' + cls + '"' + ttl + '></td>';
+      });
+      return '<tr>' + tds + '</tr>';
+    }).join('');
+
+    var unknown = undated ? '<div class="gantt-unknown">▸ ' + undated + ' member' + (undated === 1 ? '' : 's') + ' haven’t filled their arrival dates yet</div>' : '';
+    wrap.innerHTML = legend + '<div class="gantt-scroll"><table class="gantt-table"><thead>' + head + '</thead><tbody>' + body + '</tbody></table></div>' + unknown;
+  }
+
   // ── Render coordinator ────────────────────────────────────────────────────
 
   async function render() {
     await fetchData();
     renderMyInfo();
     renderAllMembers();
+    renderGantt();
   }
 
   // ── Init ──────────────────────────────────────────────────────────────────

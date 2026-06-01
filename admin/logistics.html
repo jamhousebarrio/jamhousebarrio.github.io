@@ -62,6 +62,25 @@ access: general
     .edit-pencil:hover { color: var(--accent); opacity: 1; }
     .editing-banner { background: rgba(232,168,76,0.1); border: 1px solid var(--accent); border-radius: 6px; padding: 8px 12px; margin-bottom: 12px; font-size: 0.85rem; display: flex; justify-content: space-between; align-items: center; }
     .editing-banner a { color: var(--accent); cursor: pointer; }
+    .gantt-panel { margin-bottom: 18px; }
+    .gantt-legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 8px; align-items: center; }
+    .gantt-legend .swatch { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: middle; margin-right: 4px; }
+    .gantt-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .gantt-table { border-collapse: collapse; font-size: 0.75rem; }
+    .gantt-table th, .gantt-table td { padding: 0; }
+    .gantt-table .g-name { position: sticky; left: 0; background: var(--surface); z-index: 2; padding: 3px 10px 3px 4px; text-align: left; white-space: nowrap; min-width: 92px; border-right: 1px solid var(--border); font-weight: 500; }
+    .gantt-table thead .g-name { z-index: 3; }
+    .gantt-table .g-day { width: 26px; min-width: 26px; text-align: center; color: var(--text-muted); font-weight: 400; line-height: 1.1; padding: 4px 0; border-left: 1px solid var(--border); }
+    .gantt-table .g-day .dow { font-size: 0.6rem; }
+    .gantt-table td.g-cell { height: 20px; border-left: 1px solid var(--border); border-bottom: 1px solid var(--surface2); }
+    .gantt-table .event { background: rgba(232,168,76,0.10); }
+    .gantt-table td.fill { background: #5a5a5a; }
+    .gantt-table td.fill.ee-barrio { background: var(--accent); }
+    .gantt-table td.fill.ee-noorg { background: #5bc0de; }
+    .gantt-table td.fill.ee-artist { background: #c8a8e8; }
+    .gantt-table td.fill.bar-start { border-top-left-radius: 5px; border-bottom-left-radius: 5px; }
+    .gantt-table td.fill.bar-end { border-top-right-radius: 5px; border-bottom-right-radius: 5px; }
+    .gantt-unknown { margin-top: 8px; font-size: 0.78rem; color: var(--text-muted); }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="/assets/js/supabase-client.js"></script>
@@ -76,6 +95,11 @@ access: general
   </div>
 
   <div id="name-display-wrap"></div>
+
+  <div class="panel gantt-panel">
+    <h2>Arrivals &amp; Departures</h2>
+    <div id="gantt-content"><div class="empty-state">Loading…</div></div>
+  </div>
 
   <div class="logistics-layout">
     <div class="panel" id="my-info-panel">
@@ -105,6 +129,6 @@ access: general
 </div>
 
 <script src="/assets/js/admin-auth.js"></script>
-<script src="/assets/js/admin-logistics.js"></script>
+<script type="module" src="/assets/js/admin-logistics.js"></script>
 </body>
 </html>
