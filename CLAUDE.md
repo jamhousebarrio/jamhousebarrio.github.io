@@ -94,6 +94,7 @@ vercel.json                     # URL rewrites & framework config
 - **Date format**: dd/mm/yyyy via Flatpickr (loaded dynamically in admin-auth.js)
 - **Time format**: 24h (HH:MM) via Flatpickr
 - **Formula injection protection**: `register.js` strips leading `=`, `+`, `-`, `@` from user input
+- **Responsive/mobile**: breakpoints in `admin.css` — ≤900px charts stack; ≤768px sidebar collapses to a 60px icon rail + overflow/table guards + inputs forced to 16px (avoids iOS zoom-on-focus); ≤480px sidebar becomes a bottom nav bar and `.main` goes full-width.
 
 ## Adding an Admin Page
 1. Create `admin/{page}.html` with sidebar nav (copy from an existing page)

@@ -253,7 +253,7 @@ import { num, perPerson, scaledTotal, mealKcalPerPerson, targetFor, energyStatus
     html += '<div class="ingredients-section"><div class="ingredients-header"><span>Ingredients</span>' +
       (canEdit ? '<button class="btn-secondary btn-sm add-ingredient-btn" data-meal-id="' + JH.esc(meal.MealID) + '">+ Add Ingredient</button>' : '') + '</div>';
     html += ings.length
-      ? '<table class="ingredients-table"><thead><tr><th>Name</th><th>Per-person</th><th>Total (' + hc + ')</th><th>Unit</th><th>kcal/p</th><th>Prep</th>' + (canEdit ? '<th></th>' : '') + '</tr></thead><tbody>' + rows + '</tbody></table>'
+      ? '<div style="overflow-x:auto;-webkit-overflow-scrolling:touch"><table class="ingredients-table"><thead><tr><th>Name</th><th>Per-person</th><th>Total (' + hc + ')</th><th>Unit</th><th>kcal/p</th><th>Prep</th>' + (canEdit ? '<th></th>' : '') + '</tr></thead><tbody>' + rows + '</tbody></table></div>'
       : '<div style="font-size:0.82rem;color:var(--text-muted);padding:6px 0">No ingredients yet.</div>';
     html += '</div></div></div>';
     return html;

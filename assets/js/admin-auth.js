@@ -189,6 +189,8 @@ JH.renderSidebar = function() {
   });
   html += '</div><div class="sidebar-footer"><div id="sidebar-role-badge"></div><a href="/">&#8592; Back to Site</a></div>';
   sidebar.innerHTML = html;
+  var activeItem = sidebar.querySelector('.nav-item.active');
+  if (activeItem && activeItem.scrollIntoView) { try { activeItem.scrollIntoView({ inline: 'center', block: 'nearest' }); } catch (e) {} }
 };
 
 // Render sidebar immediately (before auth, so page isn't empty)
@@ -357,7 +359,7 @@ JH.checkLogisticsPrompt = async function() {
     var banner = document.createElement('div');
     banner.style.cssText = 'background:rgba(232,168,76,0.1);border:1px solid var(--accent);border-radius:8px;padding:10px 16px;margin-bottom:16px;font-size:0.84rem;color:var(--text);display:flex;align-items:center;justify-content:space-between;gap:12px;';
     banner.innerHTML = '<span>We don\'t have your arrival info yet! Please <a href="/admin/logistics" style="color:var(--accent);font-weight:600">fill in your logistics</a> so we can plan meals and pickups. Don\'t worry if it\'s approximate for now &mdash; any information is useful, and you can update it as plans change.</span>' +
-      '<button onclick="this.parentNode.remove()" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:1.1rem;flex-shrink:0">&times;</button>';
+      '<button onclick="this.parentNode.remove()" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:1.1rem;flex-shrink:0;padding:6px;min-width:32px;min-height:32px;">&times;</button>';
     var main = document.querySelector('.main');
     if (main) main.insertBefore(banner, main.firstChild.nextSibling);
   } catch (e) {}
@@ -399,7 +401,7 @@ JH.checkShiftsPrompt = async function() {
   banner.id = 'jh-shifts-banner';
   banner.style.cssText = 'background:rgba(232,168,76,0.1);border:1px solid var(--accent);border-radius:8px;padding:10px 16px;margin-bottom:16px;font-size:0.84rem;color:var(--text);display:flex;align-items:center;justify-content:space-between;gap:12px;';
   banner.innerHTML = '<span>Shifts still need covering &mdash; <a href="/admin/shifts" style="color:var(--accent);font-weight:600">explore what\'s not yet filled</a> and grab a few to help out. We aim for two per person, and you can always swap or drop later.</span>' +
-    '<button id="jh-shifts-dismiss" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:1.1rem;flex-shrink:0">&times;</button>';
+    '<button id="jh-shifts-dismiss" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:1.1rem;flex-shrink:0;padding:6px;min-width:32px;min-height:32px;">&times;</button>';
   var main = document.querySelector('.main');
   if (main) main.insertBefore(banner, main.firstChild.nextSibling);
   var dismissBtn = document.getElementById('jh-shifts-dismiss');
@@ -420,7 +422,7 @@ JH.checkDietaryPrompt = function() {
   banner.id = 'jh-dietary-banner';
   banner.style.cssText = 'background:rgba(232,168,76,0.1);border:1px solid var(--accent);border-radius:8px;padding:10px 16px;margin-bottom:16px;font-size:0.84rem;color:var(--text);display:flex;align-items:center;justify-content:space-between;gap:12px;';
   banner.innerHTML = '<span>We don\'t have your dietary info yet — please <a href="/admin/profile?prompt=dietary" style="color:var(--accent);font-weight:600">fill it in on your profile</a> so the kitchen can plan around you.</span>' +
-    '<button id="jh-dietary-dismiss" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:1.1rem;flex-shrink:0">&times;</button>';
+    '<button id="jh-dietary-dismiss" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:1.1rem;flex-shrink:0;padding:6px;min-width:32px;min-height:32px;">&times;</button>';
   var main = document.querySelector('.main');
   if (main) main.insertBefore(banner, main.firstChild.nextSibling);
   var dismissBtn = document.getElementById('jh-dietary-dismiss');
