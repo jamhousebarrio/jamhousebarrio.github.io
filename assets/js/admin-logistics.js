@@ -276,6 +276,18 @@ import { parseISO, ganttRange, enumerateDays, barCells, isEventDay, eeColorKey }
       logMap[r['MemberName']] = r;
     });
 
+    // Early-entry source per member (fetched alongside logistics).
+    var eeMap = {};
+    (state.earlyEntrySources || []).forEach(function (e) {
+      if (e && e.MemberName) eeMap[e.MemberName.toLowerCase().trim()] = e.Source;
+    });
+    var EE_COLORS = { barrio: 'var(--accent)', noorg: '#5bc0de', artist: '#c8a8e8' };
+    function eeBadge(m) {
+      var key = eeColorKey(eeMap[(m['Playa Name'] || '').toLowerCase().trim()] || eeMap[(m['Name'] || '').toLowerCase().trim()] || '');
+      if (!key) return '<span class="not-filled">—</span>';
+      return '<span style="display:inline-block;padding:1px 8px;border-radius:10px;font-size:0.68rem;font-weight:700;text-transform:capitalize;color:#0a0a0a;background:' + EE_COLORS[key] + '">' + key + '</span>';
+    }
+
     // Sort approved members by arrival date (members with a date first, then alphabetically)
     var sorted = approvedMembers.slice().sort(function (a, b) {
       var nameA = a['Playa Name'] || a['Name'] || '';
@@ -291,7 +303,7 @@ import { parseISO, ganttRange, enumerateDays, barCells, isEventDay, eeColorKey }
     });
 
     var html = '<div style="overflow-x:auto"><table class="logistics-table"><thead><tr>';
-    html += '<th>Name</th><th>Arrives</th><th>Time</th><th>Transport</th><th>Pickup</th><th>Departs</th><th>Camping</th><th>Size</th><th>NoOrg</th><th>Notes</th>';
+    html += '<th>Name</th><th>EE</th><th>Arrives</th><th>Time</th><th>Transport</th><th>Pickup</th><th>Departs</th><th>Camping</th><th>Size</th><th>NoOrg</th><th>Notes</th>';
     html += '</tr></thead><tbody>';
 
     sorted.forEach(function (m) {
@@ -307,6 +319,7 @@ import { parseISO, ganttRange, enumerateDays, barCells, isEventDay, eeColorKey }
         editBtn = '<button class="edit-pencil" data-name="' + JH.esc(m['Playa Name'] || m['Name'] || '') + '" title="Edit logistics">\u270e</button>';
       }
       html += '<td>' + editBtn + '<strong>' + JH.esc(name) + (isMe ? ' <span style="color:var(--accent);font-size:0.75rem">(you)</span>' : '') + '</strong></td>';
+      html += '<td>' + eeBadge(m) + '</td>';
 
       if (row) {
         html += '<td>' + (row['ArrivalDate'] ? JH.formatDate(row['ArrivalDate']) : '<span class="not-filled">—</span>') + '</td>';
