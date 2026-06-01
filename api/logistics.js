@@ -14,8 +14,15 @@ export default async function handler(req, res) {
 
     // ── Fetch (default) ───────────────────────────────────────────────────
     if (!action) {
-      const rows = await safeGet(sheets, id, 'MemberLogistics');
-      return res.status(200).json({ logistics: toObjects(rows) });
+      const [logiRows, eeRows] = await Promise.all([
+        safeGet(sheets, id, 'MemberLogistics'),
+        safeGet(sheets, id, 'EarlyEntry'),
+      ]);
+      // Lightweight EE source map (MemberName + Source only) so the logistics
+      // Gantt can colour bars by early-entry type for ALL viewers. Notes/audit
+      // stay admin-only via the `early-entry-fetch` action.
+      const earlyEntrySources = toObjects(eeRows).map(r => ({ MemberName: r.MemberName, Source: r.Source }));
+      return res.status(200).json({ logistics: toObjects(logiRows), earlyEntrySources });
     }
 
     // ── Early Entry: read assignments ─────────────────────────────────────
