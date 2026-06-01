@@ -82,6 +82,11 @@ access: general
       font-weight: 500;
     }
 
+    .jh-card-photo {
+      height: 200px;
+      background: #1A1A1A center / cover no-repeat;
+    }
+    @media (max-width: 480px) { .jh-card-photo { height: 150px; } }
     .jh-card {
       max-width: 720px;
       margin: 0 auto;
@@ -434,6 +439,7 @@ var nights = [
 var selected = 0;
 
 var mealDates = {}; // MealID -> 'yyyy-mm-dd', loaded from /api/meals
+var mealPhotos = {}; // MealID -> PhotoURL, loaded from /api/meals
 var DOW_FULL = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 var DOW_SHORT = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 var MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -458,7 +464,12 @@ function renderCard(n) {
     return '<span class="jh-side-tag">' + esc(s) + '</span>';
   }).join('');
 
+  var photo = mealPhotos[n.meal]
+    ? '<div class="jh-card-photo" style="background-image:url(\'' + esc(mealPhotos[n.meal]) + '\')"></div>'
+    : '';
+
   return '<div class="jh-card" style="border-color:' + borderColor + '">'
+    + photo
     + finaleBanner
     + '<div class="jh-card-header" style="background:' + headerBg + '">'
     +   '<div class="jh-card-header-bg" style="color:' + n.color + '"></div>'
@@ -483,16 +494,6 @@ function renderCard(n) {
     +   '</div>'
     +   '<p class="jh-section-title">On the table</p>'
     +   '<div class="jh-sides">' + sides + '</div>'
-    +   '<div class="jh-divider"></div>'
-    +   '<div class="jh-dessert">'
-    +     '<span class="jh-dessert-icon">🍬</span>'
-    +     '<div>'
-    +       '<p class="jh-dessert-label">Dessert</p>'
-    +       '<h3 class="jh-dessert-title">' + esc(n.dessert.title) + '</h3>'
-    +       '<p class="jh-dessert-desc">' + esc(n.dessert.description) + '</p>'
-    +       '<p class="jh-dessert-note">' + esc(n.dessert.note) + '</p>'
-    +     '</div>'
-    +   '</div>'
     + '</div>'
     + '<div class="jh-card-footer">'
     +   '<span class="jh-footer-text">Jam House · ElseWhere 2026</span>'
@@ -534,7 +535,7 @@ document.addEventListener('DOMContentLoaded', function() {
   JH.authenticate().then(function() {
     return JH.apiFetch('/api/meals', {}).then(function(res) { return res.ok ? res.json() : null; });
   }).then(function(data) {
-    (data && data.meals || []).forEach(function(m) { mealDates[m.MealID] = m.Date || ''; });
+    (data && data.meals || []).forEach(function(m) { mealDates[m.MealID] = m.Date || ''; mealPhotos[m.MealID] = m.PhotoURL || ''; });
     // Order nights by their meal's date (undated fall to the end).
     nights.sort(function(a, b) {
       var da = nightDate(a) || '9999-99-99', db = nightDate(b) || '9999-99-99';
