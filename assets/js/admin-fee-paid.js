@@ -129,20 +129,42 @@
   function renderRoster(roster) {
     var tbody = document.querySelector('#roster-table tbody');
     var totalSent = 0, totalReceived = 0, totalExpected = 0;
-    var html = '';
-    roster.forEach(function(r) {
-      totalSent += r.fee_total_sent || 0;
-      totalExpected += targetFor(r);
-      if (r.fee_received) totalReceived += r.fee_total_sent || 0;
-      html += '<tr class="' + rosterRowClass(r) + '" data-row="' + r._row + '">' +
+    function rowHtml(r, extraClass) {
+      return '<tr class="' + rosterRowClass(r) + extraClass + '" data-row="' + r._row + '">' +
         '<td>' + esc(r.name) + '</td>' +
         '<td>' + esc(r.playa_name) + '</td>' +
         '<td>€<input type="number" class="sent-input" min="0" step="0.01" value="' + (r.fee_total_sent || 0) + '" style="width:80px;background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:4px;padding:3px 6px;font-family:inherit;font-size:0.92rem;"></td>' +
         '<td>' + rosterStatusText(r) + '</td>' +
         '<td><input type="checkbox" class="recv-cb" ' + (r.fee_received ? 'checked' : '') + '></td>' +
         '</tr>';
+    }
+    roster.forEach(function(r) {
+      totalSent += r.fee_total_sent || 0;
+      totalExpected += targetFor(r);
+      if (r.fee_received) totalReceived += r.fee_total_sent || 0;
     });
+    // The page's job is the overview of who still owes — show outstanding rows,
+    // fold fully-settled (row-green) members behind a click-to-expand toggle.
+    var outstanding = roster.filter(function(r) { return rosterRowClass(r) !== 'row-green'; });
+    var settled = roster.filter(function(r) { return rosterRowClass(r) === 'row-green'; });
+    var html = '';
+    if (outstanding.length) html += outstanding.map(function(r) { return rowHtml(r, ''); }).join('');
+    else if (roster.length) html += '<tr><td colspan="5" style="color:var(--text-muted);text-align:center;padding:14px;">🎉 Everyone has settled their fee.</td></tr>';
+    if (settled.length) {
+      html += '<tr class="paid-toggle" style="cursor:pointer;"><td colspan="5" style="color:var(--text-muted);background:var(--surface2);font-weight:600;padding:8px 10px;">▸ Paid / settled (' + settled.length + ') — click to show</td></tr>';
+      html += settled.map(function(r) { return rowHtml(r, ' paid-row'); }).join('');
+    }
     tbody.innerHTML = html || '<tr><td colspan="5" style="color:var(--text-muted);">No approved members.</td></tr>';
+    tbody.querySelectorAll('.paid-row').forEach(function(tr) { tr.style.display = 'none'; });
+    var paidToggle = tbody.querySelector('.paid-toggle');
+    if (paidToggle) {
+      paidToggle.addEventListener('click', function() {
+        var prows = tbody.querySelectorAll('.paid-row');
+        var show = prows.length && prows[0].style.display === 'none';
+        prows.forEach(function(tr) { tr.style.display = show ? '' : 'none'; });
+        paidToggle.querySelector('td').textContent = (show ? '▾' : '▸') + ' Paid / settled (' + settled.length + ') — click to ' + (show ? 'hide' : 'show');
+      });
+    }
     document.getElementById('t-sent').textContent = '€' + totalSent;
     document.getElementById('t-received').textContent = '€' + totalReceived;
     document.getElementById('t-status').textContent = 'Outstanding: €' + Math.max(0, totalExpected - totalReceived);

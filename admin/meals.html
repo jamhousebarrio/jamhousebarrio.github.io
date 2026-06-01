@@ -108,7 +108,8 @@ access: general
     .headcount-bar{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 14px;margin-bottom:14px;flex-wrap:wrap}
     .headcount-bar input{width:60px;background:var(--bg);border:1px solid var(--accent);border-radius:6px;color:var(--text);font-size:17px;font-weight:700;padding:3px 8px;text-align:center}
     .headcount-bar .lab{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted)}
-    .meal-photo{height:120px;background:#1a1a1a center/cover no-repeat;border-radius:10px 10px 0 0;position:relative}
+    .meal-photo{height:180px;background:#1a1a1a center/cover no-repeat;border-radius:10px 10px 0 0;position:relative}
+    @media (max-width:480px){ .meal-photo{height:150px} }
     .meal-photo .change-photo{position:absolute;right:8px;bottom:8px;background:rgba(0,0,0,.6);border:1px solid #555;border-radius:6px;color:#fff;font-size:11px;padding:3px 9px;cursor:pointer}
     .energy-strip{display:flex;align-items:center;gap:10px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:7px 11px;margin:8px 0}
     .energy-strip .kc{font-weight:700}.energy-strip .vs{font-size:12px;color:var(--text-muted)}
