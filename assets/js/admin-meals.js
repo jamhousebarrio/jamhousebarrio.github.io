@@ -1,4 +1,4 @@
-import { num, perPerson, scaledTotal, mealKcalPerPerson, targetFor, energyStatus, DAILY_TARGET } from '/assets/js/meals-logic.js';
+import { num, perPerson, scaledTotal, mealKcalPerPerson, targetFor, energyStatus, DAILY_TARGET, effectiveHeadcount } from '/assets/js/meals-logic.js';
 
 (async function () {
   var members = await JH.authenticate();
@@ -204,7 +204,9 @@ import { num, perPerson, scaledTotal, mealKcalPerPerson, targetFor, energyStatus
 
   function mealCardHtml(meal) {
     var ings = state.ingredients.filter(function (i) { return i.MealID === meal.MealID; });
-    var hc = headcount();
+    var planned = headcount();
+    var hc = effectiveHeadcount(planned, state.logistics, meal.Date);
+    var noorgOff = planned - hc; // > 0 only on setup/strike days with NoOrg-fed people
     var photo = meal.PhotoURL
       ? '<div class="meal-photo" style="background-image:url(\'' + JH.esc(meal.PhotoURL) + '\')">' + (canEdit ? '<button class="change-photo" data-meal-id="' + JH.esc(meal.MealID) + '">📷 Change</button>' : '') + '</div>'
       : '';
@@ -236,7 +238,9 @@ import { num, perPerson, scaledTotal, mealKcalPerPerson, targetFor, energyStatus
 
     var html = '<div class="meal-card" data-meal-id="' + JH.esc(meal.MealID) + '">' + photo + '<div style="padding:12px 14px">';
     html += '<div class="meal-card-header"><div class="meal-card-title"><h3>' + JH.esc(meal.Name) + '</h3>' + typeSel +
-      '<span class="headcount-note">serves ~' + (parseInt(meal.Servings, 10) || 30) + '</span>' + dateCtl + '</div>';
+      '<span class="headcount-note">serves ~' + (parseInt(meal.Servings, 10) || 30) +
+        (noorgOff > 0 ? ' · <span style="color:var(--accent)">' + hc + ' to feed (' + planned + ' − ' + noorgOff + ' on NoOrg)</span>' : '') +
+        '</span>' + dateCtl + '</div>';
     if (canEdit) html += '<div class="meal-card-actions"><button class="btn-secondary btn-sm edit-meal-btn" data-meal-id="' + JH.esc(meal.MealID) + '">Edit</button><button class="btn-danger btn-sm delete-meal-btn" data-meal-id="' + JH.esc(meal.MealID) + '">Delete</button></div>';
     html += '</div>';
     if (meal.Description) html += '<p class="meal-desc">' + JH.esc(meal.Description) + '</p>';
@@ -522,7 +526,7 @@ import { num, perPerson, scaledTotal, mealKcalPerPerson, targetFor, energyStatus
         if (!agg[key]) {
           agg[key] = { name: ing.Name, unit: ing.Unit || '', total: 0, meals: [] };
         }
-        agg[key].total += scaledTotal(ing.Quantity, meal.Servings, headcount());
+        agg[key].total += scaledTotal(ing.Quantity, meal.Servings, effectiveHeadcount(headcount(), state.logistics, meal.Date));
         agg[key].meals.push(meal.Name);
       });
     });
@@ -591,7 +595,7 @@ import { num, perPerson, scaledTotal, mealKcalPerPerson, targetFor, energyStatus
         preIngredients.push({
           name: ing.Name,
           unit: ing.Unit || '',
-          total: scaledTotal(ing.Quantity, meal.Servings, headcount()),
+          total: scaledTotal(ing.Quantity, meal.Servings, effectiveHeadcount(headcount(), state.logistics, meal.Date)),
           mealName: meal.Name,
         });
       });
@@ -643,7 +647,6 @@ import { num, perPerson, scaledTotal, mealKcalPerPerson, targetFor, energyStatus
   document.getElementById('btn-export-pdf').addEventListener('click', function () {
     var container = document.getElementById('print-container');
     var mealOrder = ['breakfast', 'lunch', 'dinner', 'dessert'];
-    var hc = headcount();
 
     // Sort all meals by date then type
     var allMeals = state.meals.slice().sort(function (a, b) {
@@ -663,6 +666,7 @@ import { num, perPerson, scaledTotal, mealKcalPerPerson, targetFor, energyStatus
     var html = '';
     allMeals.forEach(function (meal) {
       var mealIngredients = state.ingredients.filter(function (i) { return i.MealID === meal.MealID; });
+      var hc = effectiveHeadcount(headcount(), state.logistics, meal.Date);
       var dateLabel = meal.Date ? formatDate(meal.Date) : 'Unscheduled';
       var typeLabel = (meal.MealType || 'Meal').charAt(0).toUpperCase() + (meal.MealType || 'meal').slice(1);
 

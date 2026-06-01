@@ -44,3 +44,35 @@ export function energyStatus(kcal, target) {
   if (!target) return 'ok';
   return kcal >= target ? 'ok' : 'under';
 }
+
+// ── NoOrg meal-headcount adjustment (setup/strike only) ──────────────────────
+// Dates are stored yyyy-mm-dd, which sorts lexically = chronologically.
+export const EVENT_START = '2026-07-07';
+export const EVENT_END = '2026-07-12';
+
+// A meal day is "setup or strike" if it's a real date outside the main event
+// (before 7 Jul or after 12 Jul). Blank/unscheduled/invalid -> false (no adjustment).
+export function isSetupOrStrike(dateStr) {
+  const d = (dateStr || '').trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) return false;
+  return d < EVENT_START || d > EVENT_END;
+}
+
+// How many people are on full-day NoOrg duty on `dateStr` (their NoOrgDates
+// includes it) — they're fed by NoOrg, so the barrio doesn't cook for them.
+export function noorgFedCount(logistics, dateStr) {
+  const d = (dateStr || '').trim();
+  if (!d) return 0;
+  return (logistics || []).reduce(function (n, row) {
+    const days = String((row && row.NoOrgDates) || '').split(',').map(function (s) { return s.trim(); });
+    return n + (days.indexOf(d) !== -1 ? 1 : 0);
+  }, 0);
+}
+
+// Mouths the barrio actually feeds for a meal on `dateStr`: the planning counter,
+// minus NoOrg-fed people on setup/strike days only (event days are unchanged).
+export function effectiveHeadcount(counter, logistics, dateStr) {
+  const base = num(counter);
+  if (!isSetupOrStrike(dateStr)) return base;
+  return Math.max(0, base - noorgFedCount(logistics, dateStr));
+}
