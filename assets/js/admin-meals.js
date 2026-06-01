@@ -874,17 +874,29 @@ import { num, perPerson, scaledTotal, mealKcalPerPerson, targetFor, energyStatus
 
   // ── Init ──────────────────────────────────────────────────────────────────
 
-  // Set up headcount counter
-  state.headcount = approvedCount() || 30;
+  // Set up headcount counter. A manual change is PERSISTED (localStorage) so it
+  // survives page reloads — otherwise the page reset it to the approved count
+  // every load. The reset button clears the override to track the live count.
+  var HC_KEY = 'jh_meals_headcount';
+  function storedHeadcount() {
+    try { var v = parseInt(localStorage.getItem(HC_KEY), 10); return (!isNaN(v) && v > 0) ? v : null; } catch (e) { return null; }
+  }
+  state.headcount = storedHeadcount() || approvedCount() || 30;
   var hcInput = document.getElementById('headcount-input');
   document.getElementById('approved-count').textContent = approvedCount();
   hcInput.value = state.headcount;
   hcInput.addEventListener('input', function () {
     var n = parseInt(hcInput.value, 10);
-    state.headcount = (!isNaN(n) && n > 0) ? n : approvedCount();
+    if (!isNaN(n) && n > 0) {
+      state.headcount = n;
+      try { localStorage.setItem(HC_KEY, String(n)); } catch (e) {}
+    } else {
+      state.headcount = approvedCount(); // blank/invalid -> fall back, don't persist
+    }
     renderMeals(); renderShoppingList(); renderPrepAhead();
   });
   document.getElementById('headcount-reset').addEventListener('click', function () {
+    try { localStorage.removeItem(HC_KEY); } catch (e) {}
     state.headcount = approvedCount() || 30; hcInput.value = state.headcount;
     renderMeals(); renderShoppingList(); renderPrepAhead();
   });
