@@ -236,7 +236,11 @@ import { num, perPerson, scaledTotal, mealKcalPerPerson, targetFor, energyStatus
         '</tr>';
     }).join('');
 
-    var html = '<div class="meal-card" data-meal-id="' + JH.esc(meal.MealID) + '">' + photo + '<div style="padding:12px 14px">';
+    var preCount = ings.filter(function (i) { return (i.Prep || '').toLowerCase() === 'pre-cook'; }).length;
+
+    // Option C layout: photo on the side, summary always visible, ingredient
+    // detail collapsed behind a click (so a ~10-meal page stays scannable).
+    var html = '<div class="meal-card" data-meal-id="' + JH.esc(meal.MealID) + '">' + photo + '<div class="meal-card-body">';
     html += '<div class="meal-card-header"><div class="meal-card-title"><h3>' + JH.esc(meal.Name) + '</h3>' + typeSel +
       '<span class="headcount-note">serves ~' + (parseInt(meal.Servings, 10) || 30) +
         (noorgOff > 0 ? ' · <span style="color:var(--accent)">' + hc + ' to feed (' + planned + ' − ' + noorgOff + ' on NoOrg)</span>' : '') +
@@ -245,6 +249,10 @@ import { num, perPerson, scaledTotal, mealKcalPerPerson, targetFor, energyStatus
     html += '</div>';
     if (meal.Description) html += '<p class="meal-desc">' + JH.esc(meal.Description) + '</p>';
     html += mealKcalLine(meal, ings);
+    html += '<div class="ings-toggle" data-meal-id="' + JH.esc(meal.MealID) + '"><span class="chev">▸</span> ' +
+      ings.length + ' ingredient' + (ings.length === 1 ? '' : 's') +
+      (preCount ? ' · <span class="ings-pre">❄ ' + preCount + ' pre-cook</span>' : '') + '</div>';
+    html += '<div class="ingredients-collapse" id="ings-' + JH.esc(meal.MealID) + '" style="display:none">';
     if (meal.PreCook) html += '<div class="precook-callout"><b>❄ Pre-cook ahead:</b> ' + JH.esc(meal.PreCook) + '</div>';
     if (meal.Instructions) {
       html += '<button class="instructions-toggle" data-meal-id="' + JH.esc(meal.MealID) + '">Show instructions</button>';
@@ -255,7 +263,9 @@ import { num, perPerson, scaledTotal, mealKcalPerPerson, targetFor, energyStatus
     html += ings.length
       ? '<div style="overflow-x:auto;-webkit-overflow-scrolling:touch"><table class="ingredients-table"><thead><tr><th>Name</th><th>Per-person</th><th>Total (' + hc + ')</th><th>Unit</th><th>kcal/p</th><th>Prep</th>' + (canEdit ? '<th></th>' : '') + '</tr></thead><tbody>' + rows + '</tbody></table></div>'
       : '<div style="font-size:0.82rem;color:var(--text-muted);padding:6px 0">No ingredients yet.</div>';
-    html += '</div></div></div>';
+    html += '</div>';   // ingredients-section
+    html += '</div>';   // ingredients-collapse
+    html += '</div></div>'; // meal-card-body, meal-card
     return html;
   }
 
@@ -310,6 +320,13 @@ import { num, perPerson, scaledTotal, mealKcalPerPerson, targetFor, energyStatus
       var visible = textEl.style.display !== 'none';
       textEl.style.display = visible ? 'none' : '';
       btn.textContent = visible ? 'Show instructions' : 'Hide instructions';
+      return;
+    }
+
+    var ingTog = e.target.closest('.ings-toggle');
+    if (ingTog) {
+      var coll = document.getElementById('ings-' + ingTog.dataset.mealId);
+      if (coll) { var open = coll.style.display !== 'none'; coll.style.display = open ? 'none' : ''; ingTog.classList.toggle('open', !open); }
       return;
     }
 
