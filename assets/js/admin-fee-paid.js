@@ -128,7 +128,7 @@
 
   function renderRoster(roster) {
     var tbody = document.querySelector('#roster-table tbody');
-    var totalSent = 0, totalReceived = 0, totalExpected = 0;
+    var totalSent = 0, totalReceived = 0, totalExpected = 0, totalExtra = 0;
     function rowHtml(r, extraClass) {
       return '<tr class="' + rosterRowClass(r) + extraClass + '" data-row="' + r._row + '">' +
         '<td>' + esc(r.name) + '</td>' +
@@ -139,9 +139,11 @@
         '</tr>';
     }
     roster.forEach(function(r) {
-      totalSent += r.fee_total_sent || 0;
+      var sent = r.fee_total_sent || 0;
+      totalSent += sent;
       totalExpected += targetFor(r);
-      if (r.fee_received) totalReceived += r.fee_total_sent || 0;
+      if (r.fee_received) totalReceived += sent;
+      if (r.fee_received && sent > targetFor(r)) totalExtra += sent - targetFor(r);
     });
     // The page's job is the overview of who still owes — show outstanding rows,
     // fold fully-settled (row-green) members behind a click-to-expand toggle.
@@ -167,7 +169,8 @@
     }
     document.getElementById('t-sent').textContent = '€' + totalSent;
     document.getElementById('t-received').textContent = '€' + totalReceived;
-    document.getElementById('t-status').textContent = 'Outstanding: €' + Math.max(0, totalExpected - totalReceived);
+    document.getElementById('t-status').innerHTML = 'Outstanding: €' + Math.max(0, totalExpected - totalReceived) +
+      (totalExtra ? ' <span class="badge badge-extra">+€' + totalExtra + ' extra</span>' : '');
 
     tbody.querySelectorAll('.sent-input').forEach(function(inp) {
       var original = inp.value;
