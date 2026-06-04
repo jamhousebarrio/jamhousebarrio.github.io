@@ -111,6 +111,82 @@
     document.getElementById('stat-open').textContent = totalSlots - shifts.filter(function (s) { return s.AssignedTo; }).length;
   }
 
+  // Renders the assignee chips + signup/remove/override controls for one shift
+  // cell. Shared by the desktop grid and the mobile accordion so both reuse the
+  // same data-attribute buttons handled by the delegated #shifts-wrap listener.
+  function renderShiftCellInner(s, typeName, date) {
+    var html = '';
+    if (!s) {
+      html += '<span class="no-shift">&mdash;</span>';
+      return html;
+    }
+    var people = (s.AssignedTo || '').split(',').map(function (p) { return p.trim(); }).filter(Boolean);
+    var maxNum = parseInt(s.MaxPerSlot || '', 10);
+    var isFull = !isNaN(maxNum) && maxNum > 0 && people.length >= maxNum;
+    people.forEach(function (person) {
+      html += '<span class="shift-chip filled">' + JH.esc(person);
+      if (isAdmin) {
+        html += ' <button class="remove-btn remove-person-btn" data-id="' + JH.esc(s.ShiftID) + '" data-person="' + JH.esc(person) + '" title="Remove ' + JH.esc(person) + '">&times;</button>';
+      }
+      html += '</span>';
+    });
+    if (isFull) {
+      html += '<span class="shift-full-tag">Full' + (maxNum ? ' (' + maxNum + ')' : '') + '</span>';
+      if (isAdmin && !isObserver) {
+        html += '<button class="signup-btn assign-btn override-btn" data-id="' + JH.esc(s.ShiftID) + '" data-name="' + JH.esc(typeName) + '" data-date="' + JH.esc(date) + '" title="Override cap (admin only)">+ Override</button>';
+      }
+    } else if (!isObserver) {
+      var capNote = (!isNaN(maxNum) && maxNum > 0) ? ' (' + people.length + '/' + maxNum + ')' : '';
+      html += '<button class="signup-btn assign-btn" data-id="' + JH.esc(s.ShiftID) + '" data-name="' + JH.esc(typeName) + '" data-date="' + JH.esc(date) + '">+ Sign Up' + capNote + '</button>';
+    }
+    return html;
+  }
+
+  // Stacked accordion (one per event day) for ≤480px viewports. Reuses
+  // renderShiftCellInner, so signup/remove/override flow through the same
+  // delegated handler as the desktop grid — no duplicated API logic.
+  function renderMobileCards(types) {
+    var html = '<div class="mobile-cards" id="shifts-mobile">';
+    EVENT_DATES.forEach(function (date, di) {
+      // Count open/filled slots for the day to show a quick summary in the head.
+      var filled = 0, slotsOnDay = 0;
+      types.forEach(function (type) {
+        type.slots.forEach(function (slot) {
+          var s = slot.shiftsByDate[date];
+          if (!s) return;
+          slotsOnDay++;
+          var ppl = (s.AssignedTo || '').split(',').map(function (p) { return p.trim(); }).filter(Boolean);
+          if (ppl.length) filled++;
+        });
+      });
+      var openClass = di === 0 ? ' open' : '';
+      html += '<div class="m-acc' + openClass + '">';
+      html += '<div class="m-acc-head"><span>' + JH.esc(JH.formatDateLong(date)) + '</span>';
+      html += '<span class="m-acc-meta">' + filled + '/' + slotsOnDay + ' filled <span class="chev">&#9662;</span></span></div>';
+      html += '<div class="m-acc-body">';
+      if (!slotsOnDay) {
+        html += '<div class="m-empty">No shifts this day.</div>';
+      } else {
+        types.forEach(function (type) {
+          var nameEsc = JH.esc(type.name);
+          type.slots.forEach(function (slot) {
+            var s = slot.shiftsByDate[date];
+            if (!s) return;
+            html += '<div class="m-shift">';
+            html += '<div class="m-shift-head"><button class="role-name-btn role-desc-btn" data-name="' + nameEsc + '" title="Description">' + nameEsc + '</button>';
+            if (slot.label) html += '<span class="m-shift-time">' + JH.esc(slot.label) + '</span>';
+            html += '</div>';
+            html += '<div class="m-shift-cell">' + renderShiftCellInner(s, type.name, date) + '</div>';
+            html += '</div>';
+          });
+        });
+      }
+      html += '</div></div>';
+    });
+    html += '</div>';
+    return html;
+  }
+
   function renderGrid() {
     var wrap = document.getElementById('shifts-wrap');
     var types = getShiftTypes();
@@ -120,7 +196,7 @@
       return;
     }
 
-    var html = '<div class="shift-grid"><table><thead><tr>';
+    var html = '<div class="shift-grid hide-on-mobile"><table><thead><tr>';
     html += '<th>Role Name</th>';
     EVENT_DATES.forEach(function (d) {
       html += '<th>' + JH.formatDateLong(d) + '</th>';
@@ -145,29 +221,7 @@
           html += '<div class="slot-group">';
           if (slot.label) html += '<div class="slot-time">' + JH.esc(slot.label) + '</div>';
           html += '<div class="shift-cell">';
-          if (!s) {
-            html += '<span class="no-shift">&mdash;</span>';
-          } else {
-            var people = (s.AssignedTo || '').split(',').map(function (p) { return p.trim(); }).filter(Boolean);
-            var maxNum = parseInt(s.MaxPerSlot || '', 10);
-            var isFull = !isNaN(maxNum) && maxNum > 0 && people.length >= maxNum;
-            people.forEach(function (person) {
-              html += '<span class="shift-chip filled">' + JH.esc(person);
-              if (isAdmin) {
-                html += ' <button class="remove-btn remove-person-btn" data-id="' + JH.esc(s.ShiftID) + '" data-person="' + JH.esc(person) + '" title="Remove ' + JH.esc(person) + '">&times;</button>';
-              }
-              html += '</span>';
-            });
-            if (isFull) {
-              html += '<span class="shift-full-tag">Full' + (maxNum ? ' (' + maxNum + ')' : '') + '</span>';
-              if (isAdmin && !isObserver) {
-                html += '<button class="signup-btn assign-btn override-btn" data-id="' + JH.esc(s.ShiftID) + '" data-name="' + JH.esc(type.name) + '" data-date="' + JH.esc(date) + '" title="Override cap (admin only)">+ Override</button>';
-              }
-            } else if (!isObserver) {
-              var capNote = (!isNaN(maxNum) && maxNum > 0) ? ' (' + people.length + '/' + maxNum + ')' : '';
-              html += '<button class="signup-btn assign-btn" data-id="' + JH.esc(s.ShiftID) + '" data-name="' + JH.esc(type.name) + '" data-date="' + JH.esc(date) + '">+ Sign Up' + capNote + '</button>';
-            }
-          }
+          html += renderShiftCellInner(s, type.name, date);
           html += '</div></div>';
         });
         html += '</td>';
@@ -177,10 +231,19 @@
     });
 
     html += '</tbody></table></div>';
+    html += renderMobileCards(types);
     wrap.innerHTML = html;
   }
 
   document.getElementById('shifts-wrap').addEventListener('click', async function (e) {
+    // Mobile accordion toggle (one per event day). Ignore clicks that landed on
+    // an interactive control inside the head (none today, but future-proof).
+    var accHead = e.target.closest('.m-acc-head');
+    if (accHead && !e.target.closest('button')) {
+      accHead.parentElement.classList.toggle('open');
+      return;
+    }
+
     var btn = e.target.closest('.role-desc-btn');
     if (btn) { openDescModal(btn.dataset.name); return; }
 
