@@ -519,6 +519,51 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true, invited });
     }
 
+    // ── Reconciliation: invite every Approved/Observer member with no account ──
+    // Catches the one path the live hooks can't: hand-edits to the Sheet's
+    // Status column. Telegram pings are SUPPRESSED here — backfilling weeks-late
+    // approvals must not spam the group. (Admin-gated above at "Write actions".)
+    if (action === 'sync-invites') {
+      const r = await sheets.spreadsheets.values.get({ spreadsheetId, range: 'Sheet1' });
+      const rows = r.data.values || [];
+      const hdrs = rows[0] || [];
+      const statusCol = hdrs.indexOf('Status');
+      const emailCol = hdrs.indexOf('Email');
+      const nameCol = hdrs.indexOf('Name');
+      const playaCol = hdrs.indexOf('Playa Name');
+
+      const roster = [];
+      for (let i = 1; i < rows.length; i++) {
+        const memberStatus = (rows[i][statusCol] || '').trim();
+        if (!PORTAL_STATUSES.has(memberStatus.toLowerCase())) continue;
+        roster.push({
+          email: (rows[i][emailCol] || '').trim(),
+          status: memberStatus,
+          member: { Name: rows[i][nameCol] || '', 'Playa Name': rows[i][playaCol] || '' },
+        });
+      }
+
+      const supabase = getSupabaseAdmin();
+      const existing = await listUserEmails(supabase);
+      const missing = diffMissingInvites(roster, existing);
+
+      const invited = [], failed = [];
+      for (const m of missing) {
+        try {
+          await sendMemberInvite({ supabase, sheets, email: m.email, status: m.status, member: m.member });
+          invited.push({ name: m.member['Playa Name'] || m.member.Name || m.email, email: m.email });
+        } catch (e) {
+          failed.push({ email: m.email, error: e.message });
+        }
+      }
+      return res.status(200).json({
+        success: true,
+        rosterCount: roster.length,
+        alreadyHadAccount: roster.length - missing.length,
+        invited, failed,
+      });
+    }
+
     // ── Delete member by email ─────────────────────────────────────────────
     if (action === 'delete') {
       const { email: targetEmail } = payload;
