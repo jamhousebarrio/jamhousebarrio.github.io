@@ -318,6 +318,43 @@
     popoverEl.hidden = true;
   });
 
+  // ── Sync invites (reconciliation) — admin only ───────────────────────────
+  var syncBtn = document.getElementById('sync-invites-btn');
+  if (syncBtn) {
+    if (!isAdmin) {
+      syncBtn.style.display = 'none';
+    } else {
+      syncBtn.addEventListener('click', async function() {
+        if (!confirm('Send the welcome email to every Approved/Observer member who has no account yet?')) return;
+        syncBtn.disabled = true;
+        var orig = syncBtn.textContent;
+        syncBtn.textContent = 'Syncing…';
+        try {
+          var res = await JH.apiFetch('/api/members', { action: 'sync-invites' });
+          var b = await res.json().catch(function() { return {}; });
+          if (!res.ok) { alert('Sync failed: ' + (b.error || res.status)); return; }
+          var lines = [
+            'Roster: ' + b.rosterCount + ' Approved/Observer',
+            'Already had accounts: ' + b.alreadyHadAccount,
+            'Invited now: ' + ((b.invited || []).length)
+          ];
+          if ((b.invited || []).length) {
+            lines.push((b.invited).map(function(x) { return '  • ' + x.name; }).join('\n'));
+          }
+          if ((b.failed || []).length) {
+            lines.push('Failed: ' + b.failed.map(function(x) { return x.email + ' (' + x.error + ')'; }).join(', '));
+          }
+          alert(lines.join('\n'));
+        } catch (e) {
+          alert('Sync error: ' + e.message);
+        } finally {
+          syncBtn.disabled = false;
+          syncBtn.textContent = orig;
+        }
+      });
+    }
+  }
+
   // ── Kanban view ─────────────────────────────────────────────────────────
   var LS_VIEW_KEY = 'jh.applications.view.v2';
   var LS_KB_EXPANDED_KEY = 'jh.applications.kanban.expanded';
