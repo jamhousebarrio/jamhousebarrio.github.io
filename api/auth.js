@@ -1,8 +1,8 @@
-import { createClient } from '@supabase/supabase-js';
 import { verifyToken, getMemberByEmail, isAdmin } from './_lib/auth.js';
 import { getSheets, colToLetter } from './_lib/sheets.js';
 import { logError } from './_lib/error-log.js';
-import { sendEmail, tplInvite, tplObserverWelcome, tplPasswordReset, tplDietaryPrompt, tplMagicLink } from './_lib/email.js';
+import { sendEmail, tplPasswordReset, tplDietaryPrompt, tplMagicLink } from './_lib/email.js';
+import { getSupabaseAdmin, sendMemberInvite } from './_lib/invite.js';
 
 const SITE_URL = process.env.SITE_URL || 'https://jamhouse.space';
 // Resend free tier is 2 req/s; 500ms keeps us safely under.
@@ -11,12 +11,6 @@ const RESEND_RATE_LIMIT_MS = 500;
 // admins re-trigger this on a schedule — exceeding the cap returns early so
 // they know to continue tomorrow.
 const MAX_DIETARY_PROMPTS_PER_RUN = 50;
-
-function getSupabaseAdmin() {
-  return createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SECRET_KEY, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  });
-}
 
 async function tgSend(text) {
   if (!process.env.TELEGRAM_BOT_TOKEN || !process.env.TELEGRAM_CHAT_ID) return;
@@ -101,47 +95,26 @@ export default async function handler(req, res) {
       const { email } = payload;
       if (!email) return res.status(400).json({ error: 'email required' });
 
-      const supabase = getSupabaseAdmin();
-
       const preLookup = await getMemberByEmail(sheets, process.env.SHEET_ID, email, { anyStatus: true }).catch(() => null);
-      const preStatus = (preLookup?.member?.Status || '').toString().toLowerCase().trim();
-      const tplFn = preStatus === 'observer' ? tplObserverWelcome : tplInvite;
-      // Observers don't need to set a portal password — they're read-only and
-      // can re-enter via magic-link. Setting must_change_password forces them
-      // into /admin/profile and blocks every other page, defeating the
-      // "transparency" purpose of the role.
-      const linkOptions = {
-        redirectTo: `${SITE_URL}/admin`,
-        data: preStatus === 'observer' ? {} : { must_change_password: true },
-      };
-
-      let isNewUser = true;
-      let linkRes = await supabase.auth.admin.generateLink({ type: 'invite', email, options: linkOptions });
-      if (linkRes.error) {
-        const code = linkRes.error.code || '';
-        const isEmailExists = code === 'email_exists' || /already.*registered|already.*exists/i.test(linkRes.error.message || '');
-        if (isEmailExists) {
-          isNewUser = false;
-          linkRes = await supabase.auth.admin.generateLink({ type: 'recovery', email, options: linkOptions });
-        }
-      }
-      if (linkRes.error || !linkRes.data?.properties?.action_link) {
-        console.error('Invite generateLink error:', linkRes.error);
-        return res.status(500).json({ error: linkRes.error?.message || 'Failed to generate action link' });
-      }
-
       const targetMember = preLookup?.member || {};
-      const tpl = tplFn({
-        playaName: targetMember['Playa Name'] || '',
-        name: targetMember['Name'] || '',
-        actionLink: linkRes.data.properties.action_link,
-      });
-      await sendEmail({ to: email, subject: tpl.subject, html: tpl.html });
+      const preStatus = (targetMember.Status || '').toString().toLowerCase().trim();
+
+      // Shared helper mints the link (invite → recovery fallback for existing
+      // users) and sends the branded invite/observer email.
+      let invite;
+      try {
+        invite = await sendMemberInvite({
+          supabase: getSupabaseAdmin(), sheets, email, status: preStatus, member: targetMember,
+        });
+      } catch (e) {
+        console.error('Invite generateLink/send error:', e);
+        return res.status(500).json({ error: e.message || 'Failed to send invite' });
+      }
 
       const memberName = (targetMember['Playa Name'] || targetMember['Name'] || email).toString().trim() || email;
       let tgText = null;
       if (preStatus === 'observer') {
-        if (isNewUser) tgText = '👀 *' + memberName + '* joined us as a lurker.';
+        if (invite.isNewUser) tgText = '👀 *' + memberName + '* joined us as a lurker.';
       } else if (preStatus === 'approved') {
         tgText = '🎉 Welcome to the barrio! *' + memberName + '* has been approved — say hi!';
       } else {
