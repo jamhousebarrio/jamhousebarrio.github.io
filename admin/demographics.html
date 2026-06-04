@@ -37,6 +37,10 @@ access: general
       .charts-3col .panel div[style*="height:220px"] { height: 180px !important; }
       .member-panel { width: 100vw; right: -100vw; }
       .member-field-label { font-size: 0.75rem; }
+      /* Phones: shorter, viewport-bounded roster grid so it doesn't eat the screen. */
+      #roster-grid { height: 55vh; min-height: 280px; max-height: 420px; }
+      /* The location chart sets its own height inline (locHeight); cap it on phones. */
+      #location-wrap { max-height: 60vh; }
     }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>

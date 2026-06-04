@@ -128,6 +128,7 @@
 
   function renderRoster(roster) {
     var tbody = document.querySelector('#roster-table tbody');
+    var cardsWrap = document.getElementById('roster-cards');
     var totalSent = 0, totalReceived = 0, totalExpected = 0, totalExtra = 0;
     function rowHtml(r, extraClass) {
       return '<tr class="' + rosterRowClass(r) + extraClass + '" data-row="' + r._row + '">' +
@@ -137,6 +138,17 @@
         '<td>' + rosterStatusText(r) + '</td>' +
         '<td><input type="checkbox" class="recv-cb" ' + (r.fee_received ? 'checked' : '') + '></td>' +
         '</tr>';
+    }
+    // Mobile dual-render: one .m-card per member with the same functional
+    // controls (sent-input / recv-cb) and data-row, wired by the same handlers.
+    function cardHtml(r, extraClass) {
+      return '<div class="m-card ' + rosterRowClass(r) + extraClass + '" data-row="' + r._row + '">' +
+        '<div class="m-card-title">' + esc(r.name) + '</div>' +
+        '<div class="m-card-row"><span class="m-card-label">Playa</span><span class="m-card-val">' + (esc(r.playa_name) || '—') + '</span></div>' +
+        '<div class="m-card-row"><span class="m-card-label">Sent €</span><span class="m-card-val"><input type="number" class="sent-input" min="0" step="0.01" value="' + (r.fee_total_sent || 0) + '"></span></div>' +
+        '<div class="m-card-row"><span class="m-card-label">Status</span><span class="m-card-val">' + rosterStatusText(r) + '</span></div>' +
+        '<div class="m-card-row"><span class="m-card-label">Received</span><span class="m-card-val"><input type="checkbox" class="recv-cb" ' + (r.fee_received ? 'checked' : '') + '></span></div>' +
+        '</div>';
     }
     roster.forEach(function(r) {
       var sent = r.fee_total_sent || 0;
@@ -167,45 +179,78 @@
         paidToggle.querySelector('td').textContent = (show ? '▾' : '▸') + ' Paid / settled (' + settled.length + ') — click to ' + (show ? 'hide' : 'show');
       });
     }
+
+    // Mobile cards — same outstanding/settled split, settled collapsed by default.
+    if (cardsWrap) {
+      var cHtml = '';
+      if (outstanding.length) cHtml += outstanding.map(function(r) { return cardHtml(r, ''); }).join('');
+      else if (roster.length) cHtml += '<div class="m-card" style="text-align:center;color:var(--text-muted);">🎉 Everyone has settled their fee.</div>';
+      if (settled.length) {
+        cHtml += '<button type="button" class="m-card paid-toggle-card" style="cursor:pointer;color:var(--text-muted);font-weight:600;text-align:left;">▸ Paid / settled (' + settled.length + ') — tap to show</button>';
+        cHtml += settled.map(function(r) { return cardHtml(r, ' paid-card'); }).join('');
+      }
+      cardsWrap.innerHTML = cHtml || '<div class="m-card" style="color:var(--text-muted);">No approved members.</div>';
+      cardsWrap.querySelectorAll('.paid-card').forEach(function(c) { c.style.display = 'none'; });
+      var paidToggleCard = cardsWrap.querySelector('.paid-toggle-card');
+      if (paidToggleCard) {
+        paidToggleCard.addEventListener('click', function() {
+          var pcards = cardsWrap.querySelectorAll('.paid-card');
+          var show = pcards.length && pcards[0].style.display === 'none';
+          pcards.forEach(function(c) { c.style.display = show ? '' : 'none'; });
+          paidToggleCard.textContent = (show ? '▾' : '▸') + ' Paid / settled (' + settled.length + ') — tap to ' + (show ? 'hide' : 'show');
+        });
+      }
+    }
+
     document.getElementById('t-sent').textContent = '€' + totalSent;
     document.getElementById('t-received').textContent = '€' + totalReceived;
     document.getElementById('t-status').innerHTML = 'Outstanding: €' + Math.max(0, totalExpected - totalReceived) +
       (totalExtra ? ' <span class="badge badge-extra">+€' + totalExtra + ' extra</span>' : '');
 
-    tbody.querySelectorAll('.sent-input').forEach(function(inp) {
-      var original = inp.value;
-      inp.addEventListener('change', async function() {
-        var row = parseInt(inp.closest('tr').getAttribute('data-row'));
-        var amount = parseFloat(inp.value);
-        if (!isFinite(amount) || amount < 0) { inp.value = original; alert('Enter a valid amount'); return; }
-        inp.disabled = true;
-        try {
-          var res = await JH.apiFetch('/api/members', { action: 'admin-update-fee-sent', row: row, amount: amount });
-          if (!res.ok) throw new Error('Failed');
-          await load();
-        } catch (e) {
-          inp.value = original;
-          alert('Failed to update');
-        } finally {
-          inp.disabled = false;
-        }
+    // Bind across table rows AND mobile cards — both carry data-row on the
+    // nearest [data-row] ancestor (a <tr> or an .m-card).
+    function rowOf(el) {
+      var anc = el.closest('[data-row]');
+      return anc ? parseInt(anc.getAttribute('data-row')) : NaN;
+    }
+    var scopes = [tbody];
+    if (cardsWrap) scopes.push(cardsWrap);
+    scopes.forEach(function(scope) {
+      scope.querySelectorAll('.sent-input').forEach(function(inp) {
+        var original = inp.value;
+        inp.addEventListener('change', async function() {
+          var row = rowOf(inp);
+          var amount = parseFloat(inp.value);
+          if (!isFinite(amount) || amount < 0) { inp.value = original; alert('Enter a valid amount'); return; }
+          inp.disabled = true;
+          try {
+            var res = await JH.apiFetch('/api/members', { action: 'admin-update-fee-sent', row: row, amount: amount });
+            if (!res.ok) throw new Error('Failed');
+            await load();
+          } catch (e) {
+            inp.value = original;
+            alert('Failed to update');
+          } finally {
+            inp.disabled = false;
+          }
+        });
       });
-    });
 
-    tbody.querySelectorAll('.recv-cb').forEach(function(cb) {
-      cb.addEventListener('change', async function() {
-        var row = parseInt(cb.closest('tr').getAttribute('data-row'));
-        cb.disabled = true;
-        try {
-          var res = await JH.apiFetch('/api/members', { action: 'mark-fee-received', row: row, received: cb.checked });
-          if (!res.ok) throw new Error('Failed');
-          await load();
-        } catch (e) {
-          cb.checked = !cb.checked;
-          alert('Failed to update');
-        } finally {
-          cb.disabled = false;
-        }
+      scope.querySelectorAll('.recv-cb').forEach(function(cb) {
+        cb.addEventListener('change', async function() {
+          var row = rowOf(cb);
+          cb.disabled = true;
+          try {
+            var res = await JH.apiFetch('/api/members', { action: 'mark-fee-received', row: row, received: cb.checked });
+            if (!res.ok) throw new Error('Failed');
+            await load();
+          } catch (e) {
+            cb.checked = !cb.checked;
+            alert('Failed to update');
+          } finally {
+            cb.disabled = false;
+          }
+        });
       });
     });
   }

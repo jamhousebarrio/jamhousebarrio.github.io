@@ -52,6 +52,10 @@ access: general
     .toggle input:checked::before { transform: translateX(16px); }
     .toggle input:disabled { opacity: 0.5; cursor: wait; }
     .li-disabled-banner { padding: 14px 18px; border-radius: 6px; background: rgba(255,255,255,0.04); border: 1px solid var(--border); color: var(--text-muted); font-size: 0.95rem; line-height: 1.5; }
+    /* Mobile fee cards: the Sent input must not overflow the card. */
+    .m-card .m-card-val { flex: 1; min-width: 0; }
+    .m-card .sent-input { width: 100%; min-width: 0; box-sizing: border-box; background: var(--surface2); color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 6px 8px; font-family: inherit; font-size: 0.92rem; }
+    .m-card .recv-cb { width: 20px; height: 20px; accent-color: var(--accent); }
   </style>
 </head>
 <body>
@@ -129,7 +133,7 @@ access: general
   <div class="panel admin-only" style="display:none;">
     <h2>All approved members</h2>
     <p class="text-help">Tick <strong>Received</strong> once the bank confirms. If a member updates their amount afterwards, the tick auto-clears and you'll need to confirm again.</p>
-    <div style="overflow-x:auto;">
+    <div style="overflow-x:auto;" class="hide-on-mobile">
       <table class="fee-table" id="roster-table">
         <thead>
           <tr><th>Name</th><th>Playa Name</th><th>Sent (€)</th><th>Status</th><th>Received</th></tr>
@@ -140,6 +144,7 @@ access: general
         </tfoot>
       </table>
     </div>
+    <div class="mobile-cards" id="roster-cards"></div>
   </div>
 </div>
 
