@@ -233,7 +233,28 @@ JH.PhoneCellRenderer.prototype.init = function(params) {
 };
 JH.PhoneCellRenderer.prototype.getGui = function() { return this.eGui; };
 
-JH.isMobile = window.innerWidth < 480;
+// Dynamic getter so every read reflects the CURRENT width — callers that did
+// `if (JH.isMobile)` keep working but no longer cache a stale value across a
+// rotation/resize. Pages that must re-render on a breakpoint flip can listen
+// for the debounced 'jh:breakpoint' event below.
+Object.defineProperty(JH, 'isMobile', {
+  configurable: true,
+  get: function () { return window.innerWidth < 480; },
+});
+(function () {
+  var last = window.innerWidth < 480;
+  var t;
+  window.addEventListener('resize', function () {
+    clearTimeout(t);
+    t = setTimeout(function () {
+      var now = window.innerWidth < 480;
+      if (now !== last) {
+        last = now;
+        window.dispatchEvent(new CustomEvent('jh:breakpoint', { detail: { isMobile: now } }));
+      }
+    }, 150);
+  });
+})();
 
 JH.IconsOnlyRenderer = function() {};
 JH.IconsOnlyRenderer.prototype.init = function(params) {

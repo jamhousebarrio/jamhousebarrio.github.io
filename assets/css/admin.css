@@ -297,6 +297,19 @@ table tbody tr:nth-child(even) td { background: rgba(255,255,255,0.012); }
 .modal-actions { display: flex; gap: 8px; margin-top: 12px; }
 .msg { font-size: 0.78rem; align-self: center; font-family: var(--body); }
 
+/* ═══════════════════════════════════════ ACCESSIBILITY ═══════════════════════════════════════ */
+/* Keyboard focus must stay visible. The custom :focus rings above use
+   `outline: none`, which left keyboard/switch users with no indicator — restore
+   a visible ring for keyboard navigation only (mouse clicks don't trigger
+   :focus-visible). !important clears the higher-specificity `outline: none`. */
+*:focus-visible {
+  outline: 2px solid var(--accent) !important;
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+/* Lock background scroll while any modal is open (CSS-only, no JS needed). */
+body:has(.modal-overlay.active) { overflow: hidden; }
+
 /* ═══════════════════════════════════════ EMPTY STATE ═══════════════════════════════════════ */
 .empty-state { color: var(--text-muted); font-size: 0.88rem; padding: 40px 24px; text-align: center; font-weight: 500; }
 
@@ -310,6 +323,23 @@ table tbody tr:nth-child(even) td { background: rgba(255,255,255,0.012); }
   font-size: 0.78rem; cursor: pointer; transition: all 0.15s; font-weight: 500;
 }
 .fullscreen-btn:hover { border-color: var(--accent-dim); color: var(--accent); }
+
+/* ═══════════════════════════════════════ TOUCH TARGETS ═══════════════════════════════════════ */
+/* On touch devices, shared interactive controls get a ≥44px hit area (WCAG).
+   Scoped to `pointer: coarse` so the desktop look is unchanged. In-cell controls
+   on the dense grid pages use page-specific classes and are handled per page. */
+@media (pointer: coarse) {
+  .btn, .btn-primary, .btn-secondary, .btn-sm, .filter-btn, .logout-btn,
+  .nav-item, .sidebar-footer a {
+    min-height: 44px;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .nav-item, .sidebar-footer a { justify-content: flex-start; }
+  .btn-icon, .btn-danger, .btn-danger-sm, .modal-close {
+    min-height: 44px; min-width: 44px;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+}
 
 /* ═══════════════════════════════════════ RESPONSIVE ═══════════════════════════════════════ */
 @media (max-width: 900px) {
@@ -344,10 +374,10 @@ table tbody tr:nth-child(even) td { background: rgba(255,255,255,0.012); }
   .sidebar-nav { display: flex; flex-direction: row; padding: 0; overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; gap: 0; }
   .sidebar-nav::-webkit-scrollbar { height: 3px; }
   .sidebar-nav::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-  .nav-item { flex: 0 0 auto; flex-direction: column; gap: 2px; padding: 10px 4px; margin: 0; font-size: 0.7rem; width: 56px; align-items: center; text-align: center; border-left: none; border-bottom: 3px solid transparent; }
+  .nav-item { flex: 0 0 auto; flex-direction: column; justify-content: center; gap: 3px; padding: 8px 6px; margin: 0; font-size: 0.7rem; width: 62px; min-height: 52px; align-items: center; text-align: center; border-left: none; border-bottom: 3px solid transparent; }
   .nav-item:hover, .nav-item.active { border-left-color: transparent; border-bottom-color: var(--accent); }
-  .nav-item .icon { font-size: 1.1rem; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; }
-  .nav-item-text { display: block !important; font-size: 0.55rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+  .nav-item .icon { font-size: 1.2rem; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; }
+  .nav-item-text { display: block !important; font-size: 0.62rem; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
   .sidebar-footer { display: none; }
   .main { margin-left: 0; padding: 12px 10px 80px; }
   .stats-row { grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 16px; }
@@ -361,6 +391,9 @@ table tbody tr:nth-child(even) td { background: rgba(255,255,255,0.012); }
   .panel { padding: 10px 8px; overflow: hidden; }
   .main { overflow-x: hidden; }
   .page-header { flex-direction: column; align-items: flex-start; gap: 8px; }
+  /* Modals become a near-full-width bottom sheet — easier to reach one-handed. */
+  .modal-overlay { align-items: flex-end; }
+  .modal { width: 100%; max-width: 100%; max-height: 92vh; padding: 20px 16px; border-radius: 16px 16px 0 0; }
   .modal-actions { flex-wrap: wrap; }
   .modal-actions > button, .modal-actions > .btn, .modal-actions > .btn-primary, .modal-actions > .btn-secondary { flex: 1 1 auto; }
 }
