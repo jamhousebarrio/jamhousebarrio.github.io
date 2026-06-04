@@ -161,7 +161,7 @@ import { parseISO, ganttRange, enumerateDays, barCells, isEventDay, eeColorKey }
     html += '<input type="text" id="f-noorg" placeholder="Pick one or more days" value="' + JH.esc(row['NoOrgDates'] || '') + '">';
     html += '<div class="form-hint">Days you\'re on festival crew \u2014 barrio setup tasks won\'t be assigned to you on these days.</div></div>';
     html += '<div class="form-row"><label>Notes</label><textarea id="f-notes" placeholder="Anything else the team should know...">' + JH.esc(row['Notes'] || '') + '</textarea></div>';
-    html += '<div style="display:flex;align-items:center">';
+    html += '<div style="display:flex;align-items:center;flex-wrap:wrap;gap:8px">';
     html += '<button type="submit" class="btn-primary" id="save-btn">Save</button>';
     html += '<span class="save-feedback" id="save-feedback">Saved!</span>';
     html += '</div>';
@@ -302,7 +302,15 @@ import { parseISO, ganttRange, enumerateDays, barCells, isEventDay, eeColorKey }
       return nameA < nameB ? -1 : nameA > nameB ? 1 : 0;
     });
 
-    var html = '<div style="overflow-x:auto"><table class="logistics-table"><thead><tr>';
+    // NoOrg duty days formatted as a list (shared by table + cards).
+    function noorgFormatted(row, sep) {
+      var list = (row['NoOrgDates'] || '').split(',').map(function (s) { return s.trim(); }).filter(Boolean);
+      if (!list.length) return '';
+      return list.map(function (d) { return JH.esc(formatNoOrgDate(d)); }).join(sep);
+    }
+
+    // ── Desktop table (hidden ≤480px) ──
+    var html = '<div class="hide-on-mobile" style="overflow-x:auto"><table class="logistics-table"><thead><tr>';
     html += '<th>Name</th><th>EE</th><th>Arrives</th><th>Time</th><th>Transport</th><th>Pickup</th><th>Departs</th><th>Camping</th><th>Size</th><th>NoOrg</th><th>Notes</th>';
     html += '</tr></thead><tbody>';
 
@@ -329,12 +337,8 @@ import { parseISO, ganttRange, enumerateDays, barCells, isEventDay, eeColorKey }
         html += '<td>' + (row['DepartureDate'] ? JH.formatDate(row['DepartureDate']) : '<span class="not-filled">—</span>') + '</td>';
         html += '<td>' + campBadge(row['CampingType']) + '</td>';
         html += '<td>' + (row['TentSize'] ? JH.esc(row['TentSize']) : '<span class="not-filled">—</span>') + '</td>';
-        var noorgList = (row['NoOrgDates'] || '').split(',').map(function (s) { return s.trim(); }).filter(Boolean);
-        if (noorgList.length) {
-          html += '<td>' + noorgList.map(function (d) { return JH.esc(formatNoOrgDate(d)); }).join('<br>') + '</td>';
-        } else {
-          html += '<td><span class="not-filled">\u2014</span></td>';
-        }
+        var noorgCell = noorgFormatted(row, '<br>');
+        html += '<td>' + (noorgCell || '<span class="not-filled">\u2014</span>') + '</td>';
         html += '<td>' + (row['Notes'] ? JH.esc(row['Notes']) : '<span class="not-filled">—</span>') + '</td>';
       } else {
         html += '<td colspan="9"><span class="not-filled">Not filled in yet</span></td>';
@@ -344,8 +348,60 @@ import { parseISO, ganttRange, enumerateDays, barCells, isEventDay, eeColorKey }
     });
 
     html += '</tbody></table></div>';
-    wrap.innerHTML = html;
 
+    // ── Mobile cards (shown ≤480px) — one card per member, blanks skipped ──
+    var cards = '<div class="mobile-cards">';
+    sorted.forEach(function (m) {
+      var name = m['Playa Name'] || m['Name'] || '';
+      if (!name) return;
+      var row = logMap[name] || logMap[m['Name']];
+      var isMe = state.myName && name === state.myName;
+      var editName = m['Playa Name'] || m['Name'] || '';
+
+      var titleRight = '';
+      if (JH.isAdmin()) {
+        titleRight = '<button class="edit-pencil" data-name="' + JH.esc(editName) + '" title="Edit logistics">✎</button>';
+      }
+
+      cards += '<div class="m-card">';
+      cards += '<div class="m-card-title"><span>' + JH.esc(name) + (isMe ? ' <span style="color:var(--accent);font-size:0.75rem">(you)</span>' : '') + '</span>' + titleRight + '</div>';
+
+      var ee = eeBadge(m);
+      if (ee.indexOf('not-filled') === -1) {
+        cards += '<div class="m-card-row"><span class="m-card-label">Early entry</span><span class="m-card-val">' + ee + '</span></div>';
+      }
+
+      if (row) {
+        var fields = [];
+        if (row['ArrivalDate']) fields.push(['Arrives', JH.formatDate(row['ArrivalDate'])]);
+        if (row['ArrivalTime']) fields.push(['Time', JH.esc(row['ArrivalTime'])]);
+        if (row['Transport']) fields.push(['Transport', JH.esc(row['Transport'])]);
+        if (row['NeedsPickup']) fields.push(['Pickup', JH.esc(row['NeedsPickup'])]);
+        if (row['DepartureDate']) fields.push(['Departs', JH.formatDate(row['DepartureDate'])]);
+        if (row['CampingType']) fields.push(['Camping', campBadge(row['CampingType'])]);
+        if (row['TentSize']) fields.push(['Tent size', JH.esc(row['TentSize'])]);
+        var noorgCard = noorgFormatted(row, ', ');
+        if (noorgCard) fields.push(['NoOrg', noorgCard]);
+        if (row['Notes']) fields.push(['Notes', JH.esc(row['Notes'])]);
+
+        if (fields.length) {
+          fields.forEach(function (f) {
+            cards += '<div class="m-card-row"><span class="m-card-label">' + f[0] + '</span><span class="m-card-val">' + f[1] + '</span></div>';
+          });
+        } else {
+          cards += '<div class="m-card-row"><span class="m-card-val not-filled">Not filled in yet</span></div>';
+        }
+      } else {
+        cards += '<div class="m-card-row"><span class="m-card-val not-filled">Not filled in yet</span></div>';
+      }
+
+      cards += '</div>';
+    });
+    cards += '</div>';
+
+    wrap.innerHTML = html + cards;
+
+    // Wire edit pencils across BOTH the table and the cards.
     if (JH.isAdmin()) {
       wrap.querySelectorAll('.edit-pencil').forEach(function (btn) {
         btn.addEventListener('click', function (e) {

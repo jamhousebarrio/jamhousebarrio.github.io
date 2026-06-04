@@ -81,6 +81,11 @@ access: general
     .gantt-table td.fill.bar-start { border-top-left-radius: 5px; border-bottom-left-radius: 5px; }
     .gantt-table td.fill.bar-end { border-top-right-radius: 5px; border-bottom-right-radius: 5px; }
     .gantt-unknown { margin-top: 8px; font-size: 0.78rem; color: var(--text-muted); }
+    /* Mobile scroll hint above the (inherently wide) gantt — only ≤480px */
+    .gantt-scroll-hint { display: none; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 6px; font-style: italic; }
+    @media (max-width: 480px) { .gantt-scroll-hint { display: block; } }
+    /* Edit pencil inside a mobile card title */
+    .m-card-title .edit-pencil { opacity: 1; font-size: 1.05rem; }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="/assets/js/supabase-client.js"></script>
@@ -98,6 +103,7 @@ access: general
 
   <div class="panel gantt-panel">
     <h2>Arrivals &amp; Departures</h2>
+    <div class="gantt-scroll-hint">Scroll sideways to see all days &rarr;</div>
     <div id="gantt-content"><div class="empty-state">Loading…</div></div>
   </div>
 
