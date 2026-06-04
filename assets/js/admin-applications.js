@@ -318,6 +318,43 @@
     popoverEl.hidden = true;
   });
 
+  // ── Sync invites (reconciliation) — admin only ───────────────────────────
+  var syncBtn = document.getElementById('sync-invites-btn');
+  if (syncBtn) {
+    if (!isAdmin) {
+      syncBtn.style.display = 'none';
+    } else {
+      syncBtn.addEventListener('click', async function() {
+        if (!confirm('Send the welcome email to every Approved/Observer member who has no account yet?')) return;
+        syncBtn.disabled = true;
+        var orig = syncBtn.textContent;
+        syncBtn.textContent = 'Syncing…';
+        try {
+          var res = await JH.apiFetch('/api/members', { action: 'sync-invites' });
+          var b = await res.json().catch(function() { return {}; });
+          if (!res.ok) { alert('Sync failed: ' + (b.error || res.status)); return; }
+          var lines = [
+            'Roster: ' + b.rosterCount + ' Approved/Observer',
+            'Already had accounts: ' + b.alreadyHadAccount,
+            'Invited now: ' + ((b.invited || []).length)
+          ];
+          if ((b.invited || []).length) {
+            lines.push((b.invited).map(function(x) { return '  • ' + x.name; }).join('\n'));
+          }
+          if ((b.failed || []).length) {
+            lines.push('Failed: ' + b.failed.map(function(x) { return x.email + ' (' + x.error + ')'; }).join(', '));
+          }
+          alert(lines.join('\n'));
+        } catch (e) {
+          alert('Sync error: ' + e.message);
+        } finally {
+          syncBtn.disabled = false;
+          syncBtn.textContent = orig;
+        }
+      });
+    }
+  }
+
   // ── Kanban view ─────────────────────────────────────────────────────────
   var LS_VIEW_KEY = 'jh.applications.view.v2';
   var LS_KB_EXPANDED_KEY = 'jh.applications.kanban.expanded';
@@ -600,32 +637,28 @@
     renderKanban();
   });
 
-  // Statuses that grant portal access (auth gate accepts these).
-  function hasPortalAccess(s) { return s === 'Approved' || s === 'Observer'; }
-
-  // Inline status update. Demotions are silent (no warning popup); the
-  // invite popup only fires on promotion INTO an access state — i.e.
-  // any → Approved, or non-portal → Observer. Approved → Observer is a
-  // demotion and stays silent.
+  // Inline status update. The welcome/invite email is now sent SERVER-SIDE on
+  // any transition into Approved/Observer (api/members.js) — covering this
+  // dropdown, the kanban, the modal "Save All", and bulk edits in one place.
+  // The client no longer fires sendInvite here (that path's confirm() dialog
+  // was the original miss-enabler); it just surfaces the server's result. The
+  // manual "Invite" button still uses sendInvite for explicit re-sends.
   async function updateStatus(data, newStatus) {
     var member = allMembers.find(function(m) { return m._row === data._row; });
     if (!member) return;
-    var oldNorm = normalizeStatus(val(member, 'Status') || '');
-    var newNorm = normalizeStatus(newStatus);
 
     try {
       var res = await JH.apiFetch('/api/members', { action: 'update-status', row: data._row, status: newStatus });
       if (!res.ok) throw new Error('Failed');
+      var body = await res.json().catch(function() { return {}; });
       member['Status'] = newStatus;
       refreshStats();
       gridApi.setGridOption('rowData', getRowData());
       renderKanban();
 
-      var shouldInvite =
-        (newNorm === 'Approved' && oldNorm !== 'Approved') ||
-        (newNorm === 'Observer' && !hasPortalAccess(oldNorm));
-      if (shouldInvite) {
-        await sendInvite(member);
+      if (body.invited) {
+        var who = val(member, 'Playa Name') || val(member, 'Name') || 'member';
+        alert('Welcome email sent to ' + who);
       }
     } catch (err) {
       // revert on failure
