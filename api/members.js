@@ -1,6 +1,7 @@
 import { colToLetter, getSheetId, ensureTab, getRows } from './_lib/sheets.js';
 import { authenticateRequest } from './_lib/auth.js';
 import { logError } from './_lib/error-log.js';
+import { shouldInvite, sendMemberInvite, getSupabaseAdmin, PORTAL_STATUSES, diffMissingInvites, listUserEmails } from './_lib/invite.js';
 
 const SETTINGS_TAB = 'Settings';
 const LOW_INCOME_ENABLED_KEY = 'low_income_enabled';
@@ -76,6 +77,29 @@ function displayName(member) {
   if (playa) return playa;
   const name = (member['Name'] || '').toString().trim();
   return name.split(/\s+/)[0] || 'Someone';
+}
+
+// Best-effort invite + welcome ping after a status transition into portal
+// access. Never throws — a failed email must not roll back the status write
+// (the admin can re-send via the Invite button or Sync invites). `rowData`/
+// `hdrs` are already-fetched arrays for the member's row. Caller must have
+// already confirmed shouldInvite(oldStatus, newStatus).
+async function inviteOnTransition({ sheets, hdrs, rowData, newStatus }) {
+  const get = (col) => { const i = hdrs.indexOf(col); return i === -1 ? '' : (rowData[i] || ''); };
+  const email = get('Email').toString().trim();
+  if (!email) { console.error('inviteOnTransition: no email on row'); return; }
+  const member = {}; hdrs.forEach((h, j) => { member[h] = rowData[j] || ''; });
+  try {
+    const r = await sendMemberInvite({ supabase: getSupabaseAdmin(), sheets, email, status: newStatus, member });
+    const name = (member['Playa Name'] || member['Name'] || email).toString().trim() || email;
+    if (String(newStatus).toLowerCase() === 'observer') {
+      if (r.isNewUser) await tgSend('👀 *' + name + '* joined us as a lurker.');
+    } else {
+      await tgSend('🎉 Welcome to the barrio! *' + name + '* has been approved — say hi!');
+    }
+  } catch (e) {
+    console.error('inviteOnTransition failed for', email, e.message);
+  }
 }
 
 async function ensureFeeColumns(sheets, spreadsheetId, headers) {
@@ -380,6 +404,21 @@ export default async function handler(req, res) {
       if ('Admin' in updates && !auth.admin) {
         return res.status(403).json({ error: 'Only admins can change admin status' });
       }
+
+      // Detect a Status transition into portal access (modal "Save All" / bulk edit).
+      let statusTransition = null;
+      if ('Status' in updates) {
+        const sCol = headers.indexOf('Status');
+        const rowRes = await sheets.spreadsheets.values.get({ spreadsheetId, range: 'Sheet1!' + row + ':' + row });
+        const rowData = (rowRes.data.values || [[]])[0] || [];
+        const oldStatus = sCol === -1 ? '' : (rowData[sCol] || '');
+        if (shouldInvite(oldStatus, updates['Status'])) {
+          // Patch rowData with the incoming edits so email/names reflect this save.
+          for (const k in updates) { const ci = headers.indexOf(k); if (ci !== -1) rowData[ci] = updates[k]; }
+          statusTransition = { rowData, newStatus: updates['Status'] };
+        }
+      }
+
       var data = [];
       for (var key in updates) {
         var col = headers.indexOf(key);
@@ -393,7 +432,13 @@ export default async function handler(req, res) {
         spreadsheetId,
         requestBody: { valueInputOption: 'RAW', data: data },
       });
-      return res.status(200).json({ success: true });
+
+      let invited = false;
+      if (statusTransition) {
+        await inviteOnTransition({ sheets, hdrs: headers, ...statusTransition });
+        invited = true;
+      }
+      return res.status(200).json({ success: true, invited });
     }
 
     // ── Refund + demote-to-Observer (single atomic admin op) ─────────────
@@ -454,6 +499,11 @@ export default async function handler(req, res) {
         return res.status(500).json({ error: 'Status column not found' });
       }
 
+      // Read current row BEFORE the write to detect a transition into access.
+      const rowRes = await sheets.spreadsheets.values.get({ spreadsheetId, range: 'Sheet1!' + row + ':' + row });
+      const rowData = (rowRes.data.values || [[]])[0] || [];
+      const oldStatus = rowData[col] || '';
+
       await sheets.spreadsheets.values.update({
         spreadsheetId,
         range: 'Sheet1!' + colToLetter(col) + row,
@@ -461,7 +511,12 @@ export default async function handler(req, res) {
         requestBody: { values: [[status]] },
       });
 
-      return res.status(200).json({ success: true });
+      let invited = false;
+      if (shouldInvite(oldStatus, status)) {
+        await inviteOnTransition({ sheets, hdrs: headers, rowData, newStatus: status });
+        invited = true;
+      }
+      return res.status(200).json({ success: true, invited });
     }
 
     // ── Delete member by email ─────────────────────────────────────────────
