@@ -325,6 +325,49 @@ body:has(.modal-overlay.active) { overflow: hidden; }
 }
 .fullscreen-btn:hover { border-color: var(--accent-dim); color: var(--accent); }
 
+/* ═══════════════════════════════════════ MOBILE CARD LIST (shared) ═══════════════════════════════════════ */
+/* Dense table/grid pages dual-render: the normal table (wrapped in
+   .hide-on-mobile) PLUS a .mobile-cards list built from these classes. CSS
+   shows exactly one per breakpoint — no JS resize re-render needed. Pattern:
+   render both DOM trees once; the ≤480px query flips which is visible.
+   - .m-card: a table-row-as-card (title + label/value rows)
+   - .m-acc:  a collapsible section (group rows by day/person/etc.) */
+.mobile-cards { display: none; }
+.m-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 14px;
+}
+.m-card-title {
+  font-family: var(--heading); font-weight: 700; color: var(--text);
+  font-size: 0.95rem; margin-bottom: 8px;
+  display: flex; justify-content: space-between; align-items: center; gap: 8px;
+}
+.m-card-row {
+  display: flex; justify-content: space-between; gap: 12px; padding: 6px 0;
+  border-top: 1px solid var(--border); font-size: 0.85rem; align-items: baseline;
+}
+.m-card-row:first-of-type { border-top: none; }
+.m-card-label {
+  color: var(--text-muted); font-family: var(--mono); font-size: 0.62rem;
+  text-transform: uppercase; letter-spacing: 0.08em; flex-shrink: 0;
+}
+.m-card-val { color: var(--text); text-align: right; word-break: break-word; }
+.m-acc { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+.m-acc + .m-acc { margin-top: 0; }
+.m-acc-head {
+  width: 100%; text-align: left; background: var(--surface2); border: none;
+  color: var(--text); font-family: var(--heading); font-weight: 700; font-size: 0.9rem;
+  padding: 14px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 8px;
+}
+.m-acc-body { padding: 10px 14px; display: none; }
+.m-acc.open .m-acc-body { display: block; }
+.m-acc-head .chev { transition: transform 0.15s; opacity: 0.7; }
+.m-acc.open .chev { transform: rotate(180deg); }
+@media (max-width: 480px) {
+  .mobile-cards { display: flex; flex-direction: column; gap: 10px; }
+  .hide-on-mobile { display: none !important; }
+}
+
 /* ═══════════════════════════════════════ TOUCH TARGETS ═══════════════════════════════════════ */
 /* On touch devices, shared interactive controls get a ≥44px hit area (WCAG).
    Scoped to `pointer: coarse` so the desktop look is unchanged. In-cell controls
