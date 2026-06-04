@@ -50,7 +50,21 @@ access: general
     .arrival-badge { font-size: 0.65rem; color: var(--text-muted); display: block; }
     .mobile-dnd-hint { display: none; }
     @media (max-width: 768px) { .mobile-dnd-hint { display: block; color: var(--text-muted); font-size: 0.8rem; margin-bottom: 10px; } }
-  </style>
+    /* Mobile day-accordion (≤480px; .mobile-cards visibility handled by admin.css) */
+    .m-day-person { font-weight: 600; color: var(--accent); font-family: var(--heading); font-size: 0.85rem; margin: 10px 0 4px; }
+    .m-task-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; padding: 7px 0; border-bottom: 1px solid var(--border); }
+    .m-task-row:last-child { border-bottom: none; }
+    .m-task-period { color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em; flex: 0 0 70px; padding-top: 2px; }
+    .m-task-val { flex: 1; white-space: pre-wrap; word-wrap: break-word; font-size: 0.85rem; }
+    .m-task-val.editable { cursor: pointer; }
+    .m-task-val.empty { color: var(--text-muted); font-style: italic; }
+    .m-task-val.noorg { color: #f44336; font-style: italic; }
+    .m-task-val.unavailable { color: var(--text-muted); font-style: italic; }
+    .m-task-edit textarea { width: 100%; min-height: 50px; background: var(--bg); color: var(--text); border: 2px solid var(--accent); font-family: var(--body); font-size: 0.85rem; padding: 6px 8px; resize: vertical; box-sizing: border-box; outline: none; border-radius: 6px; }
+    .m-day-empty { color: var(--text-muted); font-size: 0.85rem; padding: 4px 0; }
+    .mobile-edit-hint { display: none; }
+    @media (max-width: 480px) { .mobile-edit-hint { display: block; color: var(--text-muted); font-size: 0.78rem; margin: 6px 0 10px; } }
+</style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="/assets/js/supabase-client.js"></script>
 </head>
@@ -64,6 +78,7 @@ access: general
   </div>
 
   <div class="mobile-dnd-hint">Tip: tap a cell to edit &mdash; drag-and-drop is desktop-only.</div>
+  <div class="mobile-edit-hint">Tap a task to edit. Drag-and-drop task chips are desktop-only.</div>
   <div class="timeline-legend">Grey = not arrived yet. Red = on NoOrg duty.</div>
   <div id="timeline-wrap">Loading timeline...</div>
 </div>
