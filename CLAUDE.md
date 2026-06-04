@@ -88,6 +88,7 @@ vercel.json                     # URL rewrites & framework config
 - **Shared API helpers**: `/api/_lib/sheets.js` exports `getSheets`, `safeGet`, `toObjects`, `getRows`, `getSheetId`, `deleteRowById`, `ensureTab`, `upsertRow`, `colToLetter`
 - **Auto-create tabs**: All APIs auto-create their Google Sheet tab on first insert
 - **Shared auth helpers**: `/api/_lib/auth.js` exports `verifyToken`, `getMemberByEmail`, `isAdmin`, `authenticateRequest`
+- **Invite/welcome email**: sent **server-side** on any status transition INTO Approved/Observer — handled in `api/members.js` (`update-status` and `update` actions), so it fires no matter which UI path set the status (inline dropdown, kanban, modal "Save All", bulk edit). Best-effort: a failed Resend/Supabase call is logged but never rolls back the status write. The shared logic lives in `/api/_lib/invite.js` (`shouldInvite`, `diffMissingInvites`, `getSupabaseAdmin`, `listUserEmails`, `sendMemberInvite`; pure parts unit-tested via `npm test`); `api/auth.js`'s manual **Invite** button and the `sync-invites` action both call the same `sendMemberInvite`. The one path it can't hook is a hand-edit to the Sheet's Status column — the admin **Sync invites** button on the Applications page (`members.js` `sync-invites`) reconciles by cross-referencing the Approved/Observer roster against Supabase users and inviting any with no account (Telegram pings suppressed for backfills). Read-only audit helper: `scripts/audit-welcome-emails.mjs`.
 - **Error logging**: `/api/_lib/error-log.js` exports `logError(req, error, extra)` — called in every API's outer catch before the 500 response, writes to ErrorLog tab in Members sheet. Inner catches (tab-exists, telegram-send) are not logged.
 - **Admin pages**: No Jekyll layout, fixed 220px sidebar, include Supabase CDN + `supabase-client.js` + `admin-auth.js` + `admin.css`
 - **URL rewrites**: Defined in `vercel.json`
@@ -102,6 +103,9 @@ vercel.json                     # URL rewrites & framework config
 3. **Do NOT add a new `api/{page}.js`** — we are at the 12/12 Vercel function cap. Add the page's backend actions to the closest-fit existing `api/*.js` (e.g. Early Entry reuses `logistics.js`).
 4. Add URL rewrite in `vercel.json`
 5. Add nav link to **all** existing admin pages' sidebar
+
+## Change Enforcement Rules
+- **If you add/change a Status that grants portal access** → update `PORTAL_STATUSES` and `shouldInvite` in `api/_lib/invite.js` (and `ALLOWED_STATUSES` in `api/members.js`), or the welcome-email + reconciliation logic will silently skip the new status.
 
 ## Google Sheet Tabs
 
