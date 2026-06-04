@@ -82,6 +82,12 @@ access: general
     .btn-primary:hover { opacity: 0.9; }
     .btn-secondary { padding: 0.45rem 1rem; background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-family: var(--heading); font-size: 0.85rem; cursor: pointer; }
     .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* ── Mobile polish (≤480px) ──────────────────────────────────── */
+    @media (max-width: 480px) {
+      .kanban-board { -webkit-overflow-scrolling: touch; }
+      .kanban-col { flex: 0 0 82vw; max-width: 320px; }
+    }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="/assets/js/supabase-client.js"></script>

@@ -114,7 +114,8 @@
     var people = getGridPeople();
     var periods = ['Morning', 'Evening'];
 
-    var html = '<div class="timeline-grid"><table class="timeline-table">';
+    var html = '<div class="hide-on-mobile">';
+    html += '<div class="timeline-grid"><table class="timeline-table">';
 
     // Date header row
     html += '<thead><tr><th class="date-header" rowspan="2" style="position:sticky;left:0;z-index:3;">Person</th>';
@@ -186,6 +187,11 @@
       html += '</div>';
     }
 
+    html += '</div>'; // .hide-on-mobile
+
+    // Mobile day-accordion (same data, separate tree)
+    html += renderMobile(dates, people, periods);
+
     wrap.innerHTML = html;
 
     if (isAdmin) {
@@ -195,6 +201,126 @@
       bindAddButtons(dates, people);
       bindTaskPanel();
     }
+    bindMobileAccordion();
+    if (isAdmin) bindMobileEditing();
+  }
+
+  // ── Mobile day-accordion ────────────────────────────────────────────────────
+
+  function renderMobile(dates, people, periods) {
+    var html = '<div class="mobile-cards">';
+    if (!dates.length) {
+      html += '<div class="empty-state">No timeline yet.</div></div>';
+      return html;
+    }
+
+    dates.forEach(function (date, di) {
+      var openClass = di === 0 ? ' open' : '';
+      html += '<div class="m-acc' + openClass + '">';
+      html += '<div class="m-acc-head">' + JH.esc(JH.formatDateLong(date)) + '<span class="chev">&#9662;</span></div>';
+      html += '<div class="m-acc-body">';
+
+      var anyPerson = false;
+      people.forEach(function (person) {
+        // Gather this person's rows for the day across periods, skipping fully-empty days.
+        var rows = [];
+        var hasContent = false;
+        periods.forEach(function (period) {
+          var task = getTask(person, date, period);
+          var available = isAvailable(person, date);
+          var noorg = isNoOrg(person, date);
+          if (task || noorg) hasContent = true;
+          rows.push({ period: period, task: task, available: available, noorg: noorg });
+        });
+        if (!hasContent) return;
+        anyPerson = true;
+
+        html += '<div class="m-card">';
+        var arrival = getArrivalDate(person);
+        html += '<div class="m-day-person">' + JH.esc(person);
+        if (arrival) html += ' <span class="arrival-badge">arr: ' + JH.esc(JH.formatDate(arrival)) + '</span>';
+        html += '</div>';
+
+        rows.forEach(function (r) {
+          html += '<div class="m-task-row">';
+          html += '<span class="m-task-period">' + JH.esc(r.period) + '</span>';
+          if (r.noorg) {
+            html += '<span class="m-task-val noorg">NoOrg</span>';
+          } else if (!r.available) {
+            html += '<span class="m-task-val unavailable">' + (r.task ? JH.esc(r.task) : 'not arrived') + '</span>';
+          } else {
+            var editable = isAdmin;
+            var cls = 'm-task-val' + (editable ? ' editable' : '') + (r.task ? '' : ' empty');
+            var attrs = editable
+              ? ' data-person="' + JH.esc(person) + '" data-date="' + JH.esc(date) + '" data-period="' + JH.esc(r.period) + '"'
+              : '';
+            html += '<span class="' + cls + '"' + attrs + '>' + (r.task ? JH.esc(r.task) : '—') + '</span>';
+          }
+          html += '</div>';
+        });
+
+        html += '</div>'; // .m-card
+      });
+
+      if (!anyPerson) html += '<div class="m-day-empty">No tasks assigned this day.</div>';
+
+      html += '</div></div>'; // .m-acc-body, .m-acc
+    });
+
+    html += '</div>'; // .mobile-cards
+    return html;
+  }
+
+  function bindMobileAccordion() {
+    document.querySelectorAll('.mobile-cards .m-acc-head').forEach(function (head) {
+      head.addEventListener('click', function () {
+        head.parentNode.classList.toggle('open');
+      });
+    });
+  }
+
+  function bindMobileEditing() {
+    document.querySelectorAll('.mobile-cards .m-task-val.editable').forEach(attachMobileEdit);
+  }
+
+  function attachMobileEdit(span) {
+    span.addEventListener('click', function () {
+      var currentVal = span.textContent === '—' ? '' : span.textContent;
+      var person = span.dataset.person, date = span.dataset.date, period = span.dataset.period;
+
+      var wrapEl = document.createElement('span');
+      wrapEl.className = 'm-task-edit';
+      var textarea = document.createElement('textarea');
+      textarea.value = currentVal;
+      wrapEl.appendChild(textarea);
+      span.replaceWith(wrapEl);
+      textarea.focus();
+
+      function finish(newVal) {
+        var fresh = document.createElement('span');
+        fresh.className = 'm-task-val editable' + (newVal ? '' : ' empty');
+        fresh.dataset.person = person;
+        fresh.dataset.date = date;
+        fresh.dataset.period = period;
+        fresh.textContent = newVal || '—';
+        wrapEl.replaceWith(fresh);
+        attachMobileEdit(fresh);
+      }
+
+      function save() {
+        var newVal = textarea.value.trim();
+        finish(newVal);
+        if (newVal !== currentVal) {
+          saveCell(person, date, period, newVal, currentVal, null);
+        }
+      }
+
+      textarea.addEventListener('blur', save);
+      textarea.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') { finish(currentVal); }
+        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); save(); }
+      });
+    });
   }
 
   // ── Inline cell editing ───────────────────────────────────────────────────

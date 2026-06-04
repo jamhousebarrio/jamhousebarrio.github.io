@@ -102,6 +102,22 @@ access: general
       .stats-row { grid-template-columns: 1fr; }
       .shift-grid { font-size: 0.75rem; }
     }
+
+    /* Mobile stacked-card layout (≤480px). The .mobile-cards / .m-acc frame
+       comes from admin.css; these scoped rules style the per-shift rows inside
+       each day's accordion body and enlarge tap targets. */
+    .m-acc-meta { display: flex; align-items: center; gap: 8px; font-size: 0.72rem; color: var(--text-muted); font-family: var(--heading); text-transform: uppercase; letter-spacing: 0.04em; }
+    .m-shift { padding: 12px 0; border-top: 1px dashed var(--border); }
+    .m-shift:first-child { border-top: none; padding-top: 4px; }
+    .m-shift-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; margin-bottom: 8px; }
+    .m-shift-head .role-name-btn { color: var(--accent); font-family: var(--heading); font-weight: 700; font-size: 0.95rem; min-height: 40px; display: inline-flex; align-items: center; }
+    .m-shift-time { font-family: var(--heading); font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+    .m-shift-cell { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+    .m-shift-cell .shift-chip { font-size: 0.9rem; padding: 8px 12px; max-width: 100%; }
+    .m-shift-cell .shift-chip .remove-btn { font-size: 0.95rem; min-width: 28px; min-height: 28px; opacity: 0.8; }
+    .m-shift-cell .signup-btn { min-height: 40px; padding: 8px 16px; font-size: 0.85rem; border: 1px solid var(--accent); border-radius: 8px; }
+    .m-shift-cell .shift-full-tag { font-size: 0.72rem; }
+    .m-empty { color: var(--text-muted); font-style: italic; font-size: 0.88rem; padding: 6px 0; }
   </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="/assets/js/supabase-client.js"></script>

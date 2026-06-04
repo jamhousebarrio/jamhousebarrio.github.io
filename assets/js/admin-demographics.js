@@ -276,6 +276,9 @@
   if (JH.isMobile) {
     var phoneCol = rosterCols.find(function(c) { return c.field === 'Phone'; });
     if (phoneCol) JH.mobilePhoneColumn(phoneCol);
+    // Phones: collapse to the name (tap opens the full member panel) + phone
+    // icons. Hide the wider columns that overflow at 375px.
+    JH.mobileColumns(rosterCols, ['Playa Name', 'Phone']);
   }
   // Admin-only: "Prompt for allergies" button — emails recovery links to
   // approved members with empty FoodType (skips anyone prompted in last 24h).
