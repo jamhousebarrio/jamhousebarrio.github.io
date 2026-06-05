@@ -94,7 +94,7 @@
       if (assigned) {
         var people = assigned.split(',').map(function (s) { return s.trim(); }).filter(Boolean);
         html += '<div class="role-card-assigned filled">' + people.map(function (p) {
-          return '<span class="assigned-chip">' + JH.esc(p) + '</span>';
+          return '<span class="assigned-chip">' + JH.nameLink(p) + '</span>';
         }).join(' ') + '</div>';
       } else {
         html += '<div class="role-card-assigned unassigned">Unassigned</div>';
