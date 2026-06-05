@@ -124,7 +124,7 @@
     var maxNum = parseInt(s.MaxPerSlot || '', 10);
     var isFull = !isNaN(maxNum) && maxNum > 0 && people.length >= maxNum;
     people.forEach(function (person) {
-      html += '<span class="shift-chip filled">' + JH.esc(person);
+      html += '<span class="shift-chip filled">' + JH.nameLink(person);
       if (isAdmin) {
         html += ' <button class="remove-btn remove-person-btn" data-id="' + JH.esc(s.ShiftID) + '" data-person="' + JH.esc(person) + '" title="Remove ' + JH.esc(person) + '">&times;</button>';
       }

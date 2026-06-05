@@ -130,10 +130,13 @@
     var tbody = document.querySelector('#roster-table tbody');
     var cardsWrap = document.getElementById('roster-cards');
     var totalSent = 0, totalReceived = 0, totalExpected = 0, totalExtra = 0;
+    // Member-name links: link the Playa name, falling back to the real name only
+    // when there's no Playa name. Each render (table row, mobile card, requests
+    // list) shows exactly ONE clickable name per person — never zero, never two.
     function rowHtml(r, extraClass) {
       return '<tr class="' + rosterRowClass(r) + extraClass + '" data-row="' + r._row + '">' +
         '<td>' + esc(r.name) + '</td>' +
-        '<td>' + esc(r.playa_name) + '</td>' +
+        '<td>' + JH.nameLink(r.playa_name || r.name) + '</td>' +
         '<td>€<input type="number" class="sent-input" min="0" step="0.01" value="' + (r.fee_total_sent || 0) + '" style="width:80px;background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:4px;padding:3px 6px;font-family:inherit;font-size:0.92rem;"></td>' +
         '<td>' + rosterStatusText(r) + '</td>' +
         '<td><input type="checkbox" class="recv-cb" ' + (r.fee_received ? 'checked' : '') + '></td>' +
@@ -143,8 +146,8 @@
     // controls (sent-input / recv-cb) and data-row, wired by the same handlers.
     function cardHtml(r, extraClass) {
       return '<div class="m-card ' + rosterRowClass(r) + extraClass + '" data-row="' + r._row + '">' +
-        '<div class="m-card-title">' + esc(r.name) + '</div>' +
-        '<div class="m-card-row"><span class="m-card-label">Playa</span><span class="m-card-val">' + (esc(r.playa_name) || '—') + '</span></div>' +
+        '<div class="m-card-title">' + (r.playa_name ? esc(r.name) : JH.nameLink(r.name)) + '</div>' +
+        '<div class="m-card-row"><span class="m-card-label">Playa</span><span class="m-card-val">' + (r.playa_name ? JH.nameLink(r.playa_name) : '—') + '</span></div>' +
         '<div class="m-card-row"><span class="m-card-label">Sent €</span><span class="m-card-val"><input type="number" class="sent-input" min="0" step="0.01" value="' + (r.fee_total_sent || 0) + '"></span></div>' +
         '<div class="m-card-row"><span class="m-card-label">Status</span><span class="m-card-val">' + rosterStatusText(r) + '</span></div>' +
         '<div class="m-card-row"><span class="m-card-label">Received</span><span class="m-card-val"><input type="checkbox" class="recv-cb" ' + (r.fee_received ? 'checked' : '') + '></span></div>' +
@@ -277,7 +280,7 @@
           '</div>';
       }
       html += '<div class="li-card">' +
-        '<div class="who">' + esc(r.name) + (r.playa_name ? ' (' + esc(r.playa_name) + ')' : '') + ' ' + statusBadge + '</div>' +
+        '<div class="who">' + (r.playa_name ? esc(r.name) + ' (' + JH.nameLink(r.playa_name) + ')' : JH.nameLink(r.name)) + ' ' + statusBadge + '</div>' +
         '<div class="just">' + esc(r.low_income_request) + '</div>' +
         actions +
         '</div>';

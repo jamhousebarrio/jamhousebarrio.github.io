@@ -53,6 +53,10 @@
     return lastLoginByEmail[em] || '';
   }
 
+  function showMember(m) {
+    JH.openMemberPanel(m, { roles: memberRoles(m), lastLogin: fmtDateTime(memberLastLogin(m)) });
+  }
+
   // Stats
   document.getElementById('stat-total').textContent = members.length;
   var ages = members.map(function(m) { return parseInt(val(m, 'Age')); }).filter(function(a) { return !isNaN(a); });
@@ -142,47 +146,6 @@
     }
   });
 
-  // Member profile panel
-  var memberOverlay = document.getElementById('member-overlay');
-  var memberPanel = document.getElementById('member-panel');
-  var memberPanelTitle = document.getElementById('member-panel-title');
-  var memberPanelBody = document.getElementById('member-panel-body');
-
-  var esc = JH.esc;
-
-  function openMemberPanel(m) {
-    memberPanelTitle.textContent = val(m, 'Playa Name') || val(m, 'Name') || 'Member';
-    var fields = [
-      ['Real Name', val(m, 'Name')],
-      ['Age', val(m, 'Age')],
-      ['Gender', val(m, 'Gender')],
-      ['Nationality', val(m, 'Nationality')],
-      ['Location', val(m, 'Location')],
-      ['Roles', memberRoles(m)],
-      ['Phone', val(m, 'Phone')],
-      ['Email', val(m, 'Email')],
-      ['Admin', val(m, 'Admin')],
-      ['Last Login', fmtDateTime(memberLastLogin(m))],
-      ['First Burn', val(m, 'First Burn')],
-      ['First Elsewhere', val(m, 'First Elsewhere/Nowhere')],
-      ['Has Ticket', val(m, 'Has Ticket')],
-      ['Volunteer', val(m, 'Volunteer')]
-    ];
-    memberPanelBody.innerHTML = fields.filter(function(f) { return f[1]; }).map(function(f) {
-      return '<div class="member-field"><span class="member-field-label">' + esc(f[0]) + '</span><span class="member-field-value">' + esc(f[1]) + '</span></div>';
-    }).join('');
-    memberOverlay.classList.add('active');
-    memberPanel.classList.add('active');
-  }
-
-  function closeMemberPanel() {
-    memberOverlay.classList.remove('active');
-    memberPanel.classList.remove('active');
-  }
-
-  document.getElementById('member-panel-close').addEventListener('click', closeMemberPanel);
-  memberOverlay.addEventListener('click', closeMemberPanel);
-
   function NameCellRenderer() {}
   NameCellRenderer.prototype.init = function(params) {
     this.eGui = document.createElement('a');
@@ -192,7 +155,7 @@
     var memberData = params.data._member;
     this.eGui.addEventListener('click', function(e) {
       e.preventDefault();
-      openMemberPanel(memberData);
+      showMember(memberData);
     });
   };
   NameCellRenderer.prototype.getGui = function() { return this.eGui; };
@@ -326,7 +289,7 @@
     paginationPageSize: 25,
     suppressCellFocus: true,
     onRowClicked: JH.isMobile ? function(event) {
-      if (event.data._member) openMemberPanel(event.data._member);
+      if (event.data._member) showMember(event.data._member);
     } : undefined
   });
 })();
