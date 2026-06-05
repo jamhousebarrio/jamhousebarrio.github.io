@@ -130,6 +130,9 @@
     var tbody = document.querySelector('#roster-table tbody');
     var cardsWrap = document.getElementById('roster-cards');
     var totalSent = 0, totalReceived = 0, totalExpected = 0, totalExtra = 0;
+    // Member-name links: link the Playa name, falling back to the real name only
+    // when there's no Playa name. Each render (table row, mobile card, requests
+    // list) shows exactly ONE clickable name per person — never zero, never two.
     function rowHtml(r, extraClass) {
       return '<tr class="' + rosterRowClass(r) + extraClass + '" data-row="' + r._row + '">' +
         '<td>' + esc(r.name) + '</td>' +
