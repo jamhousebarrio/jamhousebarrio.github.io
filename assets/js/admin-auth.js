@@ -114,6 +114,11 @@ JH.authenticate = async function() {
     var res = await JH.apiFetch('/api/members', {});
     if (!res.ok) { await JH.supabase.auth.signOut(); window.location.href = '/admin'; return null; }
     var data = await res.json();
+    // Cached roster for name→member resolution (JH.findMemberByName / JH.nameLink).
+    // NOTE: this is the UNFILTERED member list — every Sheet1 row regardless of
+    // Status (incl. rejected/withdrawn). Consumers only render names of actual
+    // barrio members, so it's fine today; if you wire nameLink into a context that
+    // could contain arbitrary names, gate on Status before trusting a match.
     JH.roster = data.members || [];
 
     // Find current user in members list
