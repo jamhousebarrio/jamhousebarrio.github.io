@@ -193,13 +193,16 @@ export default async function handler(req, res) {
           requestBody: { values: [['=' + qtyCol + addedRow + '*' + priceCol + addedRow]] },
         });
       }
+      // Write Paid as a real boolean so the grid's checkbox renderer reads it
+      // correctly. Honor the submitted value (the row append wrote it as text).
       const paidCol = headers.indexOf('Paid');
       if (paidCol !== -1) {
+        const paidVal = data.Paid === true || data.Paid === 'true' || data.Paid === 'TRUE';
         await sheets.spreadsheets.values.update({
           spreadsheetId,
           range: 'Budget!' + colToLetter(paidCol) + addedRow,
           valueInputOption: 'USER_ENTERED',
-          requestBody: { values: [[false]] },
+          requestBody: { values: [[paidVal]] },
         });
       }
       return res.status(200).json({ success: true, row: addedRow });
