@@ -326,7 +326,7 @@ import { parseISO, ganttRange, enumerateDays, barCells, isEventDay, eeColorKey }
       if (JH.isAdmin()) {
         editBtn = '<button class="edit-pencil" data-name="' + JH.esc(m['Playa Name'] || m['Name'] || '') + '" title="Edit logistics">\u270e</button>';
       }
-      html += '<td>' + editBtn + '<strong>' + JH.esc(name) + (isMe ? ' <span style="color:var(--accent);font-size:0.75rem">(you)</span>' : '') + '</strong></td>';
+      html += '<td>' + editBtn + '<strong>' + JH.nameLink(name) + (isMe ? ' <span style="color:var(--accent);font-size:0.75rem">(you)</span>' : '') + '</strong></td>';
       html += '<td>' + eeBadge(m) + '</td>';
 
       if (row) {
@@ -364,7 +364,7 @@ import { parseISO, ganttRange, enumerateDays, barCells, isEventDay, eeColorKey }
       }
 
       cards += '<div class="m-card">';
-      cards += '<div class="m-card-title"><span>' + JH.esc(name) + (isMe ? ' <span style="color:var(--accent);font-size:0.75rem">(you)</span>' : '') + '</span>' + titleRight + '</div>';
+      cards += '<div class="m-card-title"><span>' + JH.nameLink(name) + (isMe ? ' <span style="color:var(--accent);font-size:0.75rem">(you)</span>' : '') + '</span>' + titleRight + '</div>';
 
       var ee = eeBadge(m);
       if (ee.indexOf('not-filled') === -1) {
