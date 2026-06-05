@@ -114,6 +114,7 @@ JH.authenticate = async function() {
     var res = await JH.apiFetch('/api/members', {});
     if (!res.ok) { await JH.supabase.auth.signOut(); window.location.href = '/admin'; return null; }
     var data = await res.json();
+    JH.roster = data.members || [];
 
     // Find current user in members list
     var email = user.email.toLowerCase();
@@ -156,7 +157,7 @@ JH.authenticate = async function() {
 
 JH.sidebarNav = [
   { href: '/admin/applications', icon: '&#9993;', text: 'Applications', access: 'admin' },
-  { href: '/admin/demographics', icon: '&#9776;', text: 'Approved Members', access: 'general' },
+  { href: '/admin/demographics', icon: '&#9776;', text: 'Current Members', access: 'general' },
   { href: '/admin/budget', icon: '&#9733;', text: 'Budget', access: 'general', observerHide: true },
   { href: '/admin/fee-paid', icon: '&#128176;', text: 'Fee Paid', access: 'general', observerHide: true },
   { href: '/admin/shifts', icon: '&#9835;', text: 'Shifts', access: 'general' },
@@ -274,6 +275,99 @@ JH.NameLinkRenderer.prototype.init = function(params) {
   this.eGui.addEventListener('click', function(e) { e.preventDefault(); });
 };
 JH.NameLinkRenderer.prototype.getGui = function() { return this.eGui; };
+
+// Resolve a displayed name to a full member record from the cached roster.
+// Matches Playa Name OR Real Name, case-insensitive and trimmed. Returns the
+// first match (duplicate display names are rare in a ~50-person barrio) or null.
+JH.findMemberByName = function(name) {
+  var key = String(name || '').trim().toLowerCase();
+  if (!key) return null;
+  var roster = JH.roster || [];
+  for (var i = 0; i < roster.length; i++) {
+    var m = roster[i];
+    var playa = String(JH.val(m, 'Playa Name') || '').trim().toLowerCase();
+    var real = String(JH.val(m, 'Name') || '').trim().toLowerCase();
+    if (playa === key || real === key) return m;
+  }
+  return null;
+};
+
+// Render a name as a clickable basic-info link IF it resolves to a member,
+// else as plain escaped text. Returns an HTML string for use in innerHTML.
+JH.nameLink = function(name) {
+  var safe = JH.esc(name || '');
+  if (!name || !JH.findMemberByName(name)) return safe;
+  return '<a href="#" class="name-link" data-member-name="' + safe + '">' + safe + '</a>';
+};
+
+// Lazily-injected, shared member basic-info slide-in panel. `extras` is optional:
+// { roles, lastLogin } — rendered only when provided (demographics passes them;
+// other pages omit them). All other fields read off the member record via JH.val.
+JH.ensureMemberPanel = function() {
+  if (document.getElementById('member-overlay')) return;
+  var ov = document.createElement('div');
+  ov.className = 'member-overlay';
+  ov.id = 'member-overlay';
+  var panel = document.createElement('div');
+  panel.className = 'member-panel';
+  panel.id = 'member-panel';
+  panel.innerHTML =
+    '<div class="member-panel-header">' +
+      '<h3 id="member-panel-title"></h3>' +
+      '<button class="panel-close" id="member-panel-close">&times;</button>' +
+    '</div>' +
+    '<div id="member-panel-body"></div>';
+  document.body.appendChild(ov);
+  document.body.appendChild(panel);
+  function close() { ov.classList.remove('active'); panel.classList.remove('active'); }
+  document.getElementById('member-panel-close').addEventListener('click', close);
+  ov.addEventListener('click', close);
+};
+
+JH.openMemberPanel = function(m, extras) {
+  if (!m) return;
+  JH.ensureMemberPanel();
+  extras = extras || {};
+  document.getElementById('member-panel-title').textContent =
+    JH.val(m, 'Playa Name') || JH.val(m, 'Name') || 'Member';
+  // [label, value] in demographics order; Roles + Last Login come from extras.
+  var fields = [
+    ['Real Name', JH.val(m, 'Name')],
+    ['Age', JH.val(m, 'Age')],
+    ['Gender', JH.val(m, 'Gender')],
+    ['Nationality', JH.val(m, 'Nationality')],
+    ['Location', JH.val(m, 'Location')],
+    ['Roles', extras.roles || ''],
+    ['Phone', JH.val(m, 'Phone')],
+    ['Email', JH.val(m, 'Email')],
+    ['Admin', JH.val(m, 'Admin')],
+    ['Last Login', extras.lastLogin || ''],
+    ['First Burn', JH.val(m, 'First Burn')],
+    ['First Elsewhere', JH.val(m, 'First Elsewhere/Nowhere')],
+    ['Has Ticket', JH.val(m, 'Has Ticket')],
+    ['Volunteer', JH.val(m, 'Volunteer')]
+  ];
+  document.getElementById('member-panel-body').innerHTML = fields.filter(function(f) {
+    return f[1];
+  }).map(function(f) {
+    return '<div class="member-field"><span class="member-field-label">' + JH.esc(f[0]) +
+      '</span><span class="member-field-value">' + JH.esc(f[1]) + '</span></div>';
+  }).join('');
+  document.getElementById('member-overlay').classList.add('active');
+  document.getElementById('member-panel').classList.add('active');
+};
+
+// One delegated handler for every clickable name link across all admin pages.
+// Resolves the clicked name to a member and opens the shared panel. Names that
+// don't resolve are never rendered as links (see JH.nameLink), so this is a no-op
+// for plain text. The remove-buttons on Shifts use a different selector, no clash.
+document.addEventListener('click', function(e) {
+  var a = e.target.closest && e.target.closest('a.name-link[data-member-name]');
+  if (!a) return;
+  e.preventDefault();
+  var m = JH.findMemberByName(a.getAttribute('data-member-name'));
+  if (m) JH.openMemberPanel(m);
+});
 
 JH.mobileColumns = function(columnDefs, keepFields) {
   if (!JH.isMobile) return;
