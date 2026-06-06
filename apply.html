@@ -208,8 +208,12 @@ title: Apply - JamHouse 2026
   <div class="form-container">
     <div class="form-header">
       <h1>JamHouse</h1>
-      <h2>Apply for Membership</h2>
-      <p>Fill out this form to apply for JamHouse barrio at <a href="https://nobodies.team" style="color: var(--accent, #e8a84c);">Elsewhere 2026</a>. We'll review your application and get back to you soon.</p>
+      <h2>Applications Closed</h2>
+    </div>
+
+    <!-- Applications closed for 2026 — form hidden below, intact for re-enabling next year -->
+    <div class="message" style="background: var(--surface, #141414); border: 1px solid var(--border, #2a2a2a); color: var(--text, #e0e0e0); font-size: 1.05rem; line-height: 1.7;">
+      We have already reached our capacity for this year. Swing by our camp for a jam and a hangout. See you in less than a month!
     </div>
 
     <div id="errorMsg" class="message error"></div>
@@ -218,7 +222,7 @@ title: Apply - JamHouse 2026
       <p>Your application has been submitted. We'll review it and get back to you soon.</p>
     </div>
 
-    <form id="applyForm">
+    <form id="applyForm" style="display:none">
       <!-- Section 1: About You -->
       <div class="form-section">
         <h3>About You</h3>
