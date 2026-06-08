@@ -107,6 +107,7 @@ vercel.json                     # URL rewrites & framework config
 
 ## Change Enforcement Rules
 - **If you add/change a Status that grants portal access** → update `PORTAL_STATUSES` and `shouldInvite` in `api/_lib/invite.js` (and `ALLOWED_STATUSES` in `api/members.js`), or the welcome-email + reconciliation logic will silently skip the new status.
+- **If you rename or delete a shift type** → its `ShiftWeights` row must follow: `rename-type` renames it server-side (`api/shifts.js`); type deletion re-saves weights client-side (`cleanupWeightsAfterDelete` in `admin-shifts.js`). Skipping this orphans the weight or silently drops the type to the default (1 pt).
 
 ## Google Sheet Tabs
 
@@ -119,6 +120,7 @@ vercel.json                     # URL rewrites & framework config
 | Meals | meals.js | Meal definitions. Cols: MealID, Name, Date (optional — blank = Unscheduled), MealType (breakfast/lunch/dinner/dessert), Servings (baseline headcount, default 30), Description, Instructions, PreCook (prep-ahead notes), PhotoURL |
 | MealIngredients | meals.js | Ingredients per meal. Cols: IngredientID, MealID, Name, Quantity (TOTAL at the meal's Servings baseline — not per-person), Unit, Prep (pre-cook/on-site), KcalPerUnit (kcal per one Unit) |
 | ShiftData | shifts.js | Shift assignments |
+| ShiftWeights | shifts.js | Point weights for the fairness leaderboard. Cols: Kind (type/build/strike), Name (type name; blank for build/strike), Points. Defaults applied in shift-points-logic.js: type=1, build/strike=10. |
 | DrinksSnacks | drinks.js | Drink/snack items |
 | Events | events.js | Event planning |
 | Roles | roles.js | Role assignments |
@@ -129,6 +131,8 @@ vercel.json                     # URL rewrites & framework config
 > Inventory `Labels` is a comma-separated multi-value column (mirrors `BuildPhotos.Labels`); label values cannot contain commas. The former single `Category` column was renamed to `Labels` and the `Notes` column was folded into `Description` and dropped by the one-shot `scripts/migrate-inventory-labels.mjs` (run 2026-05-25). Pure label parse/serialize/filter logic lives in `assets/js/inventory-labels.js` (unit-tested via `npm test`). Write tiers: `upsert` (add/edit) is open to approved members; **observers are read-only**; `delete` is **admin-only** — all enforced server-side in `api/inventory.js`.
 
 > Meals/MealIngredients write tier: editing meals & ingredients is open to **admins + members assigned to the "Kitchen lead" role** (in the Roles tab), **observers read-only** — enforced server-side in `api/meals.js` via `api/_lib/roles.js` `isAssignedToRole` (the fetch returns a `canEdit` flag the page uses to show/hide edit controls). Meal quantities are **totals at a per-meal `Servings` baseline (30)**; the page scales them by an adjustable headcount counter (defaults to approved-member count) and computes per-person portions + calories. Pure quantity/calorie math is in `assets/js/meals-logic.js` (unit-tested via `npm test`); kcal targets per meal type (B 550 / L 750 / D 1000 / dessert 250; 2300/day) live there too. The menu was loaded by the one-shot `scripts/seed-meals.mjs` (run 2026-05-31; recipe notes kept verbatim). Drinks & Snacks were intentionally left out of this pass.
+
+> Shift point weights live in the ShiftWeights tab and are set via the admin-only "⚖ Points" modal on the Shifts page (`set-weights` action; `get-weights` is open to any authed user since the leaderboard needs it). Points replace clock hours as the leaderboard's ranking currency; hours remain a displayed detail. Build/strike days earn points per day present, **minus** any NoOrg days in that member's build/strike window. Pure scoring math (incl. defaults type=1, build/strike=10) is in `assets/js/shift-points-logic.js`, unit-tested via `npm test`.
 
 ### Budget Sheet (BUDGET_SHEET_ID)
 | Tab | Used by | Purpose |
