@@ -24,6 +24,8 @@ test('durationHours handles HH:MM and past-midnight', () => {
   assert.equal(durationHours('09:00', '11:00'), 2);
   assert.equal(durationHours('23:00', '00:30'), 1.5); // wraps midnight
   assert.equal(durationHours('', '11:00'), 0);
+  assert.equal(durationHours('09:00', '09:00'), 0);   // zero-length slot, NOT 24h
+  assert.equal(durationHours('23:00', '02:00'), 3);   // genuine overnight still wraps
 });
 
 test('buildWeightIndex: defaults when build/strike rows absent', () => {

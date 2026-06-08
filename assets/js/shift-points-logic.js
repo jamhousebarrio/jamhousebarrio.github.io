@@ -26,13 +26,16 @@ export function durationHours(start, end) {
   const ep = String(end).split(':');
   if (sp.length < 2 || ep.length < 2) return 0;
   let mins = (+ep[0] * 60 + +ep[1]) - (+sp[0] * 60 + +sp[1]);
-  if (mins <= 0) mins += 24 * 60; // wrap past midnight
+  // Wrap only on a genuine overnight shift (mins < 0). A zero-length slot
+  // (start === end, a data-entry slip) stays 0h rather than becoming 24h.
+  if (mins < 0) mins += 24 * 60;
   return mins / 60;
 }
 
 // Turn raw ShiftWeights rows ({Kind, Name, Points}) into a fast lookup with
 // defaults applied for the two day-values. Type points default per-lookup in
-// typePoints(), so unknown types never need a row.
+// typePoints(), so unknown types never need a row. Duplicate type rows with the
+// same (case-folded) Name follow last-write-wins.
 export function buildWeightIndex(weightRows) {
   const types = {};
   let buildPts = DEFAULT_DAY_POINTS;
