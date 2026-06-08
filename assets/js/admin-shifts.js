@@ -1,3 +1,5 @@
+import { buildWeightIndex, typePoints, memberPoints } from '/assets/js/shift-points-logic.js';
+
 (async function () {
   var members = await JH.authenticate();
   if (!members) return;
@@ -11,6 +13,8 @@
 
   var shifts = [];
   var logistics = [];
+  var weights = [];
+  var weightIndex = buildWeightIndex([]);
   var EVENT_DATES = ['2026-07-07', '2026-07-08', '2026-07-09', '2026-07-10', '2026-07-11', '2026-07-12'];
   var MAIN_START = parseDate('2026-07-07');
   var MAIN_END = parseDate('2026-07-12');
@@ -27,6 +31,14 @@
     if (!r.ok) { logistics = []; return; }
     var data = await r.json();
     logistics = data.logistics || [];
+  }
+
+  async function fetchWeights() {
+    var r = await JH.apiFetch('/api/shifts', { action: 'get-weights' });
+    if (!r.ok) { weights = []; weightIndex = buildWeightIndex([]); return; }
+    var data = await r.json();
+    weights = data.weights || [];
+    weightIndex = buildWeightIndex(weights);
   }
 
   function parseDate(s) {
@@ -883,7 +895,7 @@
   });
 
   async function reload() {
-    await Promise.all([fetchShifts(), fetchLogistics()]);
+    await Promise.all([fetchShifts(), fetchLogistics(), fetchWeights()]);
     renderStats();
     renderGrid();
     renderLeaderboard();
