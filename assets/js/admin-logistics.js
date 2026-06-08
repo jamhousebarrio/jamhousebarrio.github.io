@@ -530,11 +530,13 @@ import { parseISO, ganttRange, enumerateDays, barCells, isEventDay, eeColorKey }
     var placeholders = (state.logistics || [])
       .filter(function (l) { return (l.Transport || '').toLowerCase() === 'vehicle' && !driversWithRide[l.MemberName]; })
       .map(function (l) {
+        var loc = locationOf(l.MemberName) || '';
         return {
           _placeholder: true,
           RideID: 'placeholder:' + l.MemberName,
           DriverName: l.MemberName,
-          From: locationOf(l.MemberName) || '',
+          OriginTo: loc,
+          DestFrom: loc,
           DateTo: l.ArrivalDate || '',
           DateFrom: l.DepartureDate || '',
           SeatsTotal: 0,
@@ -551,9 +553,18 @@ import { parseISO, ganttRange, enumerateDays, barCells, isEventDay, eeColorKey }
     }
     combined.sort(function (a, b) { return (a.DateTo || '').localeCompare(b.DateTo || '') || ((a.CreatedAt || '').localeCompare(b.CreatedAt || '')); });
 
-    function legHtml(ride, dir, label, dateStr, isPlaceholder, iAmDriver, seatsTotal) {
+    function legHtml(ride, dir, dateStr, isPlaceholder, iAmDriver, seatsTotal) {
       var claimed = (dir === 'to' ? ride.claimedTo : ride.claimedFrom) || [];
       var seatsLeft = Math.max(0, seatsTotal - claimed.length);
+      var driverLoc = locationOf(ride.DriverName) || '';
+      var loc = (dir === 'to'
+        ? (ride.OriginTo || driverLoc || 'somewhere')
+        : (ride.DestFrom || driverLoc || 'somewhere'));
+      var arrow = dir === 'to' ? '→' : '←';
+      var routeTxt = dir === 'to'
+        ? JH.esc(loc) + ' ' + arrow + ' event'
+        : 'event ' + arrow + ' ' + JH.esc(loc);
+      var legLabel = (dir === 'to' ? 'To event' : 'From event') + ' &middot; <span style="color:var(--text);">' + routeTxt + '</span>';
       var iAmClaimed = me && claimed.indexOf(me) !== -1;
       var actionBtn = '';
       if (!observer && !isPlaceholder && !iAmDriver) {
@@ -575,7 +586,7 @@ import { parseISO, ganttRange, enumerateDays, barCells, isEventDay, eeColorKey }
         : (isPlaceholder ? '' : '<span style="color:var(--text-muted);font-size:0.75rem;">No one yet</span>');
       return '<div class="ride-leg" style="border-top:1px solid var(--border);padding:8px 0 4px;">' +
         '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">' +
-          '<div style="font-size:0.82rem;"><strong>' + label + '</strong>' + (dateStr ? ' &middot; ' + JH.esc(dateStr) : ' &middot; date TBC') + ' &middot; <span style="' + seatCls + '">' + seatsTxt + '</span></div>' +
+          '<div style="font-size:0.82rem;color:var(--text-muted);"><strong style="color:var(--text);">' + legLabel + '</strong>' + (dateStr ? ' &middot; ' + JH.esc(dateStr) : ' &middot; date TBC') + ' &middot; <span style="' + seatCls + '">' + seatsTxt + '</span></div>' +
           '<div>' + actionBtn + '</div>' +
         '</div>' +
         (claimedHtml ? '<div style="margin-top:6px;display:flex;gap:4px;flex-wrap:wrap;">' + claimedHtml + '</div>' : '') +
@@ -595,11 +606,9 @@ import { parseISO, ganttRange, enumerateDays, barCells, isEventDay, eeColorKey }
       }
       var editBtn = !isPlaceholder && canEdit && !observer ? '<button class="btn-secondary btn-ride-edit" data-ride="' + JH.esc(ride.RideID) + '" style="font-size:0.78rem;">Edit</button>' : '';
       var delBtn = !isPlaceholder && canEdit && !observer ? '<button class="btn-secondary btn-ride-delete" data-ride="' + JH.esc(ride.RideID) + '" style="font-size:0.78rem;color:#f44336;border-color:#f44336;">Delete</button>' : '';
-      var fromTxt = ride.From || locationOf(ride.DriverName) || '?';
-      var headerLine = '<div style="font-size:0.85rem;color:var(--text-muted);margin-top:2px;">From <strong style="color:var(--text);">' + JH.esc(fromTxt) + '</strong></div>';
       var notesLine = ride.Notes ? '<div style="font-size:0.8rem;color:var(--text-muted);margin-top:6px;">' + JH.esc(ride.Notes) + '</div>' : '';
-      var legs = legHtml(ride, 'to', '→ To event', ride.DateTo, isPlaceholder, iAmDriver, seatsTotal) +
-                 legHtml(ride, 'from', '← From event', ride.DateFrom, isPlaceholder, iAmDriver, seatsTotal);
+      var legs = legHtml(ride, 'to', ride.DateTo, isPlaceholder, iAmDriver, seatsTotal) +
+                 legHtml(ride, 'from', ride.DateFrom, isPlaceholder, iAmDriver, seatsTotal);
       var cardStyle = isPlaceholder
         ? 'border:1px dashed var(--border);border-radius:8px;padding:12px 14px;margin-bottom:10px;background:transparent;opacity:0.85;'
         : 'border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:10px;background:var(--surface);';
@@ -607,7 +616,6 @@ import { parseISO, ganttRange, enumerateDays, barCells, isEventDay, eeColorKey }
         '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;margin-bottom:6px;">' +
           '<div style="flex:1;min-width:200px;">' +
             '<div style="font-weight:600;color:var(--text);">' + JH.esc(ride.DriverName) + '</div>' +
-            headerLine +
             notesLine +
           '</div>' +
           '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:flex-start;">' + topBtns + ' ' + editBtn + ' ' + delBtn + '</div>' +
@@ -656,7 +664,9 @@ import { parseISO, ganttRange, enumerateDays, barCells, isEventDay, eeColorKey }
   function openRideModal(existing) {
     rideEditing = existing || null;
     document.getElementById('ride-modal-title').textContent = existing ? 'Edit ride' : 'Offer a ride';
-    document.getElementById('ride-from').value = existing ? (existing.From || '') : (myLocation() || '');
+    var defaultLoc = myLocation() || '';
+    document.getElementById('ride-origin-to').value = existing ? (existing.OriginTo || '') : defaultLoc;
+    document.getElementById('ride-dest-from').value = existing ? (existing.DestFrom || '') : defaultLoc;
     var defaultTo = '', defaultFrom = '';
     if (!existing) {
       var mine = state.logistics.find(function (r) { return r.MemberName === state.myName; });
@@ -683,14 +693,15 @@ import { parseISO, ganttRange, enumerateDays, barCells, isEventDay, eeColorKey }
   });
   document.getElementById('ride-cancel-btn').addEventListener('click', closeRideModal);
   document.getElementById('ride-save-btn').addEventListener('click', async function () {
-    var from = document.getElementById('ride-from').value.trim();
+    var originTo = document.getElementById('ride-origin-to').value.trim();
+    var destFrom = document.getElementById('ride-dest-from').value.trim();
     var dateTo = document.getElementById('ride-date-to').value.trim();
     var dateFrom = document.getElementById('ride-date-from').value.trim();
     var seats = parseInt(document.getElementById('ride-seats').value, 10);
     var rideNotes = document.getElementById('ride-notes').value.trim();
     var msg = document.getElementById('ride-modal-msg');
     if (!seats || seats < 1) { msg.textContent = 'Enter a seat count (1 or more).'; return; }
-    var payload = { from: from, dateTo: dateTo, dateFrom: dateFrom, seatsTotal: seats, notes: rideNotes };
+    var payload = { originTo: originTo, destFrom: destFrom, dateTo: dateTo, dateFrom: dateFrom, seatsTotal: seats, notes: rideNotes };
     var action = rideEditing ? 'ride-update' : 'ride-create';
     if (rideEditing) payload.rideId = rideEditing.RideID;
     try {

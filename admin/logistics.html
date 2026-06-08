@@ -135,11 +135,13 @@ access: general
   <div class="modal">
     <h2 id="ride-modal-title">Offer a ride</h2>
     <div class="modal-body" style="display:flex;flex-direction:column;gap:10px;">
-      <label>From (city / starting point)</label>
-      <input id="ride-from" placeholder="Auto-filled from your profile" />
-      <label>Arrival at event (to)</label>
+      <label>Driving <em>from</em> (to-event leg)</label>
+      <input id="ride-origin-to" placeholder="Where you start your trip to the event" />
+      <label>Arrival at event</label>
       <input id="ride-date-to" placeholder="dd/mm/yyyy — pulled from your logistics" />
-      <label>Departure from event (back)</label>
+      <label>Driving <em>to</em> after event (from-event leg)</label>
+      <input id="ride-dest-from" placeholder="Where you go back to after the event" />
+      <label>Departure from event</label>
       <input id="ride-date-from" placeholder="dd/mm/yyyy — pulled from your logistics" />
       <label>Seats offered to passengers (each way)</label>
       <input id="ride-seats" type="number" min="1" max="50" placeholder="e.g. 3" />
