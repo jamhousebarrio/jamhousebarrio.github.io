@@ -181,6 +181,20 @@ detail.
 - Manual verification on the running app: set weights in the modal, confirm the
   leaderboard re-ranks and the hours detail still renders.
 
+## Implementation notes
+
+- `shifts.js` currently hardcodes `const TAB = 'ShiftData'`. The new actions need
+  their own tab constant (`const WEIGHTS_TAB = 'ShiftWeights'`) and range — guard
+  against accidentally writing weights into `ShiftData`. Both tabs live in
+  `SHEET_ID`.
+- `set-weights`' "delete every `Kind=type` row" step uses the
+  `spreadsheets.get` → `deleteDimension` (by `sheetId`, bottom-up) pattern already
+  established by the `delete-slot` / `delete` actions — reuse that as the
+  template, not a values write.
+- `rename-type` today touches only the `ShiftData` tab. Adding the weight-row
+  rename means a second-tab write inside that handler; there's no shared helper,
+  so it's an explicit `ShiftWeights` read/update appended to the existing action.
+
 ## Out of scope (YAGNI)
 
 - Per-slot or duration-scaled weights (chose flat per-type).
