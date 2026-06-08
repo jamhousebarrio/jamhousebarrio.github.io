@@ -535,13 +535,12 @@ import { parseISO, ganttRange, enumerateDays, barCells, isEventDay, eeColorKey }
           RideID: 'placeholder:' + l.MemberName,
           DriverName: l.MemberName,
           From: locationOf(l.MemberName) || '',
-          To: '',
-          Date: l.ArrivalDate || '',
+          DateTo: l.ArrivalDate || '',
+          DateFrom: l.DepartureDate || '',
           SeatsTotal: 0,
-          CarCapacity: '',
-          ClaimedBy: '',
           Notes: '',
-          claimed: [],
+          claimedTo: [],
+          claimedFrom: [],
         };
       });
 
@@ -550,75 +549,85 @@ import { parseISO, ganttRange, enumerateDays, barCells, isEventDay, eeColorKey }
       wrap.innerHTML = '<div class="empty-state">No drivers yet. Anyone whose transport is <strong>vehicle</strong> on the logistics form above will show up here automatically — or click <strong>+ Offer a ride</strong>.</div>';
       return;
     }
-    combined.sort(function (a, b) { return (a.Date || '').localeCompare(b.Date || '') || ((a.CreatedAt || '').localeCompare(b.CreatedAt || '')); });
+    combined.sort(function (a, b) { return (a.DateTo || '').localeCompare(b.DateTo || '') || ((a.CreatedAt || '').localeCompare(b.CreatedAt || '')); });
+
+    function legHtml(ride, dir, label, dateStr, isPlaceholder, iAmDriver, seatsTotal) {
+      var claimed = (dir === 'to' ? ride.claimedTo : ride.claimedFrom) || [];
+      var seatsLeft = Math.max(0, seatsTotal - claimed.length);
+      var iAmClaimed = me && claimed.indexOf(me) !== -1;
+      var actionBtn = '';
+      if (!observer && !isPlaceholder && !iAmDriver) {
+        if (iAmClaimed) actionBtn = '<button class="btn-secondary btn-ride-release-leg" data-ride="' + JH.esc(ride.RideID) + '" data-dir="' + dir + '" style="font-size:0.74rem;padding:3px 8px;">Release</button>';
+        else if (seatsLeft > 0) actionBtn = '<button class="btn-primary btn-ride-claim" data-ride="' + JH.esc(ride.RideID) + '" data-dir="' + dir + '" style="font-size:0.74rem;padding:3px 8px;">Claim seat</button>';
+        else actionBtn = '<span style="font-size:0.74rem;color:var(--text-muted);">Full</span>';
+      }
+      var seatCls = isPlaceholder
+        ? 'color:var(--text-muted);font-style:italic;'
+        : (seatsLeft === 0 ? 'color:#f44336;' : (seatsLeft <= 1 ? 'color:#ff9800;' : 'color:#6dcf72;'));
+      var seatsTxt = isPlaceholder ? 'No seats set' : (seatsLeft + ' of ' + seatsTotal + ' left');
+      var claimedHtml = claimed.length
+        ? claimed.map(function (n) {
+            var canRelease = !observer && (iAmDriver || n === me);
+            return '<span class="ride-claim-chip" style="display:inline-flex;align-items:center;gap:4px;background:rgba(232,168,76,0.12);color:var(--accent);font-size:0.75rem;padding:2px 7px;border-radius:10px;">' + JH.esc(n) +
+              (canRelease ? ' <button class="ride-claim-x" data-ride="' + JH.esc(ride.RideID) + '" data-dir="' + dir + '" data-name="' + JH.esc(n) + '" title="Release seat" style="background:none;border:none;color:var(--accent);cursor:pointer;padding:0;font-size:0.85rem;line-height:1;">×</button>' : '') +
+              '</span>';
+          }).join(' ')
+        : (isPlaceholder ? '' : '<span style="color:var(--text-muted);font-size:0.75rem;">No one yet</span>');
+      return '<div class="ride-leg" style="border-top:1px solid var(--border);padding:8px 0 4px;">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">' +
+          '<div style="font-size:0.82rem;"><strong>' + label + '</strong>' + (dateStr ? ' &middot; ' + JH.esc(dateStr) : ' &middot; date TBC') + ' &middot; <span style="' + seatCls + '">' + seatsTxt + '</span></div>' +
+          '<div>' + actionBtn + '</div>' +
+        '</div>' +
+        (claimedHtml ? '<div style="margin-top:6px;display:flex;gap:4px;flex-wrap:wrap;">' + claimedHtml + '</div>' : '') +
+      '</div>';
+    }
+
     var html = combined.map(function (ride) {
       var isPlaceholder = !!ride._placeholder;
       var seatsTotal = ride.SeatsTotal || 0;
-      var claimed = ride.claimed || [];
-      var seatsLeft = Math.max(0, seatsTotal - claimed.length);
       var iAmDriver = me && ride.DriverName === me;
-      var iAmClaimed = me && claimed.indexOf(me) !== -1;
       var canEdit = iAmDriver || meIsAdmin;
-      var actionBtn = '';
+      var topBtns = '';
       if (!observer) {
-        if (isPlaceholder) {
-          if (iAmDriver) actionBtn = '<button class="btn-primary btn-ride-setup" style="font-size:0.78rem;">Set up your ride</button>';
-          else actionBtn = '<span style="font-size:0.78rem;color:var(--text-muted);">Awaiting seats</span>';
-        } else if (iAmDriver) actionBtn = '<span style="font-size:0.78rem;color:var(--text-muted);">You’re driving</span>';
-        else if (iAmClaimed) actionBtn = '<button class="btn-secondary btn-ride-release" data-ride="' + JH.esc(ride.RideID) + '" style="font-size:0.78rem;">Release my seat</button>';
-        else if (seatsLeft > 0) actionBtn = '<button class="btn-primary btn-ride-claim" data-ride="' + JH.esc(ride.RideID) + '" style="font-size:0.78rem;">Claim a seat</button>';
-        else actionBtn = '<span style="font-size:0.78rem;color:var(--text-muted);">Full</span>';
+        if (isPlaceholder && iAmDriver) topBtns = '<button class="btn-primary btn-ride-setup" style="font-size:0.78rem;">Set up your ride</button>';
+        else if (isPlaceholder) topBtns = '<span style="font-size:0.78rem;color:var(--text-muted);">Awaiting seats</span>';
+        else if (iAmDriver) topBtns = '<span style="font-size:0.78rem;color:var(--text-muted);">You’re driving</span>';
       }
       var editBtn = !isPlaceholder && canEdit && !observer ? '<button class="btn-secondary btn-ride-edit" data-ride="' + JH.esc(ride.RideID) + '" style="font-size:0.78rem;">Edit</button>' : '';
       var delBtn = !isPlaceholder && canEdit && !observer ? '<button class="btn-secondary btn-ride-delete" data-ride="' + JH.esc(ride.RideID) + '" style="font-size:0.78rem;color:#f44336;border-color:#f44336;">Delete</button>' : '';
-      var seatCls = seatsLeft === 0 ? 'color:#f44336;' : (seatsLeft <= 1 ? 'color:#ff9800;' : 'color:#6dcf72;');
-      var seatsLine = isPlaceholder
-        ? '<div style="font-size:0.82rem;margin-top:6px;color:var(--text-muted);font-style:italic;">No seats set yet</div>'
-        : '<div style="font-size:0.82rem;margin-top:6px;"><strong style="' + seatCls + '">' + seatsLeft + ' of ' + seatsTotal + ' seats left</strong></div>';
-      var claimedHtml = isPlaceholder ? '' : (claimed.length
-        ? claimed.map(function (n) {
-            var canRelease = !observer && (iAmDriver || n === me);
-            return '<span class="ride-claim-chip" style="display:inline-flex;align-items:center;gap:4px;background:rgba(232,168,76,0.12);color:var(--accent);font-size:0.78rem;padding:2px 8px;border-radius:10px;">' + JH.esc(n) +
-              (canRelease ? ' <button class="ride-claim-x" data-ride="' + JH.esc(ride.RideID) + '" data-name="' + JH.esc(n) + '" title="Release seat" style="background:none;border:none;color:var(--accent);cursor:pointer;padding:0;font-size:0.85rem;line-height:1;">×</button>' : '') +
-              '</span>';
-          }).join(' ')
-        : '<span style="color:var(--text-muted);font-size:0.78rem;">No one yet</span>');
       var fromTxt = ride.From || locationOf(ride.DriverName) || '?';
-      var toTxt = ride.To || 'site';
-      var routeLine = JH.esc(fromTxt) + ' → ' + JH.esc(toTxt);
-      var dateLine = ride.Date ? ' &middot; ' + JH.esc(ride.Date) : '';
-      var carCap = parseInt(ride.CarCapacity, 10);
-      var capLine = (!isNaN(carCap) && carCap > 0) ? ' &middot; ' + carCap + '-seater car' : '';
+      var headerLine = '<div style="font-size:0.85rem;color:var(--text-muted);margin-top:2px;">From <strong style="color:var(--text);">' + JH.esc(fromTxt) + '</strong></div>';
       var notesLine = ride.Notes ? '<div style="font-size:0.8rem;color:var(--text-muted);margin-top:6px;">' + JH.esc(ride.Notes) + '</div>' : '';
+      var legs = legHtml(ride, 'to', '→ To event', ride.DateTo, isPlaceholder, iAmDriver, seatsTotal) +
+                 legHtml(ride, 'from', '← From event', ride.DateFrom, isPlaceholder, iAmDriver, seatsTotal);
       var cardStyle = isPlaceholder
-        ? 'border:1px dashed var(--border);border-radius:8px;padding:12px 14px;margin-bottom:10px;background:transparent;opacity:0.75;'
+        ? 'border:1px dashed var(--border);border-radius:8px;padding:12px 14px;margin-bottom:10px;background:transparent;opacity:0.85;'
         : 'border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:10px;background:var(--surface);';
       return '<div class="ride-card" style="' + cardStyle + '">' +
-        '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;">' +
+        '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;margin-bottom:6px;">' +
           '<div style="flex:1;min-width:200px;">' +
             '<div style="font-weight:600;color:var(--text);">' + JH.esc(ride.DriverName) + '</div>' +
-            '<div style="font-size:0.85rem;color:var(--text-muted);margin-top:2px;">' + routeLine + dateLine + capLine + '</div>' +
-            seatsLine +
-            (claimedHtml ? '<div style="margin-top:8px;display:flex;gap:4px;flex-wrap:wrap;">' + claimedHtml + '</div>' : '') +
+            headerLine +
             notesLine +
           '</div>' +
-          '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:flex-start;">' + actionBtn + ' ' + editBtn + ' ' + delBtn + '</div>' +
+          '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:flex-start;">' + topBtns + ' ' + editBtn + ' ' + delBtn + '</div>' +
         '</div>' +
+        legs +
       '</div>';
     }).join('');
     wrap.innerHTML = html;
 
     wrap.querySelectorAll('.btn-ride-claim').forEach(function (b) {
-      b.addEventListener('click', function () { rideAction('ride-claim', { rideId: b.dataset.ride }); });
+      b.addEventListener('click', function () { rideAction('ride-claim', { rideId: b.dataset.ride, direction: b.dataset.dir }); });
     });
-    wrap.querySelectorAll('.btn-ride-release').forEach(function (b) {
-      b.addEventListener('click', function () { rideAction('ride-release', { rideId: b.dataset.ride }); });
+    wrap.querySelectorAll('.btn-ride-release-leg').forEach(function (b) {
+      b.addEventListener('click', function () { rideAction('ride-release', { rideId: b.dataset.ride, direction: b.dataset.dir }); });
     });
     wrap.querySelectorAll('.ride-claim-x').forEach(function (b) {
-      b.addEventListener('click', function () { rideAction('ride-release', { rideId: b.dataset.ride, name: b.dataset.name }); });
+      b.addEventListener('click', function () { rideAction('ride-release', { rideId: b.dataset.ride, direction: b.dataset.dir, name: b.dataset.name }); });
     });
     wrap.querySelectorAll('.btn-ride-edit').forEach(function (b) {
-      b.addEventListener('click', function () { openRideModal(rides.find(function (x) { return x.RideID === b.dataset.ride; })); });
+      b.addEventListener('click', function () { openRideModal(combined.find(function (x) { return x.RideID === b.dataset.ride && !x._placeholder; })); });
     });
     wrap.querySelectorAll('.btn-ride-delete').forEach(function (b) {
       b.addEventListener('click', function () {
@@ -648,15 +657,17 @@ import { parseISO, ganttRange, enumerateDays, barCells, isEventDay, eeColorKey }
     rideEditing = existing || null;
     document.getElementById('ride-modal-title').textContent = existing ? 'Edit ride' : 'Offer a ride';
     document.getElementById('ride-from').value = existing ? (existing.From || '') : (myLocation() || '');
-    document.getElementById('ride-to').value = existing ? (existing.To || '') : '';
-    var defaultDate = '';
+    var defaultTo = '', defaultFrom = '';
     if (!existing) {
       var mine = state.logistics.find(function (r) { return r.MemberName === state.myName; });
-      if (mine && mine.ArrivalDate) defaultDate = mine.ArrivalDate;
+      if (mine) {
+        defaultTo = mine.ArrivalDate || '';
+        defaultFrom = mine.DepartureDate || '';
+      }
     }
-    document.getElementById('ride-date').value = existing ? (existing.Date || '') : defaultDate;
+    document.getElementById('ride-date-to').value = existing ? (existing.DateTo || '') : defaultTo;
+    document.getElementById('ride-date-from').value = existing ? (existing.DateFrom || '') : defaultFrom;
     document.getElementById('ride-seats').value = existing ? (existing.SeatsTotal || '') : '';
-    document.getElementById('ride-capacity').value = existing ? (existing.CarCapacity || '') : '';
     document.getElementById('ride-notes').value = existing ? (existing.Notes || '') : '';
     document.getElementById('ride-modal-msg').textContent = '';
     document.getElementById('ride-modal').classList.add('active');
@@ -673,16 +684,13 @@ import { parseISO, ganttRange, enumerateDays, barCells, isEventDay, eeColorKey }
   document.getElementById('ride-cancel-btn').addEventListener('click', closeRideModal);
   document.getElementById('ride-save-btn').addEventListener('click', async function () {
     var from = document.getElementById('ride-from').value.trim();
-    var to = document.getElementById('ride-to').value.trim();
-    var date = document.getElementById('ride-date').value.trim();
+    var dateTo = document.getElementById('ride-date-to').value.trim();
+    var dateFrom = document.getElementById('ride-date-from').value.trim();
     var seats = parseInt(document.getElementById('ride-seats').value, 10);
-    var capRaw = document.getElementById('ride-capacity').value.trim();
-    var carCapacity = capRaw === '' ? '' : parseInt(capRaw, 10);
     var rideNotes = document.getElementById('ride-notes').value.trim();
     var msg = document.getElementById('ride-modal-msg');
     if (!seats || seats < 1) { msg.textContent = 'Enter a seat count (1 or more).'; return; }
-    if (carCapacity !== '' && (isNaN(carCapacity) || carCapacity < seats)) { msg.textContent = 'Car capacity must be at least equal to seats offered.'; return; }
-    var payload = { from: from, to: to, date: date, seatsTotal: seats, carCapacity: carCapacity, notes: rideNotes };
+    var payload = { from: from, dateTo: dateTo, dateFrom: dateFrom, seatsTotal: seats, notes: rideNotes };
     var action = rideEditing ? 'ride-update' : 'ride-create';
     if (rideEditing) payload.rideId = rideEditing.RideID;
     try {
