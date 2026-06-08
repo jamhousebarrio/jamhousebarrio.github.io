@@ -567,7 +567,7 @@ import { parseISO, ganttRange, enumerateDays, barCells, isEventDay, eeColorKey }
       var legLabel = (dir === 'to' ? 'To event' : 'From event') + ' &middot; <span style="color:var(--text);">' + routeTxt + '</span>';
       var iAmClaimed = me && claimed.indexOf(me) !== -1;
       var actionBtn = '';
-      if (!observer && !isPlaceholder && !iAmDriver) {
+      if (!observer && !isPlaceholder) {
         if (iAmClaimed) actionBtn = '<button class="btn-secondary btn-ride-release-leg" data-ride="' + JH.esc(ride.RideID) + '" data-dir="' + dir + '" style="font-size:0.74rem;padding:3px 8px;">Release</button>';
         else if (seatsLeft > 0) actionBtn = '<button class="btn-primary btn-ride-claim" data-ride="' + JH.esc(ride.RideID) + '" data-dir="' + dir + '" style="font-size:0.74rem;padding:3px 8px;">Claim seat</button>';
         else actionBtn = '<span style="font-size:0.74rem;color:var(--text-muted);">Full</span>';
@@ -602,7 +602,6 @@ import { parseISO, ganttRange, enumerateDays, barCells, isEventDay, eeColorKey }
       if (!observer) {
         if (isPlaceholder && iAmDriver) topBtns = '<button class="btn-primary btn-ride-setup" style="font-size:0.78rem;">Set up your ride</button>';
         else if (isPlaceholder) topBtns = '<span style="font-size:0.78rem;color:var(--text-muted);">Awaiting seats</span>';
-        else if (iAmDriver) topBtns = '<span style="font-size:0.78rem;color:var(--text-muted);">You’re driving</span>';
       }
       var editBtn = !isPlaceholder && canEdit && !observer ? '<button class="btn-secondary btn-ride-edit" data-ride="' + JH.esc(ride.RideID) + '" style="font-size:0.78rem;">Edit</button>' : '';
       var delBtn = !isPlaceholder && canEdit && !observer ? '<button class="btn-secondary btn-ride-delete" data-ride="' + JH.esc(ride.RideID) + '" style="font-size:0.78rem;color:#f44336;border-color:#f44336;">Delete</button>' : '';

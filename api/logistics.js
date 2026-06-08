@@ -308,11 +308,9 @@ export default async function handler(req, res) {
       const colName = direction === 'to' ? 'ClaimedTo' : 'ClaimedFrom';
       const seatsCol = found.headers.indexOf('SeatsTotal');
       const claimedCol = found.headers.indexOf(colName);
-      const driverCol = found.headers.indexOf('DriverName');
       if (claimedCol === -1) return res.status(500).json({ error: `${colName} column missing — driver needs to re-save the ride first` });
       const seats = parseInt(found.row[seatsCol], 10) || 0;
       const claimed = parseClaimed(found.row[claimedCol]);
-      if ((found.row[driverCol] || '').trim() === me) return res.status(400).json({ error: "You're the driver — no need to claim a seat" });
       if (claimed.indexOf(me) !== -1) return res.status(409).json({ error: 'You already have a seat on this leg' });
       if (claimed.length >= seats) return res.status(409).json({ error: 'No seats left on this leg' });
       claimed.push(me);
