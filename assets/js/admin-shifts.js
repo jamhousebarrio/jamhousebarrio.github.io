@@ -57,11 +57,6 @@ import { buildWeightIndex, typePoints, memberPoints } from '/assets/js/shift-poi
     return null;
   }
 
-  function daysInclusive(from, to) {
-    if (!from || !to || to < from) return 0;
-    return Math.floor((to - from) / 86400000) + 1;
-  }
-
   function durationHours(start, end) {
     if (!start || !end) return 0;
     var sp = start.split(':'); var ep = end.split(':');
@@ -594,42 +589,38 @@ import { buildWeightIndex, typePoints, memberPoints } from '/assets/js/shift-poi
   function norm(s) { return (s || '').toString().toLowerCase().trim(); }
 
   function computeContributions() {
-    // Accumulate hours under the lowercased/trimmed AssignedTo name so lookup
-    // is resilient to casing and whitespace differences.
-    var hoursByKey = {};
-    shifts.forEach(function (s) {
-      if (!s.AssignedTo || !s.Date) return;
-      var dt = parseDate(s.Date);
-      if (!dt || dt < MAIN_START || dt > MAIN_END) return;
-      var hours = durationHours(s.StartTime, s.EndTime);
-      if (hours <= 0) return;
-      (s.AssignedTo || '').split(',').map(function (p) { return norm(p); }).filter(Boolean).forEach(function (key) {
-        hoursByKey[key] = (hoursByKey[key] || 0) + hours;
-      });
-    });
-
+    // Scoring delegates to the pure shift-points-logic module: points (admin-set
+    // per type, plus per-day build/strike values) are the ranking currency;
+    // hours are kept as a supporting detail. Per-member shift resolution reuses
+    // shiftsForMember (handles playa/legal names + comma-shared slots).
     return approvedMembers.map(function (m) {
       var name = displayName(m);
       if (!name) return null;
-      var playaKey = norm(JH.val(m, 'Playa Name'));
-      var legalKey = norm(JH.val(m, 'Name'));
       var log = logisticsFor(name) || logisticsFor(JH.val(m, 'Name'));
-      var arr = log ? parseDate(log.ArrivalDate) : null;
-      var dep = log ? parseDate(log.DepartureDate) : null;
-      var setupDays = 0, strikeDays = 0;
-      if (arr && arr < MAIN_START) {
-        var lastSetup = new Date(MAIN_START.getTime() - 86400000);
-        setupDays = daysInclusive(arr, lastSetup);
-      }
-      if (dep && dep > MAIN_END) {
-        var firstStrike = new Date(MAIN_END.getTime() + 86400000);
-        strikeDays = daysInclusive(firstStrike, dep);
-      }
-      var eventHours = 0;
-      if (playaKey && hoursByKey[playaKey]) eventHours += hoursByKey[playaKey];
-      if (legalKey && legalKey !== playaKey && hoursByKey[legalKey]) eventHours += hoursByKey[legalKey];
-      var score = (setupDays + strikeDays) * 8 + eventHours;
-      return { name: name, setupDays: setupDays, strikeDays: strikeDays, eventHours: eventHours, score: score };
+
+      var eventShifts = shiftsForMember(m).filter(function (s) {
+        var dt = parseDate(s.Date);
+        return dt && dt >= MAIN_START && dt <= MAIN_END;
+      });
+
+      var r = memberPoints({
+        arrivalDate: log ? log.ArrivalDate : '',
+        departureDate: log ? log.DepartureDate : '',
+        noOrgDates: log ? log.NoOrgDates : '',
+        eventShifts: eventShifts,
+        index: weightIndex,
+      });
+
+      return {
+        name: name,
+        setupDays: r.buildDays,
+        strikeDays: r.strikeDays,
+        eventHours: r.eventHours,
+        eventPoints: r.eventPoints,
+        buildPoints: r.buildPoints,
+        strikePoints: r.strikePoints,
+        score: r.points,
+      };
     }).filter(Boolean);
   }
 
@@ -641,13 +632,15 @@ import { buildWeightIndex, typePoints, memberPoints } from '/assets/js/shift-poi
   function renderRow(entry, rank, isTop) {
     var rankClass = isTop && rank <= 3 ? ' top-' + rank : '';
     var stats = [];
-    if (entry.setupDays) stats.push('<strong>' + entry.setupDays + 'd</strong> setup');
+    if (entry.setupDays) stats.push('<strong>' + entry.setupDays + 'd</strong> build');
     if (entry.strikeDays) stats.push('<strong>' + entry.strikeDays + 'd</strong> strike');
-    if (entry.eventHours) stats.push('<strong>' + fmtHours(entry.eventHours) + '</strong> event');
+    if (entry.eventPoints) stats.push('<strong>' + entry.eventPoints + '</strong> event pts');
+    if (entry.eventHours) stats.push('<span style="opacity:0.7">' + fmtHours(entry.eventHours) + '</span>');
     if (!stats.length) stats.push('<em style="opacity:0.6">no contribution logged</em>');
     return '<div class="lb-row vol-open-btn' + rankClass + '" data-name="' + JH.esc(entry.name) + '" title="Click for breakdown">' +
       '<div class="lb-rank">' + rank + '</div>' +
       '<div class="lb-name">' + JH.esc(entry.name) + '</div>' +
+      '<div class="lb-score"><strong>' + entry.score + '</strong> pts</div>' +
       '<div class="lb-stats">' + stats.join(' · ') + '</div>' +
       '</div>';
   }
@@ -757,13 +750,18 @@ import { buildWeightIndex, typePoints, memberPoints } from '/assets/js/shift-poi
     var eventBody = eventShifts.length
       ? eventShifts.map(function (s) {
           var t = slotLabel(s.StartTime, s.EndTime) || '—';
-          return '<div class="vol-shift-row"><span>' + JH.esc(s.Name || '') + '</span><span class="vol-shift-time">' + JH.esc(t) + '</span><span class="vol-shift-date">' + JH.esc(JH.formatDateLong(s.Date)) + '</span></div>';
+          var pts = typePoints(weightIndex, s.Name);
+          return '<div class="vol-shift-row"><span>' + JH.esc(s.Name || '') + '</span>' +
+            '<span class="vol-shift-time">' + JH.esc(t) + '</span>' +
+            '<span class="vol-shift-date">' + JH.esc(JH.formatDateLong(s.Date)) + '</span>' +
+            '<span class="vol-shift-pts">' + pts + ' pts</span></div>';
         }).join('')
       : '<span class="muted">No event shifts signed up for.</span>';
     body += section(
       'Event shifts',
       eventBody,
-      eventHours ? fmtHours(eventHours) : ''
+      eventShifts.reduce(function (sum, s) { return sum + typePoints(weightIndex, s.Name); }, 0) +
+        ' pts' + (eventHours ? ' · ' + fmtHours(eventHours) : '')
     );
 
     body += section(
