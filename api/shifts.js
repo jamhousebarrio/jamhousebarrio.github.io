@@ -1,8 +1,11 @@
 import { authenticateRequest } from './_lib/auth.js';
 import { logError } from './_lib/error-log.js';
+import { safeGet, toObjects, ensureTab, getSheetId, upsertRow, colToLetter } from './_lib/sheets.js';
 
 const TAB = 'ShiftData';
 const BASE_HEADERS = ['ShiftID', 'Name', 'Description', 'Date', 'StartTime', 'EndTime', 'AssignedTo', 'MaxPerSlot'];
+const WEIGHTS_TAB = 'ShiftWeights';
+const WEIGHTS_HEADERS = ['Kind', 'Name', 'Points'];
 
 function isSelfName(auth, name) {
   const n = (name || '').trim().toLowerCase();
@@ -63,6 +66,64 @@ export default async function handler(req, res) {
     if (!action) {
       const rows = await getRows(sheets, spreadsheetId);
       return res.status(200).json({ shifts: parseShifts(rows) });
+    }
+
+    if (action === 'get-weights') {
+      const rows = await safeGet(sheets, spreadsheetId, WEIGHTS_TAB);
+      return res.status(200).json({ weights: toObjects(rows) });
+    }
+
+    if (action === 'set-weights') {
+      if (!auth.admin) return res.status(401).json({ error: 'Admin required' });
+      const { types, buildPts, strikePts } = payload;
+
+      await ensureTab(sheets, spreadsheetId, WEIGHTS_TAB);
+      let rows = await safeGet(sheets, spreadsheetId, WEIGHTS_TAB);
+      if (!rows.length) {
+        await sheets.spreadsheets.values.update({
+          spreadsheetId, range: `${WEIGHTS_TAB}!A1`, valueInputOption: 'RAW',
+          requestBody: { values: [WEIGHTS_HEADERS] },
+        });
+        rows = [WEIGHTS_HEADERS];
+      }
+
+      // 1. Delete every existing Kind=type row (bottom-up so indices stay valid) —
+      //    same deleteDimension pattern as delete-slot. build/strike rows are left
+      //    in place and upserted below.
+      const kindCol = rows[0].indexOf('Kind');
+      const sheetId = await getSheetId(sheets, spreadsheetId, WEIGHTS_TAB);
+      const typeRowIdxs = [];
+      for (let i = 1; i < rows.length; i++) {
+        if ((rows[i][kindCol] || '').toLowerCase() === 'type') typeRowIdxs.push(i);
+      }
+      typeRowIdxs.sort((a, b) => b - a);
+      if (typeRowIdxs.length && sheetId !== null) {
+        await sheets.spreadsheets.batchUpdate({
+          spreadsheetId,
+          requestBody: { requests: typeRowIdxs.map(idx => ({
+            deleteDimension: { range: { sheetId, dimension: 'ROWS', startIndex: idx, endIndex: idx + 1 } },
+          })) },
+        });
+      }
+
+      // 2. Append the supplied type rows.
+      const typeRows = (types || [])
+        .filter(t => t && t.name)
+        .map(t => ['type', String(t.name), String(parseInt(t.points, 10) || 0)]);
+      if (typeRows.length) {
+        await sheets.spreadsheets.values.append({
+          spreadsheetId, range: WEIGHTS_TAB, valueInputOption: 'RAW',
+          requestBody: { values: typeRows },
+        });
+      }
+
+      // 3. Upsert the two day-value singletons by Kind.
+      await upsertRow(sheets, spreadsheetId, WEIGHTS_TAB, 'Kind', 'build',
+        WEIGHTS_HEADERS, ['build', '', String(parseInt(buildPts, 10) || 0)]);
+      await upsertRow(sheets, spreadsheetId, WEIGHTS_TAB, 'Kind', 'strike',
+        WEIGHTS_HEADERS, ['strike', '', String(parseInt(strikePts, 10) || 0)]);
+
+      return res.status(200).json({ success: true });
     }
 
     if (action === 'create') {
