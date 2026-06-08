@@ -75,10 +75,17 @@ export default async function handler(req, res) {
 
     if (action === 'set-weights') {
       if (!auth.admin) return res.status(401).json({ error: 'Admin required' });
+      // Full-replace semantics: set-weights deletes ALL type rows then re-appends
+      // `types`, and writes buildPts/strikePts as given (omitted -> 0, not "leave
+      // unchanged"). Require `types` to be an array so a malformed payload can't
+      // silently wipe every weight and report success.
       const { types, buildPts, strikePts } = payload;
+      if (!Array.isArray(types)) return res.status(400).json({ error: 'types array required' });
 
       await ensureTab(sheets, spreadsheetId, WEIGHTS_TAB);
       let rows = await safeGet(sheets, spreadsheetId, WEIGHTS_TAB);
+      // Seed the header row on an empty tab — the later values.append has no header
+      // fallback of its own, so this is load-bearing, not just cosmetic.
       if (!rows.length) {
         await sheets.spreadsheets.values.update({
           spreadsheetId, range: `${WEIGHTS_TAB}!A1`, valueInputOption: 'RAW',
