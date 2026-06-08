@@ -487,6 +487,8 @@ import { parseISO, ganttRange, enumerateDays, barCells, isEventDay, eeColorKey }
     renderMyInfo();
     renderAllMembers();
     renderGantt();
+    await loadRides();
+    renderRides();
   }
 
   // ── Rideshare panel ───────────────────────────────────────────────────────
@@ -518,14 +520,39 @@ import { parseISO, ganttRange, enumerateDays, barCells, isEventDay, eeColorKey }
   function renderRides() {
     var wrap = document.getElementById('rideshare-list');
     if (!wrap) return;
-    if (!rides.length) {
-      wrap.innerHTML = '<div class="empty-state">No rides offered yet — click <strong>+ Offer a ride</strong> to post one.</div>';
-      return;
-    }
     var me = state.myName || '';
     var meIsAdmin = JH.isAdmin();
-    rides.sort(function (a, b) { return (a.Date || '').localeCompare(b.Date || '') || (a.CreatedAt || '').localeCompare(b.CreatedAt || ''); });
-    var html = rides.map(function (ride) {
+
+    // Build a unified list: posted rides + placeholder rows for any logistics
+    // entry where Transport == 'vehicle' but the driver hasn't posted a ride yet.
+    var driversWithRide = {};
+    rides.forEach(function (r) { driversWithRide[r.DriverName] = true; });
+    var placeholders = (state.logistics || [])
+      .filter(function (l) { return (l.Transport || '').toLowerCase() === 'vehicle' && !driversWithRide[l.MemberName]; })
+      .map(function (l) {
+        return {
+          _placeholder: true,
+          RideID: 'placeholder:' + l.MemberName,
+          DriverName: l.MemberName,
+          From: locationOf(l.MemberName) || '',
+          To: '',
+          Date: l.ArrivalDate || '',
+          SeatsTotal: 0,
+          CarCapacity: '',
+          ClaimedBy: '',
+          Notes: '',
+          claimed: [],
+        };
+      });
+
+    var combined = rides.concat(placeholders);
+    if (!combined.length) {
+      wrap.innerHTML = '<div class="empty-state">No drivers yet. Anyone whose transport is <strong>vehicle</strong> on the logistics form above will show up here automatically — or click <strong>+ Offer a ride</strong>.</div>';
+      return;
+    }
+    combined.sort(function (a, b) { return (a.Date || '').localeCompare(b.Date || '') || ((a.CreatedAt || '').localeCompare(b.CreatedAt || '')); });
+    var html = combined.map(function (ride) {
+      var isPlaceholder = !!ride._placeholder;
       var seatsTotal = ride.SeatsTotal || 0;
       var claimed = ride.claimed || [];
       var seatsLeft = Math.max(0, seatsTotal - claimed.length);
@@ -534,22 +561,28 @@ import { parseISO, ganttRange, enumerateDays, barCells, isEventDay, eeColorKey }
       var canEdit = iAmDriver || meIsAdmin;
       var actionBtn = '';
       if (!observer) {
-        if (iAmDriver) actionBtn = '<span style="font-size:0.78rem;color:var(--text-muted);">You’re driving</span>';
+        if (isPlaceholder) {
+          if (iAmDriver) actionBtn = '<button class="btn-primary btn-ride-setup" style="font-size:0.78rem;">Set up your ride</button>';
+          else actionBtn = '<span style="font-size:0.78rem;color:var(--text-muted);">Awaiting seats</span>';
+        } else if (iAmDriver) actionBtn = '<span style="font-size:0.78rem;color:var(--text-muted);">You’re driving</span>';
         else if (iAmClaimed) actionBtn = '<button class="btn-secondary btn-ride-release" data-ride="' + JH.esc(ride.RideID) + '" style="font-size:0.78rem;">Release my seat</button>';
         else if (seatsLeft > 0) actionBtn = '<button class="btn-primary btn-ride-claim" data-ride="' + JH.esc(ride.RideID) + '" style="font-size:0.78rem;">Claim a seat</button>';
         else actionBtn = '<span style="font-size:0.78rem;color:var(--text-muted);">Full</span>';
       }
-      var editBtn = canEdit && !observer ? '<button class="btn-secondary btn-ride-edit" data-ride="' + JH.esc(ride.RideID) + '" style="font-size:0.78rem;">Edit</button>' : '';
-      var delBtn = canEdit && !observer ? '<button class="btn-secondary btn-ride-delete" data-ride="' + JH.esc(ride.RideID) + '" style="font-size:0.78rem;color:#f44336;border-color:#f44336;">Delete</button>' : '';
+      var editBtn = !isPlaceholder && canEdit && !observer ? '<button class="btn-secondary btn-ride-edit" data-ride="' + JH.esc(ride.RideID) + '" style="font-size:0.78rem;">Edit</button>' : '';
+      var delBtn = !isPlaceholder && canEdit && !observer ? '<button class="btn-secondary btn-ride-delete" data-ride="' + JH.esc(ride.RideID) + '" style="font-size:0.78rem;color:#f44336;border-color:#f44336;">Delete</button>' : '';
       var seatCls = seatsLeft === 0 ? 'color:#f44336;' : (seatsLeft <= 1 ? 'color:#ff9800;' : 'color:#6dcf72;');
-      var claimedHtml = claimed.length
+      var seatsLine = isPlaceholder
+        ? '<div style="font-size:0.82rem;margin-top:6px;color:var(--text-muted);font-style:italic;">No seats set yet</div>'
+        : '<div style="font-size:0.82rem;margin-top:6px;"><strong style="' + seatCls + '">' + seatsLeft + ' of ' + seatsTotal + ' seats left</strong></div>';
+      var claimedHtml = isPlaceholder ? '' : (claimed.length
         ? claimed.map(function (n) {
             var canRelease = !observer && (iAmDriver || n === me);
             return '<span class="ride-claim-chip" style="display:inline-flex;align-items:center;gap:4px;background:rgba(232,168,76,0.12);color:var(--accent);font-size:0.78rem;padding:2px 8px;border-radius:10px;">' + JH.esc(n) +
               (canRelease ? ' <button class="ride-claim-x" data-ride="' + JH.esc(ride.RideID) + '" data-name="' + JH.esc(n) + '" title="Release seat" style="background:none;border:none;color:var(--accent);cursor:pointer;padding:0;font-size:0.85rem;line-height:1;">×</button>' : '') +
               '</span>';
           }).join(' ')
-        : '<span style="color:var(--text-muted);font-size:0.78rem;">No one yet</span>';
+        : '<span style="color:var(--text-muted);font-size:0.78rem;">No one yet</span>');
       var fromTxt = ride.From || locationOf(ride.DriverName) || '?';
       var toTxt = ride.To || 'site';
       var routeLine = JH.esc(fromTxt) + ' → ' + JH.esc(toTxt);
@@ -557,13 +590,16 @@ import { parseISO, ganttRange, enumerateDays, barCells, isEventDay, eeColorKey }
       var carCap = parseInt(ride.CarCapacity, 10);
       var capLine = (!isNaN(carCap) && carCap > 0) ? ' &middot; ' + carCap + '-seater car' : '';
       var notesLine = ride.Notes ? '<div style="font-size:0.8rem;color:var(--text-muted);margin-top:6px;">' + JH.esc(ride.Notes) + '</div>' : '';
-      return '<div class="ride-card" style="border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:10px;background:var(--surface);">' +
+      var cardStyle = isPlaceholder
+        ? 'border:1px dashed var(--border);border-radius:8px;padding:12px 14px;margin-bottom:10px;background:transparent;opacity:0.75;'
+        : 'border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:10px;background:var(--surface);';
+      return '<div class="ride-card" style="' + cardStyle + '">' +
         '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;">' +
           '<div style="flex:1;min-width:200px;">' +
             '<div style="font-weight:600;color:var(--text);">' + JH.esc(ride.DriverName) + '</div>' +
             '<div style="font-size:0.85rem;color:var(--text-muted);margin-top:2px;">' + routeLine + dateLine + capLine + '</div>' +
-            '<div style="font-size:0.82rem;margin-top:6px;"><strong style="' + seatCls + '">' + seatsLeft + ' of ' + seatsTotal + ' seats left</strong></div>' +
-            '<div style="margin-top:8px;display:flex;gap:4px;flex-wrap:wrap;">' + claimedHtml + '</div>' +
+            seatsLine +
+            (claimedHtml ? '<div style="margin-top:8px;display:flex;gap:4px;flex-wrap:wrap;">' + claimedHtml + '</div>' : '') +
             notesLine +
           '</div>' +
           '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:flex-start;">' + actionBtn + ' ' + editBtn + ' ' + delBtn + '</div>' +
@@ -590,6 +626,9 @@ import { parseISO, ganttRange, enumerateDays, barCells, isEventDay, eeColorKey }
         rideAction('ride-delete', { rideId: b.dataset.ride });
       });
     });
+    wrap.querySelectorAll('.btn-ride-setup').forEach(function (b) {
+      b.addEventListener('click', function () { openRideModal(null); });
+    });
   }
 
   async function rideAction(action, body) {
@@ -610,7 +649,12 @@ import { parseISO, ganttRange, enumerateDays, barCells, isEventDay, eeColorKey }
     document.getElementById('ride-modal-title').textContent = existing ? 'Edit ride' : 'Offer a ride';
     document.getElementById('ride-from').value = existing ? (existing.From || '') : (myLocation() || '');
     document.getElementById('ride-to').value = existing ? (existing.To || '') : '';
-    document.getElementById('ride-date').value = existing ? (existing.Date || '') : '';
+    var defaultDate = '';
+    if (!existing) {
+      var mine = state.logistics.find(function (r) { return r.MemberName === state.myName; });
+      if (mine && mine.ArrivalDate) defaultDate = mine.ArrivalDate;
+    }
+    document.getElementById('ride-date').value = existing ? (existing.Date || '') : defaultDate;
     document.getElementById('ride-seats').value = existing ? (existing.SeatsTotal || '') : '';
     document.getElementById('ride-capacity').value = existing ? (existing.CarCapacity || '') : '';
     document.getElementById('ride-notes').value = existing ? (existing.Notes || '') : '';
@@ -656,7 +700,6 @@ import { parseISO, ganttRange, enumerateDays, barCells, isEventDay, eeColorKey }
 
   // ── Init ──────────────────────────────────────────────────────────────────
 
-  loadRides().then(renderRides);
-  if (state.myName) render();
+  render();
 
 })();
