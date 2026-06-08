@@ -125,6 +125,14 @@ access: general
       <div class="stat-delta" id="delta-headroom"></div>
     </div>
   </div>
+  <div class="panel" id="owed-panel" style="margin-bottom:20px;">
+    <div class="panel-header" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.5rem;">
+      <h2 style="margin:0;">Barrio owes</h2>
+      <span id="owed-total" style="font-size:0.85rem;color:var(--text-muted);"></span>
+    </div>
+    <p style="color:var(--text-muted);font-size:0.78rem;margin:0 0 10px;">Members who fronted barrio costs — sum of paid items where <em>Paid by</em> is their name. Flip <em>Paid by</em> to <strong>Barrio</strong> once they're reimbursed.</p>
+    <div id="owed-body"><div class="empty-state">Loading&hellip;</div></div>
+  </div>
   <div class="panel" id="trends-panel" style="margin-bottom:20px;">
     <div class="panel-header">
       <h2>Category trends &mdash; 7&#8209;day change</h2>

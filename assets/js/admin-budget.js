@@ -144,7 +144,61 @@
     barChart.update();
     pieChart.data.datasets[0].data = categories.map(function(c) { return ct.budgeted[c]; });
     pieChart.update();
+    renderOwed();
   }
+
+  function renderOwed() {
+    var body = document.getElementById('owed-body');
+    var totalEl = document.getElementById('owed-total');
+    if (!body) return;
+    var byPayer = {};
+    items.forEach(function(item) {
+      var paid = item.Paid === true || item.Paid === 'TRUE' || item.Paid === 'true';
+      if (!paid) return;
+      var who = (item['Paid by'] || '').trim();
+      if (!who) return;
+      if (who.toLowerCase() === 'barrio') return;
+      var total = (parseFloat(item.Qty) || 0) * (parseFloat(item.Price) || 0);
+      if (!byPayer[who]) byPayer[who] = { total: 0, count: 0, items: [] };
+      byPayer[who].total += total;
+      byPayer[who].count += 1;
+      byPayer[who].items.push(item);
+    });
+    var names = Object.keys(byPayer).sort(function(a, b) { return byPayer[b].total - byPayer[a].total; });
+    if (!names.length) {
+      body.innerHTML = '<div class="empty-state" style="padding:10px 0;font-size:0.85rem;">Nothing outstanding — every paid item has <em>Paid by: Barrio</em>.</div>';
+      totalEl.textContent = '';
+      return;
+    }
+    var grandTotal = names.reduce(function(s, n) { return s + byPayer[n].total; }, 0);
+    totalEl.textContent = 'Total owed: ' + eur(grandTotal);
+    var rows = names.map(function(name) {
+      var entry = byPayer[name];
+      var itemsList = entry.items.map(function(it) {
+        var t = (parseFloat(it.Qty) || 0) * (parseFloat(it.Price) || 0);
+        return '<li>' + esc(it.Item || '(no item)') + ' &middot; ' + esc(it.Category || '') + ' &middot; <strong>' + eur(t) + '</strong></li>';
+      }).join('');
+      return '<tr class="owed-row" data-name="' + esc(name) + '">' +
+        '<td style="padding:8px 10px;border-bottom:1px solid var(--border);font-weight:600;color:var(--text);">' + esc(name) + '</td>' +
+        '<td style="padding:8px 10px;border-bottom:1px solid var(--border);color:var(--text-muted);font-size:0.85rem;">' + entry.count + ' item' + (entry.count === 1 ? '' : 's') + '</td>' +
+        '<td style="padding:8px 10px;border-bottom:1px solid var(--border);text-align:right;font-weight:600;color:#ff9800;font-variant-numeric:tabular-nums;">' + eur(entry.total) + '</td>' +
+      '</tr>' +
+      '<tr class="owed-detail" data-name="' + esc(name) + '" style="display:none;"><td colspan="3" style="padding:6px 10px 12px 26px;border-bottom:1px solid var(--border);background:rgba(255,255,255,0.02);"><ul style="margin:0;padding-left:18px;color:var(--text-muted);font-size:0.82rem;line-height:1.6;">' + itemsList + '</ul></td></tr>';
+    }).join('');
+    body.innerHTML = '<table style="width:100%;border-collapse:collapse;"><thead><tr>' +
+      '<th style="padding:6px 10px;text-align:left;color:var(--text-muted);font-size:0.75rem;text-transform:uppercase;letter-spacing:0.04em;border-bottom:1px solid var(--border);">Member</th>' +
+      '<th style="padding:6px 10px;text-align:left;color:var(--text-muted);font-size:0.75rem;text-transform:uppercase;letter-spacing:0.04em;border-bottom:1px solid var(--border);">Items</th>' +
+      '<th style="padding:6px 10px;text-align:right;color:var(--text-muted);font-size:0.75rem;text-transform:uppercase;letter-spacing:0.04em;border-bottom:1px solid var(--border);">Owed</th>' +
+      '</tr></thead><tbody>' + rows + '</tbody></table>';
+    body.querySelectorAll('.owed-row').forEach(function(row) {
+      row.style.cursor = 'pointer';
+      row.addEventListener('click', function() {
+        var detail = body.querySelector('.owed-detail[data-name="' + CSS.escape(row.dataset.name) + '"]');
+        if (detail) detail.style.display = detail.style.display === 'none' ? 'table-row' : 'none';
+      });
+    });
+  }
+  renderOwed();
 
   // ── 7-day deltas + per-category sparklines (from BudgetHistory) ──────
   async function loadFeesReceived() {
