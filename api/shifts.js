@@ -203,6 +203,27 @@ export default async function handler(req, res) {
           requestBody: { valueInputOption: 'RAW', data: updates },
         });
       }
+      // Keep the type's ShiftWeights row in sync, or the weight orphans and the
+      // renamed type silently drops to the default. (Change Enforcement Rule.)
+      const wRows = await safeGet(sheets, spreadsheetId, WEIGHTS_TAB);
+      if (wRows.length) {
+        const wKindCol = wRows[0].indexOf('Kind');
+        const wNameCol = wRows[0].indexOf('Name');
+        const wUpdates = [];
+        for (let i = 1; i < wRows.length; i++) {
+          if ((wRows[i][wKindCol] || '').toLowerCase() !== 'type') continue;
+          if ((wRows[i][wNameCol] || '') !== oldName) continue;
+          wUpdates.push({
+            range: `${WEIGHTS_TAB}!${colToLetter(wNameCol)}${i + 1}`,
+            values: [[newName]],
+          });
+        }
+        if (wUpdates.length) {
+          await sheets.spreadsheets.values.batchUpdate({
+            spreadsheetId, requestBody: { valueInputOption: 'RAW', data: wUpdates },
+          });
+        }
+      }
       return res.status(200).json({ success: true, updated: updates.length });
     }
 
