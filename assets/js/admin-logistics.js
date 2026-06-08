@@ -495,6 +495,17 @@ import { parseISO, ganttRange, enumerateDays, barCells, isEventDay, eeColorKey }
   var rideEditing = null;
   var observer = JH.currentUser && JH.currentUser.observer;
 
+  function locationOf(playaOrRealName) {
+    if (!playaOrRealName) return '';
+    var m = approvedMembers.find(function (m) {
+      return (m['Playa Name'] || '') === playaOrRealName || (m['Name'] || '') === playaOrRealName;
+    });
+    return (m && (m.Location || '')) || '';
+  }
+  function myLocation() {
+    return locationOf(state.myName) || locationOf(JH.currentUser && (JH.currentUser.playaName || JH.currentUser.name));
+  }
+
   async function loadRides() {
     try {
       var r = await JH.apiFetch('/api/logistics', { action: 'rides-list' });
@@ -539,14 +550,19 @@ import { parseISO, ganttRange, enumerateDays, barCells, isEventDay, eeColorKey }
               '</span>';
           }).join(' ')
         : '<span style="color:var(--text-muted);font-size:0.78rem;">No one yet</span>';
-      var routeLine = JH.esc(ride.Route || '(no route given)');
-      var dateLine = ride.Date ? ' · ' + JH.esc(ride.Date) : '';
+      var fromTxt = ride.From || locationOf(ride.DriverName) || '?';
+      var toTxt = ride.To || 'site';
+      var routeLine = JH.esc(fromTxt) + ' → ' + JH.esc(toTxt);
+      var dateLine = ride.Date ? ' &middot; ' + JH.esc(ride.Date) : '';
+      var carCap = parseInt(ride.CarCapacity, 10);
+      var capLine = (!isNaN(carCap) && carCap > 0) ? ' &middot; ' + carCap + '-seater car' : '';
       var notesLine = ride.Notes ? '<div style="font-size:0.8rem;color:var(--text-muted);margin-top:6px;">' + JH.esc(ride.Notes) + '</div>' : '';
       return '<div class="ride-card" style="border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:10px;background:var(--surface);">' +
         '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;">' +
           '<div style="flex:1;min-width:200px;">' +
-            '<div style="font-weight:600;color:var(--text);">' + JH.esc(ride.DriverName) + ' &middot; ' + routeLine + dateLine + '</div>' +
-            '<div style="font-size:0.82rem;margin-top:4px;"><strong style="' + seatCls + '">' + seatsLeft + ' of ' + seatsTotal + ' seats left</strong></div>' +
+            '<div style="font-weight:600;color:var(--text);">' + JH.esc(ride.DriverName) + '</div>' +
+            '<div style="font-size:0.85rem;color:var(--text-muted);margin-top:2px;">' + routeLine + dateLine + capLine + '</div>' +
+            '<div style="font-size:0.82rem;margin-top:6px;"><strong style="' + seatCls + '">' + seatsLeft + ' of ' + seatsTotal + ' seats left</strong></div>' +
             '<div style="margin-top:8px;display:flex;gap:4px;flex-wrap:wrap;">' + claimedHtml + '</div>' +
             notesLine +
           '</div>' +
@@ -592,9 +608,11 @@ import { parseISO, ganttRange, enumerateDays, barCells, isEventDay, eeColorKey }
   function openRideModal(existing) {
     rideEditing = existing || null;
     document.getElementById('ride-modal-title').textContent = existing ? 'Edit ride' : 'Offer a ride';
-    document.getElementById('ride-route').value = existing ? (existing.Route || '') : '';
+    document.getElementById('ride-from').value = existing ? (existing.From || '') : (myLocation() || '');
+    document.getElementById('ride-to').value = existing ? (existing.To || '') : '';
     document.getElementById('ride-date').value = existing ? (existing.Date || '') : '';
     document.getElementById('ride-seats').value = existing ? (existing.SeatsTotal || '') : '';
+    document.getElementById('ride-capacity').value = existing ? (existing.CarCapacity || '') : '';
     document.getElementById('ride-notes').value = existing ? (existing.Notes || '') : '';
     document.getElementById('ride-modal-msg').textContent = '';
     document.getElementById('ride-modal').classList.add('active');
@@ -610,13 +628,17 @@ import { parseISO, ganttRange, enumerateDays, barCells, isEventDay, eeColorKey }
   });
   document.getElementById('ride-cancel-btn').addEventListener('click', closeRideModal);
   document.getElementById('ride-save-btn').addEventListener('click', async function () {
-    var route = document.getElementById('ride-route').value.trim();
+    var from = document.getElementById('ride-from').value.trim();
+    var to = document.getElementById('ride-to').value.trim();
     var date = document.getElementById('ride-date').value.trim();
     var seats = parseInt(document.getElementById('ride-seats').value, 10);
+    var capRaw = document.getElementById('ride-capacity').value.trim();
+    var carCapacity = capRaw === '' ? '' : parseInt(capRaw, 10);
     var rideNotes = document.getElementById('ride-notes').value.trim();
     var msg = document.getElementById('ride-modal-msg');
     if (!seats || seats < 1) { msg.textContent = 'Enter a seat count (1 or more).'; return; }
-    var payload = { route: route, date: date, seatsTotal: seats, notes: rideNotes };
+    if (carCapacity !== '' && (isNaN(carCapacity) || carCapacity < seats)) { msg.textContent = 'Car capacity must be at least equal to seats offered.'; return; }
+    var payload = { from: from, to: to, date: date, seatsTotal: seats, carCapacity: carCapacity, notes: rideNotes };
     var action = rideEditing ? 'ride-update' : 'ride-create';
     if (rideEditing) payload.rideId = rideEditing.RideID;
     try {

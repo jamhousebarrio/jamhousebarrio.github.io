@@ -3,7 +3,7 @@ import { authenticateRequest } from './_lib/auth.js';
 import { logError } from './_lib/error-log.js';
 
 const RIDES_TAB = 'Rideshare';
-const RIDES_HEADERS = ['RideID', 'DriverName', 'Route', 'Date', 'SeatsTotal', 'ClaimedBy', 'Notes', 'CreatedAt'];
+const RIDES_HEADERS = ['RideID', 'DriverName', 'From', 'To', 'Date', 'SeatsTotal', 'CarCapacity', 'ClaimedBy', 'Notes', 'CreatedAt'];
 
 function parseClaimed(s) {
   return (s || '').split(',').map(x => x.trim()).filter(Boolean);
@@ -199,9 +199,12 @@ export default async function handler(req, res) {
     // ── Rideshare: create a new ride offer ────────────────────────────────
     if (action === 'ride-create') {
       if (auth.observer) return res.status(403).json({ error: 'Observer accounts are read-only' });
-      const { route, date, seatsTotal, notes: rideNotes } = req.body || {};
+      const { from, to, date, seatsTotal, carCapacity, notes: rideNotes } = req.body || {};
       const seats = parseInt(seatsTotal, 10) || 0;
       if (!seats || seats < 1 || seats > 50) return res.status(400).json({ error: 'seatsTotal must be 1–50' });
+      const capRaw = parseInt(carCapacity, 10);
+      const capacity = isNaN(capRaw) ? '' : capRaw;
+      if (capacity !== '' && (capacity < 1 || capacity > 50)) return res.status(400).json({ error: 'carCapacity must be 1–50' });
       const driver = displayName(auth.member);
       if (!driver) return res.status(400).json({ error: 'Driver name unavailable' });
       await ensureTab(sheets, id, RIDES_TAB);
@@ -213,7 +216,7 @@ export default async function handler(req, res) {
         });
       }
       const rideId = 'R' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-      const newRow = [rideId, driver, (route || '').trim(), (date || '').trim(), seats, '', (rideNotes || '').trim(), new Date().toISOString()];
+      const newRow = [rideId, driver, (from || '').trim(), (to || '').trim(), (date || '').trim(), seats, capacity, '', (rideNotes || '').trim(), new Date().toISOString()];
       await sheets.spreadsheets.values.append({
         spreadsheetId: id, range: `${RIDES_TAB}!A1`, valueInputOption: 'RAW',
         requestBody: { values: [newRow] }
@@ -224,7 +227,7 @@ export default async function handler(req, res) {
     // ── Rideshare: update fields (driver or admin) ────────────────────────
     if (action === 'ride-update') {
       if (auth.observer) return res.status(403).json({ error: 'Observer accounts are read-only' });
-      const { rideId, route, date, seatsTotal, notes: rideNotes } = req.body || {};
+      const { rideId, from, to, date, seatsTotal, carCapacity, notes: rideNotes } = req.body || {};
       if (!rideId) return res.status(400).json({ error: 'rideId required' });
       const found = await findRideRow(sheets, id, rideId);
       if (!found) return res.status(404).json({ error: 'Ride not found' });
@@ -232,19 +235,37 @@ export default async function handler(req, res) {
       const currentDriver = (found.row[found.headers.indexOf('DriverName')] || '').trim();
       if (driver !== currentDriver && !auth.admin) return res.status(403).json({ error: 'Only the driver or an admin can edit a ride' });
       const seats = parseInt(seatsTotal, 10);
-      if (seats != null && (isNaN(seats) || seats < 1 || seats > 50)) return res.status(400).json({ error: 'seatsTotal must be 1–50' });
+      if (seatsTotal !== undefined && (isNaN(seats) || seats < 1 || seats > 50)) return res.status(400).json({ error: 'seatsTotal must be 1–50' });
+      const cap = parseInt(carCapacity, 10);
+      if (carCapacity !== undefined && carCapacity !== '' && (isNaN(cap) || cap < 1 || cap > 50)) return res.status(400).json({ error: 'carCapacity must be 1–50' });
       const claimed = parseClaimed(found.row[found.headers.indexOf('ClaimedBy')]);
       if (!isNaN(seats) && seats < claimed.length) return res.status(400).json({ error: `Cannot shrink to ${seats} seats — ${claimed.length} already claimed` });
+      // Add any missing headers so old rows can be updated with the new columns.
+      let liveHeaders = found.headers.slice();
+      const missingHeaders = RIDES_HEADERS.filter(h => liveHeaders.indexOf(h) === -1);
+      if (missingHeaders.length) {
+        const startCol = liveHeaders.length;
+        liveHeaders = liveHeaders.concat(missingHeaders);
+        let colLetter = '';
+        let c = startCol;
+        while (c >= 0) { colLetter = String.fromCharCode(65 + (c % 26)) + colLetter; c = Math.floor(c / 26) - 1; }
+        await sheets.spreadsheets.values.update({
+          spreadsheetId: id, range: `${RIDES_TAB}!${colLetter}1`,
+          valueInputOption: 'RAW', requestBody: { values: [missingHeaders] }
+        });
+      }
       const updates = [];
       const setField = (name, value) => {
-        const col = found.headers.indexOf(name);
+        const col = liveHeaders.indexOf(name);
         if (col === -1) return;
         const cl = String.fromCharCode(65 + col);
         updates.push({ range: `${RIDES_TAB}!${cl}${found.rowIndex}`, values: [[value]] });
       };
-      if (route !== undefined) setField('Route', (route || '').trim());
+      if (from !== undefined) setField('From', (from || '').trim());
+      if (to !== undefined) setField('To', (to || '').trim());
       if (date !== undefined) setField('Date', (date || '').trim());
       if (!isNaN(seats)) setField('SeatsTotal', seats);
+      if (carCapacity !== undefined) setField('CarCapacity', carCapacity === '' || isNaN(cap) ? '' : cap);
       if (rideNotes !== undefined) setField('Notes', (rideNotes || '').trim());
       if (!updates.length) return res.status(400).json({ error: 'No fields to update' });
       await sheets.spreadsheets.values.batchUpdate({

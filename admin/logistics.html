@@ -123,7 +123,10 @@ access: general
       <h2 style="margin:0;">&#128661; Rideshare</h2>
       <button id="ride-new-btn" class="btn-primary" style="font-size:0.82rem;">+ Offer a ride</button>
     </div>
-    <p style="color:var(--text-muted);font-size:0.82rem;margin:0 0 12px;">Driving in? Post the route and how many seats. Need a lift? Claim one.</p>
+    <p style="color:var(--text-muted);font-size:0.82rem;margin:0 0 8px;">Driving in? Post your route and seats. Need a lift? Claim one.</p>
+    <p style="background:rgba(232,168,76,0.08);border-left:3px solid var(--accent);color:var(--text);font-size:0.8rem;margin:0 0 14px;padding:8px 12px;border-radius:0 6px 6px 0;">
+      <strong>Claiming a seat is just a signal.</strong> Message the driver directly to confirm pickup time, contribution to fuel, luggage etc.
+    </p>
     <div id="rideshare-list"><div class="empty-state">Loading…</div></div>
   </div>
 </div>
@@ -132,12 +135,16 @@ access: general
   <div class="modal">
     <h2 id="ride-modal-title">Offer a ride</h2>
     <div class="modal-body" style="display:flex;flex-direction:column;gap:10px;">
-      <label>Route (e.g. Berlin → site)</label>
-      <input id="ride-route" placeholder="Where from / where to" />
+      <label>From (city / starting point)</label>
+      <input id="ride-from" placeholder="Auto-filled from your profile" />
+      <label>To (optional — default: the site)</label>
+      <input id="ride-to" placeholder="e.g. JamHouse / Elsewhere" />
       <label>Date (departure)</label>
       <input id="ride-date" placeholder="dd/mm/yyyy" />
-      <label>Total seats (including yourself)</label>
-      <input id="ride-seats" type="number" min="1" max="50" placeholder="e.g. 4" />
+      <label>Seats offered to passengers</label>
+      <input id="ride-seats" type="number" min="1" max="50" placeholder="e.g. 3" />
+      <label>Car capacity — total seats in the vehicle (optional)</label>
+      <input id="ride-capacity" type="number" min="1" max="50" placeholder="e.g. 5" />
       <label>Notes (optional)</label>
       <textarea id="ride-notes" rows="3" placeholder="Pickup spots, contact, luggage limits…"></textarea>
       <p id="ride-modal-msg" style="color:#f44336;font-size:0.82rem;margin:0;min-height:1em;"></p>
