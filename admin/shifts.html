@@ -70,20 +70,23 @@ access: general
     .lb-col h3 { font-family: var(--heading); font-size: 0.92rem; margin: 0 0 10px; color: var(--accent); text-transform: uppercase; letter-spacing: 0.05em; }
     .lb-col.bottom h3 { color: #c88; }
     .lb-list { display: flex; flex-direction: column; gap: 6px; }
-    .lb-row { display: grid; grid-template-columns: 28px 1fr auto; gap: 10px; align-items: center; padding: 8px 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; transition: border-color 0.15s, background 0.15s; }
+    .lb-row { display: grid; grid-template-columns: 28px 1fr auto auto; gap: 10px; align-items: center; padding: 8px 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; transition: border-color 0.15s, background 0.15s; }
     .lb-row:hover { border-color: var(--accent); background: var(--surface2); }
     .lb-rank { font-family: var(--heading); font-weight: 700; color: var(--text-muted); font-size: 0.88rem; text-align: center; }
     .lb-row.top-1 .lb-rank { color: #e8c547; }
     .lb-row.top-2 .lb-rank { color: #b8bcc3; }
     .lb-row.top-3 .lb-rank { color: #c88653; }
     .lb-name { font-family: var(--heading); font-weight: 600; font-size: 0.9rem; }
+    .lb-score { font-family: var(--heading); font-weight: 700; font-size: 0.9rem; color: var(--accent); white-space: nowrap; }
+    .lb-score strong { font-size: 1.05rem; }
     .lb-stats { font-size: 0.75rem; color: var(--text-muted); white-space: nowrap; font-family: var(--body); }
     .lb-stats strong { color: var(--text); font-weight: 600; }
     .vol-section { margin-top: 12px; }
     .vol-section h4 { font-family: var(--heading); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin: 0 0 6px; }
     .vol-list { display: flex; flex-direction: column; gap: 3px; font-size: 0.85rem; color: var(--text); }
     .vol-list .muted { color: var(--text-muted); font-style: italic; }
-    .vol-shift-row { display: grid; grid-template-columns: 1fr auto auto; gap: 10px; padding: 4px 0; }
+    .vol-shift-row { display: grid; grid-template-columns: 1fr auto auto auto; gap: 10px; padding: 4px 0; }
+    .vol-shift-row .vol-shift-pts { color: var(--accent); font-weight: 600; font-size: 0.8rem; white-space: nowrap; }
     .vol-shift-row .vol-shift-time { color: var(--text-muted); font-size: 0.8rem; }
     .vol-shift-row .vol-shift-date { color: var(--text-muted); font-size: 0.8rem; }
     .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 100; justify-content: center; align-items: center; }
@@ -98,6 +101,11 @@ access: general
     .modal-actions { display: flex; gap: 8px; margin-top: 4px; }
     .btn-primary { padding: 0.45rem 1rem; background: var(--accent); border: none; border-radius: 6px; color: var(--bg); font-family: var(--heading); font-size: 0.85rem; font-weight: 600; cursor: pointer; }
     .msg { font-size: 0.8rem; align-self: center; }
+    .pts-day-row { display: flex; gap: 16px; flex-wrap: wrap; }
+    .pts-day-row label, .pts-type-row label { font-size: 0.8rem; color: var(--text-muted); display: flex; align-items: center; gap: 6px; }
+    .pts-day-row input, .pts-type-row input { width: 60px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-family: var(--body); font-size: 0.85rem; padding: 6px 8px; }
+    .pts-type-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 5px 0; border-top: 1px solid var(--border); }
+    #pts-types-list { max-height: 320px; overflow-y: auto; margin-top: 4px; }
     @media (max-width: 768px) {
       .stats-row { grid-template-columns: 1fr; }
       .shift-grid { font-size: 0.75rem; }
@@ -143,12 +151,13 @@ access: general
 
   <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:16px">
     <button class="add-type-btn" id="add-shift-btn" style="display:none;flex:1">+ Add Shift Type</button>
+    <button class="add-type-btn" id="points-btn" style="display:none;flex:1">&#9878; Points</button>
     <button class="add-type-btn" id="print-shifts-btn" style="flex:1">&#128424; Print schedule (PDF)</button>
   </div>
 
   <div class="panel" id="leaderboard-panel" style="margin-top:24px">
     <h2>Volunteer Contributions</h2>
-    <p class="panel-lede">Setup/strike counted as whole days from arrival &amp; departure; event time summed from shift hours.</p>
+    <p class="panel-lede">Ranked by points. Build/strike days earn points per day present (NoOrg days excluded); each event shift earns its type's point weight. Hours shown as a detail.</p>
     <div id="leaderboard-content"><div class="empty-state">Loading...</div></div>
   </div>
 </div>
@@ -175,6 +184,23 @@ access: general
       <button type="button" id="delete-type-btn" class="btn-danger" style="display:none">Delete shift type</button>
       <button id="add-shift-save" class="btn-primary">Create for all days</button>
       <span id="add-msg" class="msg"></span>
+    </div>
+  </div>
+</div>
+
+<!-- Points (weights) modal -->
+<div class="modal-overlay" id="points-modal">
+  <div class="modal">
+    <h2>Set point weights <button class="modal-close" id="points-modal-close">&times;</button></h2>
+    <p class="panel-lede" style="margin:0">Points are the fairness currency. Build/strike count per day present (NoOrg days excluded). Unset types default to 1.</p>
+    <div class="pts-day-row">
+      <label>Build day <input type="number" min="0" step="1" id="pts-build"> pts/day</label>
+      <label>Strike day <input type="number" min="0" step="1" id="pts-strike"> pts/day</label>
+    </div>
+    <div id="pts-types-list"></div>
+    <div class="modal-actions">
+      <button id="points-save" class="btn-primary">Save</button>
+      <span id="points-msg" class="msg"></span>
     </div>
   </div>
 </div>
@@ -213,6 +239,6 @@ access: general
 </div>
 
 <script src="/assets/js/admin-auth.js"></script>
-<script src="/assets/js/admin-shifts.js"></script>
+<script type="module" src="/assets/js/admin-shifts.js"></script>
 </body>
 </html>

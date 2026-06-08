@@ -1,3 +1,5 @@
+import { buildWeightIndex, typePoints, memberPoints } from '/assets/js/shift-points-logic.js';
+
 (async function () {
   var members = await JH.authenticate();
   if (!members) return;
@@ -11,6 +13,8 @@
 
   var shifts = [];
   var logistics = [];
+  var weights = [];
+  var weightIndex = buildWeightIndex([]);
   var EVENT_DATES = ['2026-07-07', '2026-07-08', '2026-07-09', '2026-07-10', '2026-07-11', '2026-07-12'];
   var MAIN_START = parseDate('2026-07-07');
   var MAIN_END = parseDate('2026-07-12');
@@ -29,6 +33,30 @@
     logistics = data.logistics || [];
   }
 
+  async function fetchWeights() {
+    var r = await JH.apiFetch('/api/shifts', { action: 'get-weights' });
+    if (!r.ok) { weights = []; weightIndex = buildWeightIndex([]); return; }
+    var data = await r.json();
+    weights = data.weights || [];
+    weightIndex = buildWeightIndex(weights);
+  }
+
+  // After a type's shifts are all deleted, drop its weight row so it doesn't
+  // linger. Best-effort: re-save the surviving types (set-weights deletes all
+  // type rows then rewrites), keeping the current build/strike values. An orphan
+  // row is harmless (the type no longer exists), so failures are ignored.
+  // Call fetchShifts() first so getShiftTypes() reflects the deletion.
+  async function cleanupWeightsAfterDelete() {
+    var surviving = getShiftTypes().map(function (t) {
+      var key = t.name.toLowerCase().trim();
+      var pts = Object.prototype.hasOwnProperty.call(weightIndex.types, key) ? weightIndex.types[key] : 1;
+      return { name: t.name, points: pts };
+    });
+    try {
+      await JH.apiFetch('/api/shifts', { action: 'set-weights', types: surviving, buildPts: weightIndex.buildPts, strikePts: weightIndex.strikePts });
+    } catch (e) { /* harmless if it fails */ }
+  }
+
   function parseDate(s) {
     if (!s) return null;
     s = s.toString().trim();
@@ -43,11 +71,6 @@
       return isNaN(dt2.getTime()) ? null : dt2;
     }
     return null;
-  }
-
-  function daysInclusive(from, to) {
-    if (!from || !to || to < from) return 0;
-    return Math.floor((to - from) / 86400000) + 1;
   }
 
   function durationHours(start, end) {
@@ -286,6 +309,8 @@
       for (var i = 0; i < typeShifts.length; i++) {
         await JH.apiFetch('/api/shifts', { action: 'delete', shiftId: typeShifts[i].ShiftID });
       }
+      await fetchShifts();        // so getShiftTypes() reflects the deletion
+      await cleanupWeightsAfterDelete();
       await reload();
     }
   });
@@ -310,6 +335,56 @@
   }
   document.getElementById('desc-modal-close').addEventListener('click', function () { descModal.classList.remove('active'); });
   descModal.addEventListener('click', function (e) { if (e.target === descModal) descModal.classList.remove('active'); });
+
+  // ── Point weights modal (admin only) ────────────────────────────────────
+
+  if (isAdmin) document.getElementById('points-btn').style.display = '';
+
+  var pointsModal = document.getElementById('points-modal');
+
+  function openPointsModal() {
+    document.getElementById('pts-build').value = weightIndex.buildPts;
+    document.getElementById('pts-strike').value = weightIndex.strikePts;
+    var list = document.getElementById('pts-types-list');
+    var types = getShiftTypes();
+    if (!types.length) {
+      list.innerHTML = '<div style="color:var(--text-muted);font-style:italic;padding:8px 0">No shift types yet.</div>';
+    } else {
+      list.innerHTML = types.map(function (t) {
+        var key = t.name.toLowerCase().trim();
+        var hasWeight = Object.prototype.hasOwnProperty.call(weightIndex.types, key);
+        var val = hasWeight ? weightIndex.types[key] : 1;
+        return '<div class="pts-type-row">' +
+          '<label>' + JH.esc(t.name) + (hasWeight ? '' : ' <span style="opacity:0.6;font-style:italic">(default)</span>') + '</label>' +
+          '<input type="number" min="0" step="1" class="pts-type-input" data-name="' + JH.esc(t.name) + '" value="' + val + '"></div>';
+      }).join('');
+    }
+    document.getElementById('points-msg').textContent = '';
+    pointsModal.classList.add('active');
+  }
+
+  document.getElementById('points-btn').addEventListener('click', openPointsModal);
+  document.getElementById('points-modal-close').addEventListener('click', function () { pointsModal.classList.remove('active'); });
+  pointsModal.addEventListener('click', function (e) { if (e.target === pointsModal) pointsModal.classList.remove('active'); });
+
+  document.getElementById('points-save').addEventListener('click', async function () {
+    var msg = document.getElementById('points-msg');
+    msg.textContent = 'Saving...'; msg.style.color = '#888';
+    var types = [];
+    document.querySelectorAll('.pts-type-input').forEach(function (inp) {
+      types.push({ name: inp.dataset.name, points: parseInt(inp.value, 10) || 0 });
+    });
+    var buildPts = parseInt(document.getElementById('pts-build').value, 10) || 0;
+    var strikePts = parseInt(document.getElementById('pts-strike').value, 10) || 0;
+    var r = await JH.apiFetch('/api/shifts', { action: 'set-weights', types: types, buildPts: buildPts, strikePts: strikePts });
+    if (!r.ok) {
+      var err = 'Failed.';
+      try { var j = await r.json(); if (j && j.error) err = j.error; } catch (e) {}
+      msg.textContent = err; msg.style.color = '#f44336'; return;
+    }
+    pointsModal.classList.remove('active');
+    await reload(); // refetches weights + re-ranks the leaderboard
+  });
 
   // ── Add / edit shift type modal ─────────────────────────────────────────
 
@@ -416,6 +491,8 @@
     editingName = null;
     editingOriginalSlots = [];
     resetAddModalFields();
+    await fetchShifts();        // so getShiftTypes() reflects the deletion
+    await cleanupWeightsAfterDelete();
     await reload();
   });
 
@@ -582,42 +659,38 @@
   function norm(s) { return (s || '').toString().toLowerCase().trim(); }
 
   function computeContributions() {
-    // Accumulate hours under the lowercased/trimmed AssignedTo name so lookup
-    // is resilient to casing and whitespace differences.
-    var hoursByKey = {};
-    shifts.forEach(function (s) {
-      if (!s.AssignedTo || !s.Date) return;
-      var dt = parseDate(s.Date);
-      if (!dt || dt < MAIN_START || dt > MAIN_END) return;
-      var hours = durationHours(s.StartTime, s.EndTime);
-      if (hours <= 0) return;
-      (s.AssignedTo || '').split(',').map(function (p) { return norm(p); }).filter(Boolean).forEach(function (key) {
-        hoursByKey[key] = (hoursByKey[key] || 0) + hours;
-      });
-    });
-
+    // Scoring delegates to the pure shift-points-logic module: points (admin-set
+    // per type, plus per-day build/strike values) are the ranking currency;
+    // hours are kept as a supporting detail. Per-member shift resolution reuses
+    // shiftsForMember (handles playa/legal names + comma-shared slots).
     return approvedMembers.map(function (m) {
       var name = displayName(m);
       if (!name) return null;
-      var playaKey = norm(JH.val(m, 'Playa Name'));
-      var legalKey = norm(JH.val(m, 'Name'));
       var log = logisticsFor(name) || logisticsFor(JH.val(m, 'Name'));
-      var arr = log ? parseDate(log.ArrivalDate) : null;
-      var dep = log ? parseDate(log.DepartureDate) : null;
-      var setupDays = 0, strikeDays = 0;
-      if (arr && arr < MAIN_START) {
-        var lastSetup = new Date(MAIN_START.getTime() - 86400000);
-        setupDays = daysInclusive(arr, lastSetup);
-      }
-      if (dep && dep > MAIN_END) {
-        var firstStrike = new Date(MAIN_END.getTime() + 86400000);
-        strikeDays = daysInclusive(firstStrike, dep);
-      }
-      var eventHours = 0;
-      if (playaKey && hoursByKey[playaKey]) eventHours += hoursByKey[playaKey];
-      if (legalKey && legalKey !== playaKey && hoursByKey[legalKey]) eventHours += hoursByKey[legalKey];
-      var score = (setupDays + strikeDays) * 8 + eventHours;
-      return { name: name, setupDays: setupDays, strikeDays: strikeDays, eventHours: eventHours, score: score };
+
+      var eventShifts = shiftsForMember(m).filter(function (s) {
+        var dt = parseDate(s.Date);
+        return dt && dt >= MAIN_START && dt <= MAIN_END;
+      });
+
+      var r = memberPoints({
+        arrivalDate: log ? log.ArrivalDate : '',
+        departureDate: log ? log.DepartureDate : '',
+        noOrgDates: log ? log.NoOrgDates : '',
+        eventShifts: eventShifts,
+        index: weightIndex,
+      });
+
+      return {
+        name: name,
+        setupDays: r.buildDays,
+        strikeDays: r.strikeDays,
+        eventHours: r.eventHours,
+        eventPoints: r.eventPoints,
+        buildPoints: r.buildPoints,
+        strikePoints: r.strikePoints,
+        score: r.points,
+      };
     }).filter(Boolean);
   }
 
@@ -629,13 +702,15 @@
   function renderRow(entry, rank, isTop) {
     var rankClass = isTop && rank <= 3 ? ' top-' + rank : '';
     var stats = [];
-    if (entry.setupDays) stats.push('<strong>' + entry.setupDays + 'd</strong> setup');
+    if (entry.setupDays) stats.push('<strong>' + entry.setupDays + 'd</strong> build');
     if (entry.strikeDays) stats.push('<strong>' + entry.strikeDays + 'd</strong> strike');
-    if (entry.eventHours) stats.push('<strong>' + fmtHours(entry.eventHours) + '</strong> event');
+    if (entry.eventPoints) stats.push('<strong>' + entry.eventPoints + '</strong> event pts');
+    if (entry.eventHours) stats.push('<span style="opacity:0.7">' + fmtHours(entry.eventHours) + '</span>');
     if (!stats.length) stats.push('<em style="opacity:0.6">no contribution logged</em>');
     return '<div class="lb-row vol-open-btn' + rankClass + '" data-name="' + JH.esc(entry.name) + '" title="Click for breakdown">' +
       '<div class="lb-rank">' + rank + '</div>' +
       '<div class="lb-name">' + JH.esc(entry.name) + '</div>' +
+      '<div class="lb-score"><strong>' + entry.score + '</strong> pts</div>' +
       '<div class="lb-stats">' + stats.join(' · ') + '</div>' +
       '</div>';
   }
@@ -745,13 +820,18 @@
     var eventBody = eventShifts.length
       ? eventShifts.map(function (s) {
           var t = slotLabel(s.StartTime, s.EndTime) || '—';
-          return '<div class="vol-shift-row"><span>' + JH.esc(s.Name || '') + '</span><span class="vol-shift-time">' + JH.esc(t) + '</span><span class="vol-shift-date">' + JH.esc(JH.formatDateLong(s.Date)) + '</span></div>';
+          var pts = typePoints(weightIndex, s.Name);
+          return '<div class="vol-shift-row"><span>' + JH.esc(s.Name || '') + '</span>' +
+            '<span class="vol-shift-time">' + JH.esc(t) + '</span>' +
+            '<span class="vol-shift-date">' + JH.esc(JH.formatDateLong(s.Date)) + '</span>' +
+            '<span class="vol-shift-pts">' + pts + ' pts</span></div>';
         }).join('')
       : '<span class="muted">No event shifts signed up for.</span>';
     body += section(
       'Event shifts',
       eventBody,
-      eventHours ? fmtHours(eventHours) : ''
+      eventShifts.reduce(function (sum, s) { return sum + typePoints(weightIndex, s.Name); }, 0) +
+        ' pts' + (eventHours ? ' · ' + fmtHours(eventHours) : '')
     );
 
     body += section(
@@ -883,7 +963,7 @@
   });
 
   async function reload() {
-    await Promise.all([fetchShifts(), fetchLogistics()]);
+    await Promise.all([fetchShifts(), fetchLogistics(), fetchWeights()]);
     renderStats();
     renderGrid();
     renderLeaderboard();
