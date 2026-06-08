@@ -41,6 +41,22 @@ import { buildWeightIndex, typePoints, memberPoints } from '/assets/js/shift-poi
     weightIndex = buildWeightIndex(weights);
   }
 
+  // After a type's shifts are all deleted, drop its weight row so it doesn't
+  // linger. Best-effort: re-save the surviving types (set-weights deletes all
+  // type rows then rewrites), keeping the current build/strike values. An orphan
+  // row is harmless (the type no longer exists), so failures are ignored.
+  // Call fetchShifts() first so getShiftTypes() reflects the deletion.
+  async function cleanupWeightsAfterDelete() {
+    var surviving = getShiftTypes().map(function (t) {
+      var key = t.name.toLowerCase().trim();
+      var pts = Object.prototype.hasOwnProperty.call(weightIndex.types, key) ? weightIndex.types[key] : 1;
+      return { name: t.name, points: pts };
+    });
+    try {
+      await JH.apiFetch('/api/shifts', { action: 'set-weights', types: surviving, buildPts: weightIndex.buildPts, strikePts: weightIndex.strikePts });
+    } catch (e) { /* harmless if it fails */ }
+  }
+
   function parseDate(s) {
     if (!s) return null;
     s = s.toString().trim();
@@ -293,6 +309,8 @@ import { buildWeightIndex, typePoints, memberPoints } from '/assets/js/shift-poi
       for (var i = 0; i < typeShifts.length; i++) {
         await JH.apiFetch('/api/shifts', { action: 'delete', shiftId: typeShifts[i].ShiftID });
       }
+      await fetchShifts();        // so getShiftTypes() reflects the deletion
+      await cleanupWeightsAfterDelete();
       await reload();
     }
   });
@@ -473,6 +491,8 @@ import { buildWeightIndex, typePoints, memberPoints } from '/assets/js/shift-poi
     editingName = null;
     editingOriginalSlots = [];
     resetAddModalFields();
+    await fetchShifts();        // so getShiftTypes() reflects the deletion
+    await cleanupWeightsAfterDelete();
     await reload();
   });
 
