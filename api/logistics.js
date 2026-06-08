@@ -207,14 +207,44 @@ export default async function handler(req, res) {
       if (!driver) return res.status(400).json({ error: 'Driver name unavailable' });
       await ensureTab(sheets, id, RIDES_TAB);
       const existing = await safeGet(sheets, id, RIDES_TAB);
+      let liveHeaders;
       if (!existing.length) {
+        liveHeaders = RIDES_HEADERS.slice();
         await sheets.spreadsheets.values.update({
           spreadsheetId: id, range: `${RIDES_TAB}!A1`, valueInputOption: 'RAW',
-          requestBody: { values: [RIDES_HEADERS] }
+          requestBody: { values: [liveHeaders] }
         });
+      } else {
+        liveHeaders = existing[0].slice();
+        // Add any new columns that aren't on the sheet yet
+        const missing = RIDES_HEADERS.filter(h => liveHeaders.indexOf(h) === -1);
+        if (missing.length) {
+          const startCol = liveHeaders.length;
+          liveHeaders = liveHeaders.concat(missing);
+          let colLetter = '';
+          let c = startCol;
+          while (c >= 0) { colLetter = String.fromCharCode(65 + (c % 26)) + colLetter; c = Math.floor(c / 26) - 1; }
+          await sheets.spreadsheets.values.update({
+            spreadsheetId: id, range: `${RIDES_TAB}!${colLetter}1`,
+            valueInputOption: 'RAW', requestBody: { values: [missing] }
+          });
+        }
       }
       const rideId = 'R' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-      const newRow = [rideId, driver, (originTo || '').trim(), (destFrom || '').trim(), seats, '', '', (rideNotes || '').trim(), new Date().toISOString()];
+      const createdAt = new Date().toISOString();
+      const fieldMap = {
+        RideID: rideId,
+        DriverName: driver,
+        OriginTo: (originTo || '').trim(),
+        DestFrom: (destFrom || '').trim(),
+        SeatsTotal: seats,
+        ClaimedTo: '',
+        ClaimedFrom: '',
+        Notes: (rideNotes || '').trim(),
+        CreatedAt: createdAt,
+      };
+      // Build the row in the order of the live sheet headers; unknown columns get ''
+      const newRow = liveHeaders.map(h => fieldMap[h] !== undefined ? fieldMap[h] : '');
       await sheets.spreadsheets.values.append({
         spreadsheetId: id, range: `${RIDES_TAB}!A1`, valueInputOption: 'RAW',
         requestBody: { values: [newRow] }

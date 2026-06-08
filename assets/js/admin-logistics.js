@@ -574,7 +574,7 @@ import { parseISO, ganttRange, enumerateDays, barCells, isEventDay, eeColorKey }
       var routeTxt = dir === 'to'
         ? JH.esc(loc) + ' → event'
         : 'event → ' + JH.esc(loc);
-      var legLabel = (dir === 'to' ? 'To event' : 'From event') + ' &middot; <span style="color:var(--text);">' + routeTxt + '</span>';
+      var legLabel = (dir === 'to' ? 'To' : 'From') + ' &middot; <span style="color:var(--text);">' + routeTxt + '</span>';
       var iAmClaimed = me && claimed.indexOf(me) !== -1;
       var actionBtn = '';
       if (!observer && !isPlaceholder) {
