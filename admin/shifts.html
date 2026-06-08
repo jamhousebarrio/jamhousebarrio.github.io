@@ -101,6 +101,11 @@ access: general
     .modal-actions { display: flex; gap: 8px; margin-top: 4px; }
     .btn-primary { padding: 0.45rem 1rem; background: var(--accent); border: none; border-radius: 6px; color: var(--bg); font-family: var(--heading); font-size: 0.85rem; font-weight: 600; cursor: pointer; }
     .msg { font-size: 0.8rem; align-self: center; }
+    .pts-day-row { display: flex; gap: 16px; flex-wrap: wrap; }
+    .pts-day-row label, .pts-type-row label { font-size: 0.8rem; color: var(--text-muted); display: flex; align-items: center; gap: 6px; }
+    .pts-day-row input, .pts-type-row input { width: 60px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-family: var(--body); font-size: 0.85rem; padding: 6px 8px; }
+    .pts-type-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 5px 0; border-top: 1px solid var(--border); }
+    #pts-types-list { max-height: 320px; overflow-y: auto; margin-top: 4px; }
     @media (max-width: 768px) {
       .stats-row { grid-template-columns: 1fr; }
       .shift-grid { font-size: 0.75rem; }
@@ -146,6 +151,7 @@ access: general
 
   <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:16px">
     <button class="add-type-btn" id="add-shift-btn" style="display:none;flex:1">+ Add Shift Type</button>
+    <button class="add-type-btn" id="points-btn" style="display:none;flex:1">&#9878; Points</button>
     <button class="add-type-btn" id="print-shifts-btn" style="flex:1">&#128424; Print schedule (PDF)</button>
   </div>
 
@@ -178,6 +184,23 @@ access: general
       <button type="button" id="delete-type-btn" class="btn-danger" style="display:none">Delete shift type</button>
       <button id="add-shift-save" class="btn-primary">Create for all days</button>
       <span id="add-msg" class="msg"></span>
+    </div>
+  </div>
+</div>
+
+<!-- Points (weights) modal -->
+<div class="modal-overlay" id="points-modal">
+  <div class="modal">
+    <h2>Set point weights <button class="modal-close" id="points-modal-close">&times;</button></h2>
+    <p class="panel-lede" style="margin:0">Points are the fairness currency. Build/strike count per day present (NoOrg days excluded). Unset types default to 1.</p>
+    <div class="pts-day-row">
+      <label>Build day <input type="number" min="0" step="1" id="pts-build"> pts/day</label>
+      <label>Strike day <input type="number" min="0" step="1" id="pts-strike"> pts/day</label>
+    </div>
+    <div id="pts-types-list"></div>
+    <div class="modal-actions">
+      <button id="points-save" class="btn-primary">Save</button>
+      <span id="points-msg" class="msg"></span>
     </div>
   </div>
 </div>

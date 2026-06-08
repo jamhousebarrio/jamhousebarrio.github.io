@@ -318,6 +318,56 @@ import { buildWeightIndex, typePoints, memberPoints } from '/assets/js/shift-poi
   document.getElementById('desc-modal-close').addEventListener('click', function () { descModal.classList.remove('active'); });
   descModal.addEventListener('click', function (e) { if (e.target === descModal) descModal.classList.remove('active'); });
 
+  // ── Point weights modal (admin only) ────────────────────────────────────
+
+  if (isAdmin) document.getElementById('points-btn').style.display = '';
+
+  var pointsModal = document.getElementById('points-modal');
+
+  function openPointsModal() {
+    document.getElementById('pts-build').value = weightIndex.buildPts;
+    document.getElementById('pts-strike').value = weightIndex.strikePts;
+    var list = document.getElementById('pts-types-list');
+    var types = getShiftTypes();
+    if (!types.length) {
+      list.innerHTML = '<div style="color:var(--text-muted);font-style:italic;padding:8px 0">No shift types yet.</div>';
+    } else {
+      list.innerHTML = types.map(function (t) {
+        var key = t.name.toLowerCase().trim();
+        var hasWeight = Object.prototype.hasOwnProperty.call(weightIndex.types, key);
+        var val = hasWeight ? weightIndex.types[key] : 1;
+        return '<div class="pts-type-row">' +
+          '<label>' + JH.esc(t.name) + (hasWeight ? '' : ' <span style="opacity:0.6;font-style:italic">(default)</span>') + '</label>' +
+          '<input type="number" min="0" step="1" class="pts-type-input" data-name="' + JH.esc(t.name) + '" value="' + val + '"></div>';
+      }).join('');
+    }
+    document.getElementById('points-msg').textContent = '';
+    pointsModal.classList.add('active');
+  }
+
+  document.getElementById('points-btn').addEventListener('click', openPointsModal);
+  document.getElementById('points-modal-close').addEventListener('click', function () { pointsModal.classList.remove('active'); });
+  pointsModal.addEventListener('click', function (e) { if (e.target === pointsModal) pointsModal.classList.remove('active'); });
+
+  document.getElementById('points-save').addEventListener('click', async function () {
+    var msg = document.getElementById('points-msg');
+    msg.textContent = 'Saving...'; msg.style.color = '#888';
+    var types = [];
+    document.querySelectorAll('.pts-type-input').forEach(function (inp) {
+      types.push({ name: inp.dataset.name, points: parseInt(inp.value, 10) || 0 });
+    });
+    var buildPts = parseInt(document.getElementById('pts-build').value, 10) || 0;
+    var strikePts = parseInt(document.getElementById('pts-strike').value, 10) || 0;
+    var r = await JH.apiFetch('/api/shifts', { action: 'set-weights', types: types, buildPts: buildPts, strikePts: strikePts });
+    if (!r.ok) {
+      var err = 'Failed.';
+      try { var j = await r.json(); if (j && j.error) err = j.error; } catch (e) {}
+      msg.textContent = err; msg.style.color = '#f44336'; return;
+    }
+    pointsModal.classList.remove('active');
+    await reload(); // refetches weights + re-ranks the leaderboard
+  });
+
   // ── Add / edit shift type modal ─────────────────────────────────────────
 
   if (isAdmin) document.getElementById('add-shift-btn').style.display = '';
