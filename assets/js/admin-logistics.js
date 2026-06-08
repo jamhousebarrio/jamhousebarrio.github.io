@@ -489,8 +489,152 @@ import { parseISO, ganttRange, enumerateDays, barCells, isEventDay, eeColorKey }
     renderGantt();
   }
 
+  // ── Rideshare panel ───────────────────────────────────────────────────────
+
+  var rides = [];
+  var rideEditing = null;
+  var observer = JH.currentUser && JH.currentUser.observer;
+
+  async function loadRides() {
+    try {
+      var r = await JH.apiFetch('/api/logistics', { action: 'rides-list' });
+      if (!r.ok) { rides = []; return; }
+      var d = await r.json();
+      rides = (d && d.rides) || [];
+    } catch (e) { rides = []; }
+  }
+
+  function renderRides() {
+    var wrap = document.getElementById('rideshare-list');
+    if (!wrap) return;
+    if (!rides.length) {
+      wrap.innerHTML = '<div class="empty-state">No rides offered yet — click <strong>+ Offer a ride</strong> to post one.</div>';
+      return;
+    }
+    var me = state.myName || '';
+    var meIsAdmin = JH.isAdmin();
+    rides.sort(function (a, b) { return (a.Date || '').localeCompare(b.Date || '') || (a.CreatedAt || '').localeCompare(b.CreatedAt || ''); });
+    var html = rides.map(function (ride) {
+      var seatsTotal = ride.SeatsTotal || 0;
+      var claimed = ride.claimed || [];
+      var seatsLeft = Math.max(0, seatsTotal - claimed.length);
+      var iAmDriver = me && ride.DriverName === me;
+      var iAmClaimed = me && claimed.indexOf(me) !== -1;
+      var canEdit = iAmDriver || meIsAdmin;
+      var actionBtn = '';
+      if (!observer) {
+        if (iAmDriver) actionBtn = '<span style="font-size:0.78rem;color:var(--text-muted);">You’re driving</span>';
+        else if (iAmClaimed) actionBtn = '<button class="btn-secondary btn-ride-release" data-ride="' + JH.esc(ride.RideID) + '" style="font-size:0.78rem;">Release my seat</button>';
+        else if (seatsLeft > 0) actionBtn = '<button class="btn-primary btn-ride-claim" data-ride="' + JH.esc(ride.RideID) + '" style="font-size:0.78rem;">Claim a seat</button>';
+        else actionBtn = '<span style="font-size:0.78rem;color:var(--text-muted);">Full</span>';
+      }
+      var editBtn = canEdit && !observer ? '<button class="btn-secondary btn-ride-edit" data-ride="' + JH.esc(ride.RideID) + '" style="font-size:0.78rem;">Edit</button>' : '';
+      var delBtn = canEdit && !observer ? '<button class="btn-secondary btn-ride-delete" data-ride="' + JH.esc(ride.RideID) + '" style="font-size:0.78rem;color:#f44336;border-color:#f44336;">Delete</button>' : '';
+      var seatCls = seatsLeft === 0 ? 'color:#f44336;' : (seatsLeft <= 1 ? 'color:#ff9800;' : 'color:#6dcf72;');
+      var claimedHtml = claimed.length
+        ? claimed.map(function (n) {
+            var canRelease = !observer && (iAmDriver || n === me);
+            return '<span class="ride-claim-chip" style="display:inline-flex;align-items:center;gap:4px;background:rgba(232,168,76,0.12);color:var(--accent);font-size:0.78rem;padding:2px 8px;border-radius:10px;">' + JH.esc(n) +
+              (canRelease ? ' <button class="ride-claim-x" data-ride="' + JH.esc(ride.RideID) + '" data-name="' + JH.esc(n) + '" title="Release seat" style="background:none;border:none;color:var(--accent);cursor:pointer;padding:0;font-size:0.85rem;line-height:1;">×</button>' : '') +
+              '</span>';
+          }).join(' ')
+        : '<span style="color:var(--text-muted);font-size:0.78rem;">No one yet</span>';
+      var routeLine = JH.esc(ride.Route || '(no route given)');
+      var dateLine = ride.Date ? ' · ' + JH.esc(ride.Date) : '';
+      var notesLine = ride.Notes ? '<div style="font-size:0.8rem;color:var(--text-muted);margin-top:6px;">' + JH.esc(ride.Notes) + '</div>' : '';
+      return '<div class="ride-card" style="border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:10px;background:var(--surface);">' +
+        '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;">' +
+          '<div style="flex:1;min-width:200px;">' +
+            '<div style="font-weight:600;color:var(--text);">' + JH.esc(ride.DriverName) + ' &middot; ' + routeLine + dateLine + '</div>' +
+            '<div style="font-size:0.82rem;margin-top:4px;"><strong style="' + seatCls + '">' + seatsLeft + ' of ' + seatsTotal + ' seats left</strong></div>' +
+            '<div style="margin-top:8px;display:flex;gap:4px;flex-wrap:wrap;">' + claimedHtml + '</div>' +
+            notesLine +
+          '</div>' +
+          '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:flex-start;">' + actionBtn + ' ' + editBtn + ' ' + delBtn + '</div>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+    wrap.innerHTML = html;
+
+    wrap.querySelectorAll('.btn-ride-claim').forEach(function (b) {
+      b.addEventListener('click', function () { rideAction('ride-claim', { rideId: b.dataset.ride }); });
+    });
+    wrap.querySelectorAll('.btn-ride-release').forEach(function (b) {
+      b.addEventListener('click', function () { rideAction('ride-release', { rideId: b.dataset.ride }); });
+    });
+    wrap.querySelectorAll('.ride-claim-x').forEach(function (b) {
+      b.addEventListener('click', function () { rideAction('ride-release', { rideId: b.dataset.ride, name: b.dataset.name }); });
+    });
+    wrap.querySelectorAll('.btn-ride-edit').forEach(function (b) {
+      b.addEventListener('click', function () { openRideModal(rides.find(function (x) { return x.RideID === b.dataset.ride; })); });
+    });
+    wrap.querySelectorAll('.btn-ride-delete').forEach(function (b) {
+      b.addEventListener('click', function () {
+        if (!confirm('Delete this ride? Anyone who claimed a seat will lose it.')) return;
+        rideAction('ride-delete', { rideId: b.dataset.ride });
+      });
+    });
+  }
+
+  async function rideAction(action, body) {
+    try {
+      var r = await JH.apiFetch('/api/logistics', Object.assign({ action: action }, body));
+      if (!r.ok) {
+        var err = await r.json().catch(function () { return {}; });
+        alert(err.error || 'Action failed');
+        return;
+      }
+      await loadRides();
+      renderRides();
+    } catch (e) { alert('Network error'); }
+  }
+
+  function openRideModal(existing) {
+    rideEditing = existing || null;
+    document.getElementById('ride-modal-title').textContent = existing ? 'Edit ride' : 'Offer a ride';
+    document.getElementById('ride-route').value = existing ? (existing.Route || '') : '';
+    document.getElementById('ride-date').value = existing ? (existing.Date || '') : '';
+    document.getElementById('ride-seats').value = existing ? (existing.SeatsTotal || '') : '';
+    document.getElementById('ride-notes').value = existing ? (existing.Notes || '') : '';
+    document.getElementById('ride-modal-msg').textContent = '';
+    document.getElementById('ride-modal').classList.add('active');
+  }
+  function closeRideModal() {
+    document.getElementById('ride-modal').classList.remove('active');
+    rideEditing = null;
+  }
+
+  document.getElementById('ride-new-btn').addEventListener('click', function () {
+    if (observer) { alert('Observer accounts are read-only'); return; }
+    openRideModal(null);
+  });
+  document.getElementById('ride-cancel-btn').addEventListener('click', closeRideModal);
+  document.getElementById('ride-save-btn').addEventListener('click', async function () {
+    var route = document.getElementById('ride-route').value.trim();
+    var date = document.getElementById('ride-date').value.trim();
+    var seats = parseInt(document.getElementById('ride-seats').value, 10);
+    var rideNotes = document.getElementById('ride-notes').value.trim();
+    var msg = document.getElementById('ride-modal-msg');
+    if (!seats || seats < 1) { msg.textContent = 'Enter a seat count (1 or more).'; return; }
+    var payload = { route: route, date: date, seatsTotal: seats, notes: rideNotes };
+    var action = rideEditing ? 'ride-update' : 'ride-create';
+    if (rideEditing) payload.rideId = rideEditing.RideID;
+    try {
+      var r = await JH.apiFetch('/api/logistics', Object.assign({ action: action }, payload));
+      if (!r.ok) {
+        var err = await r.json().catch(function () { return {}; });
+        msg.textContent = err.error || 'Save failed';
+        return;
+      }
+      closeRideModal();
+      await loadRides();
+      renderRides();
+    } catch (e) { msg.textContent = 'Network error'; }
+  });
+
   // ── Init ──────────────────────────────────────────────────────────────────
 
+  loadRides().then(renderRides);
   if (state.myName) render();
 
 })();

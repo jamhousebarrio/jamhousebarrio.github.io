@@ -1,6 +1,41 @@
-import { getSheets, safeGet, toObjects, upsertRow, deleteRowById } from './_lib/sheets.js';
+import { getSheets, safeGet, toObjects, upsertRow, deleteRowById, ensureTab, getSheetId } from './_lib/sheets.js';
 import { authenticateRequest } from './_lib/auth.js';
 import { logError } from './_lib/error-log.js';
+
+const RIDES_TAB = 'Rideshare';
+const RIDES_HEADERS = ['RideID', 'DriverName', 'Route', 'Date', 'SeatsTotal', 'ClaimedBy', 'Notes', 'CreatedAt'];
+
+function parseClaimed(s) {
+  return (s || '').split(',').map(x => x.trim()).filter(Boolean);
+}
+function joinClaimed(arr) { return arr.join(', '); }
+function displayName(member) {
+  return ((member && (member['Playa Name'] || member.Name)) || '').trim();
+}
+async function fetchRides(sheets, id) {
+  const rows = await safeGet(sheets, id, RIDES_TAB);
+  if (!rows.length) return [];
+  const headers = rows[0];
+  return rows.slice(1).map((r, i) => {
+    const o = { _row: i + 2 };
+    headers.forEach((h, j) => { o[h] = r[j] || ''; });
+    o.claimed = parseClaimed(o.ClaimedBy);
+    o.SeatsTotal = parseInt(o.SeatsTotal, 10) || 0;
+    return o;
+  }).filter(r => r.RideID);
+}
+async function findRideRow(sheets, id, rideId) {
+  const rows = await safeGet(sheets, id, RIDES_TAB);
+  if (!rows.length) return null;
+  const headers = rows[0];
+  const idCol = headers.indexOf('RideID');
+  for (let i = 1; i < rows.length; i++) {
+    if ((rows[i][idCol] || '') === rideId) {
+      return { rowIndex: i + 1, headers, row: rows[i] };
+    }
+  }
+  return null;
+}
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -152,6 +187,140 @@ export default async function handler(req, res) {
           requestBody: { values: [newRow] },
         });
       }
+      return res.status(200).json({ ok: true });
+    }
+
+    // ── Rideshare: list all rides (any approved member) ──────────────────
+    if (action === 'rides-list') {
+      const rides = await fetchRides(sheets, id);
+      return res.status(200).json({ rides });
+    }
+
+    // ── Rideshare: create a new ride offer ────────────────────────────────
+    if (action === 'ride-create') {
+      if (auth.observer) return res.status(403).json({ error: 'Observer accounts are read-only' });
+      const { route, date, seatsTotal, notes: rideNotes } = req.body || {};
+      const seats = parseInt(seatsTotal, 10) || 0;
+      if (!seats || seats < 1 || seats > 50) return res.status(400).json({ error: 'seatsTotal must be 1–50' });
+      const driver = displayName(auth.member);
+      if (!driver) return res.status(400).json({ error: 'Driver name unavailable' });
+      await ensureTab(sheets, id, RIDES_TAB);
+      const existing = await safeGet(sheets, id, RIDES_TAB);
+      if (!existing.length) {
+        await sheets.spreadsheets.values.update({
+          spreadsheetId: id, range: `${RIDES_TAB}!A1`, valueInputOption: 'RAW',
+          requestBody: { values: [RIDES_HEADERS] }
+        });
+      }
+      const rideId = 'R' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+      const newRow = [rideId, driver, (route || '').trim(), (date || '').trim(), seats, '', (rideNotes || '').trim(), new Date().toISOString()];
+      await sheets.spreadsheets.values.append({
+        spreadsheetId: id, range: `${RIDES_TAB}!A1`, valueInputOption: 'RAW',
+        requestBody: { values: [newRow] }
+      });
+      return res.status(200).json({ ok: true, rideId });
+    }
+
+    // ── Rideshare: update fields (driver or admin) ────────────────────────
+    if (action === 'ride-update') {
+      if (auth.observer) return res.status(403).json({ error: 'Observer accounts are read-only' });
+      const { rideId, route, date, seatsTotal, notes: rideNotes } = req.body || {};
+      if (!rideId) return res.status(400).json({ error: 'rideId required' });
+      const found = await findRideRow(sheets, id, rideId);
+      if (!found) return res.status(404).json({ error: 'Ride not found' });
+      const driver = displayName(auth.member);
+      const currentDriver = (found.row[found.headers.indexOf('DriverName')] || '').trim();
+      if (driver !== currentDriver && !auth.admin) return res.status(403).json({ error: 'Only the driver or an admin can edit a ride' });
+      const seats = parseInt(seatsTotal, 10);
+      if (seats != null && (isNaN(seats) || seats < 1 || seats > 50)) return res.status(400).json({ error: 'seatsTotal must be 1–50' });
+      const claimed = parseClaimed(found.row[found.headers.indexOf('ClaimedBy')]);
+      if (!isNaN(seats) && seats < claimed.length) return res.status(400).json({ error: `Cannot shrink to ${seats} seats — ${claimed.length} already claimed` });
+      const updates = [];
+      const setField = (name, value) => {
+        const col = found.headers.indexOf(name);
+        if (col === -1) return;
+        const cl = String.fromCharCode(65 + col);
+        updates.push({ range: `${RIDES_TAB}!${cl}${found.rowIndex}`, values: [[value]] });
+      };
+      if (route !== undefined) setField('Route', (route || '').trim());
+      if (date !== undefined) setField('Date', (date || '').trim());
+      if (!isNaN(seats)) setField('SeatsTotal', seats);
+      if (rideNotes !== undefined) setField('Notes', (rideNotes || '').trim());
+      if (!updates.length) return res.status(400).json({ error: 'No fields to update' });
+      await sheets.spreadsheets.values.batchUpdate({
+        spreadsheetId: id, requestBody: { valueInputOption: 'RAW', data: updates }
+      });
+      return res.status(200).json({ ok: true });
+    }
+
+    // ── Rideshare: delete (driver or admin) ───────────────────────────────
+    if (action === 'ride-delete') {
+      if (auth.observer) return res.status(403).json({ error: 'Observer accounts are read-only' });
+      const { rideId } = req.body || {};
+      if (!rideId) return res.status(400).json({ error: 'rideId required' });
+      const found = await findRideRow(sheets, id, rideId);
+      if (!found) return res.status(404).json({ error: 'Ride not found' });
+      const driver = displayName(auth.member);
+      const currentDriver = (found.row[found.headers.indexOf('DriverName')] || '').trim();
+      if (driver !== currentDriver && !auth.admin) return res.status(403).json({ error: 'Only the driver or an admin can delete a ride' });
+      const sheetId = await getSheetId(sheets, id, RIDES_TAB);
+      if (sheetId === null) return res.status(404).json({ error: 'Rideshare tab not found' });
+      await sheets.spreadsheets.batchUpdate({
+        spreadsheetId: id,
+        requestBody: { requests: [{
+          deleteDimension: { range: { sheetId, dimension: 'ROWS', startIndex: found.rowIndex - 1, endIndex: found.rowIndex } }
+        }] }
+      });
+      return res.status(200).json({ ok: true });
+    }
+
+    // ── Rideshare: claim a seat ───────────────────────────────────────────
+    if (action === 'ride-claim') {
+      if (auth.observer) return res.status(403).json({ error: 'Observer accounts are read-only' });
+      const { rideId } = req.body || {};
+      if (!rideId) return res.status(400).json({ error: 'rideId required' });
+      const found = await findRideRow(sheets, id, rideId);
+      if (!found) return res.status(404).json({ error: 'Ride not found' });
+      const me = displayName(auth.member);
+      if (!me) return res.status(400).json({ error: 'Your name is not set' });
+      const seatsCol = found.headers.indexOf('SeatsTotal');
+      const claimedCol = found.headers.indexOf('ClaimedBy');
+      const driverCol = found.headers.indexOf('DriverName');
+      const seats = parseInt(found.row[seatsCol], 10) || 0;
+      const claimed = parseClaimed(found.row[claimedCol]);
+      if ((found.row[driverCol] || '').trim() === me) return res.status(400).json({ error: "You're the driver — no need to claim a seat" });
+      if (claimed.indexOf(me) !== -1) return res.status(409).json({ error: 'You already have a seat' });
+      if (claimed.length >= seats) return res.status(409).json({ error: 'No seats left' });
+      claimed.push(me);
+      const cl = String.fromCharCode(65 + claimedCol);
+      await sheets.spreadsheets.values.update({
+        spreadsheetId: id, range: `${RIDES_TAB}!${cl}${found.rowIndex}`,
+        valueInputOption: 'RAW', requestBody: { values: [[joinClaimed(claimed)]] }
+      });
+      return res.status(200).json({ ok: true, seatsLeft: seats - claimed.length });
+    }
+
+    // ── Rideshare: release a seat (your own, or admin can release anyone) ─
+    if (action === 'ride-release') {
+      if (auth.observer) return res.status(403).json({ error: 'Observer accounts are read-only' });
+      const { rideId, name } = req.body || {};
+      if (!rideId) return res.status(400).json({ error: 'rideId required' });
+      const found = await findRideRow(sheets, id, rideId);
+      if (!found) return res.status(404).json({ error: 'Ride not found' });
+      const me = displayName(auth.member);
+      const target = ((name || '').trim()) || me;
+      const rideDriver = (found.row[found.headers.indexOf('DriverName')] || '').trim();
+      const iAmDriver = me === rideDriver;
+      if (target !== me && !iAmDriver) return res.status(403).json({ error: 'Only the driver or the seat-holder can release a seat' });
+      const claimedCol = found.headers.indexOf('ClaimedBy');
+      const claimed = parseClaimed(found.row[claimedCol]);
+      const next = claimed.filter(n => n !== target);
+      if (next.length === claimed.length) return res.status(404).json({ error: 'Name not in claimed list' });
+      const cl = String.fromCharCode(65 + claimedCol);
+      await sheets.spreadsheets.values.update({
+        spreadsheetId: id, range: `${RIDES_TAB}!${cl}${found.rowIndex}`,
+        valueInputOption: 'RAW', requestBody: { values: [[joinClaimed(next)]] }
+      });
       return res.status(200).json({ ok: true });
     }
 

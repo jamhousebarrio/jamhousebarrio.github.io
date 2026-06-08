@@ -117,6 +117,36 @@ access: general
       <div id="all-members-content"><div class="empty-state">Loading...</div></div>
     </div>
   </div>
+
+  <div class="panel" id="rideshare-panel" style="margin-top:20px;">
+    <div class="panel-header" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem;">
+      <h2 style="margin:0;">&#128661; Rideshare</h2>
+      <button id="ride-new-btn" class="btn-primary" style="font-size:0.82rem;">+ Offer a ride</button>
+    </div>
+    <p style="color:var(--text-muted);font-size:0.82rem;margin:0 0 12px;">Driving in? Post the route and how many seats. Need a lift? Claim one.</p>
+    <div id="rideshare-list"><div class="empty-state">Loading…</div></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="ride-modal">
+  <div class="modal">
+    <h2 id="ride-modal-title">Offer a ride</h2>
+    <div class="modal-body" style="display:flex;flex-direction:column;gap:10px;">
+      <label>Route (e.g. Berlin → site)</label>
+      <input id="ride-route" placeholder="Where from / where to" />
+      <label>Date (departure)</label>
+      <input id="ride-date" placeholder="dd/mm/yyyy" />
+      <label>Total seats (including yourself)</label>
+      <input id="ride-seats" type="number" min="1" max="50" placeholder="e.g. 4" />
+      <label>Notes (optional)</label>
+      <textarea id="ride-notes" rows="3" placeholder="Pickup spots, contact, luggage limits…"></textarea>
+      <p id="ride-modal-msg" style="color:#f44336;font-size:0.82rem;margin:0;min-height:1em;"></p>
+    </div>
+    <div class="modal-actions">
+      <button id="ride-cancel-btn" class="btn-secondary">Cancel</button>
+      <button id="ride-save-btn" class="btn-primary">Save</button>
+    </div>
+  </div>
 </div>
 
 <!-- Name selector modal -->
