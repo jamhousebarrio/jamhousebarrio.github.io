@@ -551,7 +551,11 @@ import { parseISO, ganttRange, enumerateDays, barCells, isEventDay, eeColorKey }
       wrap.innerHTML = '<div class="empty-state">No drivers yet. Anyone whose transport is <strong>vehicle</strong> on the logistics form above will show up here automatically — or click <strong>+ Offer a ride</strong>.</div>';
       return;
     }
-    combined.sort(function (a, b) { return (a.DateTo || '').localeCompare(b.DateTo || '') || ((a.CreatedAt || '').localeCompare(b.CreatedAt || '')); });
+    combined.sort(function (a, b) {
+      // Posted rides first, placeholders (Transport=vehicle, no ride yet) last.
+      if (!!a._placeholder !== !!b._placeholder) return a._placeholder ? 1 : -1;
+      return (a.DateTo || '').localeCompare(b.DateTo || '') || ((a.CreatedAt || '').localeCompare(b.CreatedAt || ''));
+    });
 
     function legHtml(ride, dir, dateStr, isPlaceholder, iAmDriver, seatsTotal) {
       var claimed = (dir === 'to' ? ride.claimedTo : ride.claimedFrom) || [];
