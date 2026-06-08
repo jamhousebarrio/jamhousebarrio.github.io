@@ -137,16 +137,13 @@ access: general
     <div class="modal-body" style="display:flex;flex-direction:column;gap:10px;">
       <label>Driving <em>from</em> (to-event leg)</label>
       <input id="ride-origin-to" placeholder="Where you start your trip to the event" />
-      <label>Arrival at event</label>
-      <input id="ride-date-to" placeholder="dd/mm/yyyy — pulled from your logistics" />
       <label>Driving <em>to</em> after event (from-event leg)</label>
       <input id="ride-dest-from" placeholder="Where you go back to after the event" />
-      <label>Departure from event</label>
-      <input id="ride-date-from" placeholder="dd/mm/yyyy — pulled from your logistics" />
       <label>Seats offered to passengers (each way)</label>
       <input id="ride-seats" type="number" min="1" max="50" placeholder="e.g. 3" />
       <label>Notes (optional)</label>
       <textarea id="ride-notes" rows="3" placeholder="Pickup spots, contact, luggage limits…"></textarea>
+      <p style="font-size:0.78rem;color:var(--text-muted);margin:0;">Arrival &amp; departure dates are pulled from your Logistics info above — edit there and they update here automatically.</p>
       <p id="ride-modal-msg" style="color:#f44336;font-size:0.82rem;margin:0;min-height:1em;"></p>
     </div>
     <div class="modal-actions">

@@ -3,7 +3,7 @@ import { authenticateRequest } from './_lib/auth.js';
 import { logError } from './_lib/error-log.js';
 
 const RIDES_TAB = 'Rideshare';
-const RIDES_HEADERS = ['RideID', 'DriverName', 'OriginTo', 'DestFrom', 'DateTo', 'DateFrom', 'SeatsTotal', 'ClaimedTo', 'ClaimedFrom', 'Notes', 'CreatedAt'];
+const RIDES_HEADERS = ['RideID', 'DriverName', 'OriginTo', 'DestFrom', 'SeatsTotal', 'ClaimedTo', 'ClaimedFrom', 'Notes', 'CreatedAt'];
 
 function parseClaimed(s) {
   return (s || '').split(',').map(x => x.trim()).filter(Boolean);
@@ -200,7 +200,7 @@ export default async function handler(req, res) {
     // ── Rideshare: create a new ride offer ────────────────────────────────
     if (action === 'ride-create') {
       if (auth.observer) return res.status(403).json({ error: 'Observer accounts are read-only' });
-      const { originTo, destFrom, dateTo, dateFrom, seatsTotal, notes: rideNotes } = req.body || {};
+      const { originTo, destFrom, seatsTotal, notes: rideNotes } = req.body || {};
       const seats = parseInt(seatsTotal, 10) || 0;
       if (!seats || seats < 1 || seats > 50) return res.status(400).json({ error: 'seatsTotal must be 1–50' });
       const driver = displayName(auth.member);
@@ -214,7 +214,7 @@ export default async function handler(req, res) {
         });
       }
       const rideId = 'R' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-      const newRow = [rideId, driver, (originTo || '').trim(), (destFrom || '').trim(), (dateTo || '').trim(), (dateFrom || '').trim(), seats, '', '', (rideNotes || '').trim(), new Date().toISOString()];
+      const newRow = [rideId, driver, (originTo || '').trim(), (destFrom || '').trim(), seats, '', '', (rideNotes || '').trim(), new Date().toISOString()];
       await sheets.spreadsheets.values.append({
         spreadsheetId: id, range: `${RIDES_TAB}!A1`, valueInputOption: 'RAW',
         requestBody: { values: [newRow] }
@@ -225,7 +225,7 @@ export default async function handler(req, res) {
     // ── Rideshare: update fields (driver or admin) ────────────────────────
     if (action === 'ride-update') {
       if (auth.observer) return res.status(403).json({ error: 'Observer accounts are read-only' });
-      const { rideId, originTo, destFrom, dateTo, dateFrom, seatsTotal, notes: rideNotes } = req.body || {};
+      const { rideId, originTo, destFrom, seatsTotal, notes: rideNotes } = req.body || {};
       if (!rideId) return res.status(400).json({ error: 'rideId required' });
       const found = await findRideRow(sheets, id, rideId);
       if (!found) return res.status(404).json({ error: 'Ride not found' });
@@ -263,8 +263,6 @@ export default async function handler(req, res) {
       };
       if (originTo !== undefined) setField('OriginTo', (originTo || '').trim());
       if (destFrom !== undefined) setField('DestFrom', (destFrom || '').trim());
-      if (dateTo !== undefined) setField('DateTo', (dateTo || '').trim());
-      if (dateFrom !== undefined) setField('DateFrom', (dateFrom || '').trim());
       if (!isNaN(seats)) setField('SeatsTotal', seats);
       if (rideNotes !== undefined) setField('Notes', (rideNotes || '').trim());
       if (!updates.length) return res.status(400).json({ error: 'No fields to update' });
