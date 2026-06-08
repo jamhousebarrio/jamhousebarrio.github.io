@@ -221,6 +221,8 @@ export default async function handler(req, res) {
       const nameCol = headers.indexOf('Name');
       const playaCol = headers.indexOf('Playa Name');
       const emailCol = headers.indexOf('Email');
+      const phoneCol = headers.indexOf('Phone');
+      const tgCol = headers.indexOf('Telegram');
 
       const me = rows.find((row, i) => i > 0 && (row[emailCol] || '').toLowerCase().trim() === auth.email.toLowerCase().trim());
       const myFee = me ? {
@@ -240,6 +242,8 @@ export default async function handler(req, res) {
             _row: i + 1,
             name: row[nameCol] || '',
             playa_name: row[playaCol] || '',
+            phone: phoneCol >= 0 ? (row[phoneCol] || '') : '',
+            telegram: tgCol >= 0 ? (row[tgCol] || '') : '',
             fee_total_sent: parseFloat(row[sentCol]) || 0,
             fee_received: ((row[recvCol] || '').toString().toUpperCase() === 'TRUE'),
             low_income_request: row[liReq] || '',
