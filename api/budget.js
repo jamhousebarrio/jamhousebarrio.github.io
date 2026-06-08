@@ -1,8 +1,120 @@
-import { getSheets, colToLetter } from './_lib/sheets.js';
+import { getSheets, colToLetter, ensureTab, getSheetId } from './_lib/sheets.js';
 import { verifyToken, getMemberByEmail, isAdmin as checkAdmin } from './_lib/auth.js';
 import { logError } from './_lib/error-log.js';
 
+const HISTORY_TAB = 'BudgetHistory';
+const HISTORY_HEADERS = ['Date', 'Category', 'Total', 'Spent', 'LineItems', 'EventBudget', 'FeesReceived', 'Headroom'];
+
+async function computeSnapshot(sheets) {
+  const budgetSheetId = process.env.BUDGET_SHEET_ID;
+  const membersSheetId = process.env.SHEET_ID;
+  const budgetRes = await sheets.spreadsheets.values.get({ spreadsheetId: budgetSheetId, range: 'Budget' });
+  const rows = budgetRes.data.values || [];
+  const headers = rows[0] || [];
+  const catCol = headers.indexOf('Category');
+  const qtyCol = headers.indexOf('Qty');
+  const priceCol = headers.indexOf('Price');
+  const paidCol = headers.indexOf('Paid');
+  const totals = {}, spent = {}, lineCounts = {};
+  for (let i = 1; i < rows.length; i++) {
+    const row = rows[i];
+    const cat = (row[catCol] || '').trim();
+    if (!cat) continue;
+    const t = (parseFloat(row[qtyCol]) || 0) * (parseFloat(row[priceCol]) || 0);
+    totals[cat] = (totals[cat] || 0) + t;
+    lineCounts[cat] = (lineCounts[cat] || 0) + 1;
+    if (((row[paidCol] || '') + '').toUpperCase() === 'TRUE') {
+      spent[cat] = (spent[cat] || 0) + t;
+    }
+  }
+  const feeRes = await sheets.spreadsheets.values.get({ spreadsheetId: budgetSheetId, range: "'Barrio Fee'" }).catch(() => ({ data: { values: [] } }));
+  const feeRows = feeRes.data.values || [];
+  let eventBudget = 0;
+  feeRows.slice(1).forEach(r => { eventBudget += parseFloat(r[2]) || 0; });
+  let feesReceived = 0;
+  try {
+    const memRes = await sheets.spreadsheets.values.get({ spreadsheetId: membersSheetId, range: 'Sheet1' });
+    const memRows = memRes.data.values || [];
+    if (memRows.length > 1) {
+      const mh = memRows[0];
+      const recvCol = mh.indexOf('fee_received');
+      const sentCol = mh.indexOf('fee_total_sent');
+      if (recvCol !== -1 && sentCol !== -1) {
+        for (let i = 1; i < memRows.length; i++) {
+          if (((memRows[i][recvCol] || '') + '').toUpperCase() !== 'TRUE') continue;
+          feesReceived += parseFloat(memRows[i][sentCol]) || 0;
+        }
+      }
+    }
+  } catch (e) { /* missing tab → 0 */ }
+  const totalBudgeted = Object.values(totals).reduce((a, b) => a + b, 0);
+  const headroom = eventBudget - totalBudgeted;
+  return { totals, spent, lineCounts, eventBudget, feesReceived, headroom };
+}
+
+async function writeSnapshot(sheets, snap) {
+  const spreadsheetId = process.env.BUDGET_SHEET_ID;
+  const today = new Date().toISOString().slice(0, 10);
+  await ensureTab(sheets, spreadsheetId, HISTORY_TAB);
+  const histRes = await sheets.spreadsheets.values.get({ spreadsheetId, range: HISTORY_TAB }).catch(() => ({ data: { values: [] } }));
+  let histRows = histRes.data.values || [];
+  if (!histRows.length) {
+    await sheets.spreadsheets.values.update({
+      spreadsheetId, range: HISTORY_TAB + '!A1', valueInputOption: 'RAW',
+      requestBody: { values: [HISTORY_HEADERS] }
+    });
+    histRows = [HISTORY_HEADERS];
+  }
+  const todayRowIdxs = [];
+  for (let i = 1; i < histRows.length; i++) {
+    if ((histRows[i][0] || '') === today) todayRowIdxs.push(i);
+  }
+  if (todayRowIdxs.length) {
+    const sheetId = await getSheetId(sheets, spreadsheetId, HISTORY_TAB);
+    if (sheetId !== null) {
+      await sheets.spreadsheets.batchUpdate({
+        spreadsheetId,
+        requestBody: {
+          requests: todayRowIdxs.slice().reverse().map(idx => ({
+            deleteDimension: { range: { sheetId, dimension: 'ROWS', startIndex: idx, endIndex: idx + 1 } }
+          }))
+        }
+      });
+    }
+  }
+  const cats = Object.keys(snap.totals);
+  if (!cats.length) return { written: 0, date: today };
+  const newRows = cats.map(c => [
+    today, c, snap.totals[c] || 0, snap.spent[c] || 0, snap.lineCounts[c] || 0,
+    snap.eventBudget, snap.feesReceived, snap.headroom
+  ]);
+  await sheets.spreadsheets.values.append({
+    spreadsheetId, range: HISTORY_TAB + '!A:A', valueInputOption: 'RAW',
+    requestBody: { values: newRows }
+  });
+  return { written: newRows.length, date: today };
+}
+
 export default async function handler(req, res) {
+  // ── Cron: nightly budget snapshot ─────────────────────────────────────
+  if (req.method === 'GET' && (req.query || {}).cron === 'snapshot') {
+    const expected = 'Bearer ' + (process.env.CRON_SECRET || '');
+    const got = req.headers.authorization || req.headers.Authorization || '';
+    if (!process.env.CRON_SECRET || got !== expected) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    try {
+      const sheets = getSheets(true);
+      const snap = await computeSnapshot(sheets);
+      const result = await writeSnapshot(sheets, snap);
+      return res.status(200).json({ ok: true, ...result });
+    } catch (e) {
+      console.error('Snapshot cron error:', e);
+      await logError(req, e, { action: 'snapshot-cron', status: 500 });
+      return res.status(500).json({ error: e.message || 'Snapshot failed' });
+    }
+  }
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -107,6 +219,25 @@ export default async function handler(req, res) {
       });
     }
 
+    // ── Fetch BudgetHistory snapshots (read-only) ────────────────────────
+    if (action === 'fetch-history') {
+      let histRows = [];
+      try {
+        const r = await sheets.spreadsheets.values.get({ spreadsheetId, range: HISTORY_TAB });
+        histRows = r.data.values || [];
+      } catch (e) { /* tab missing → empty */ }
+      if (!histRows.length) {
+        return res.status(200).json({ snapshots: [] });
+      }
+      const histHeaders = histRows[0];
+      const snapshots = histRows.slice(1).map(row => {
+        const o = {};
+        histHeaders.forEach((h, i) => { o[h] = row[i] || ''; });
+        return o;
+      });
+      return res.status(200).json({ snapshots });
+    }
+
     // ── Shopping request (open to approved members; not observers) ───────
     if (action === 'shopping-request') {
       if ((memberResult.member.Status || '').toLowerCase() === 'observer') {
@@ -153,6 +284,13 @@ export default async function handler(req, res) {
     // ── Write actions below require admin ─────────────────────────────────
     if (!isWrite) {
       return res.status(401).json({ error: 'Admin required' });
+    }
+
+    // Manual snapshot trigger (admin) — same effect as the nightly cron.
+    if (action === 'snapshot') {
+      const snap = await computeSnapshot(sheets);
+      const result = await writeSnapshot(sheets, snap);
+      return res.status(200).json({ ok: true, ...result });
     }
 
     // Read headers for add/update/delete

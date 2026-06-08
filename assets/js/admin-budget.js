@@ -28,6 +28,20 @@
   }
 
   function eur(n) { return '\u20AC' + (Number(n) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+  function eurRound(n) { return '\u20AC' + Math.round(Number(n) || 0).toLocaleString(); }
+
+  var past7 = null; // populated once snapshots are loaded
+  function applyDelta(elId, current, past, upIsGood) {
+    var el = document.getElementById(elId);
+    if (!el) return;
+    if (past == null) { el.textContent = ''; el.className = 'stat-delta flat'; return; }
+    var d = current - past;
+    if (Math.abs(d) < 0.5) { el.textContent = '\u2014 no change (7d)'; el.className = 'stat-delta flat'; return; }
+    var txt = (d > 0 ? '\u25B2 ' : '\u25BC ') + eurRound(Math.abs(d)) + ' (7d)';
+    var cls = 'stat-delta ' + (upIsGood ? (d > 0 ? 'up-good' : 'down-bad') : (d > 0 ? 'up' : 'down'));
+    el.className = cls;
+    el.textContent = txt;
+  }
 
   // Calculate stats
   function calcStats() {
@@ -48,25 +62,17 @@
     budgetedEl.textContent = eur(s.budgeted);
     budgetedEl.style.color = s.budgeted > s.eventBudget ? '#f44336' : '#4caf50';
     document.getElementById('stat-spent').textContent = eur(s.spent);
-    // Barrio Fees Received (from new Sheet1 tracking)
-    var feesRecvEl = document.getElementById('stat-fees-received');
-    if (feesRecvEl) {
-      JH.apiFetch('/api/members', { action: 'fee-fetch' }).then(function(res) {
-        if (!res.ok) return;
-        return res.json();
-      }).then(function(d) {
-        if (!d || !d.roster) return;
-        var total = 0;
-        d.roster.forEach(function(r) {
-          if (r.fee_received) total += parseFloat(r.fee_total_sent) || 0;
-        });
-        feesRecvEl.textContent = eur(total);
-      }).catch(function() {});
-    }
     var headroomEl = document.getElementById('stat-headroom');
     var headroom = s.eventBudget - s.budgeted;
     headroomEl.textContent = eur(headroom);
     headroomEl.style.color = headroom < 0 ? '#f44336' : '#ff9800';
+    if (past7) {
+      applyDelta('delta-event-budget', s.eventBudget, past7.eventBudget, true);
+      applyDelta('delta-budgeted', s.budgeted, past7.budgeted, false);
+      applyDelta('delta-spent', s.spent, past7.spent, false);
+      applyDelta('delta-headroom', headroom, past7.headroom, true);
+      applyDelta('delta-fees-received', past7.currentFees != null ? past7.currentFees : 0, past7.feesReceived, true);
+    }
   }
   updateStats();
 
@@ -138,6 +144,147 @@
     barChart.update();
     pieChart.data.datasets[0].data = categories.map(function(c) { return ct.budgeted[c]; });
     pieChart.update();
+  }
+
+  // ── 7-day deltas + per-category sparklines (from BudgetHistory) ──────
+  async function loadFeesReceived() {
+    try {
+      var r = await JH.apiFetch('/api/members', { action: 'fee-fetch' });
+      if (!r.ok) return 0;
+      var d = await r.json();
+      if (!d || !d.roster) return 0;
+      var total = 0;
+      d.roster.forEach(function(x) { if (x.fee_received) total += parseFloat(x.fee_total_sent) || 0; });
+      return total;
+    } catch (e) { return 0; }
+  }
+  function buildSparkline(points, color) {
+    if (!points.length) return '';
+    var max = Math.max.apply(null, points.concat([1]));
+    var min = Math.min.apply(null, points.concat([0]));
+    var range = max - min || 1;
+    var w = 100, h = 24, step = w / Math.max(1, points.length - 1);
+    var d = '';
+    points.forEach(function(v, i) {
+      var x = i * step;
+      var y = h - ((v - min) / range) * (h - 2) - 1;
+      d += (i === 0 ? 'M' : ' L') + x.toFixed(1) + ',' + y.toFixed(1);
+    });
+    return '<svg width="' + w + '" height="' + h + '" viewBox="0 0 ' + w + ' ' + h + '" preserveAspectRatio="none">' +
+      '<path d="' + d + '" fill="none" stroke="' + color + '" stroke-width="1.5" stroke-linejoin="round"/></svg>';
+  }
+  function pickClosest(dates, byDate, targetIso, toleranceDays) {
+    var best = null;
+    for (var i = 0; i < dates.length; i++) {
+      if (dates[i] <= targetIso) best = dates[i]; else break;
+    }
+    if (!best) return null;
+    var diff = (new Date(targetIso) - new Date(best)) / 86400000;
+    if (diff < 0 || diff > (toleranceDays || 2)) return null;
+    return best;
+  }
+  async function renderTrends() {
+    var fetchPair = await Promise.all([
+      JH.apiFetch('/api/budget', { action: 'fetch-history' }).then(function(r) { return r.ok ? r.json() : { snapshots: [] }; }).catch(function() { return { snapshots: [] }; }),
+      loadFeesReceived()
+    ]);
+    var snapshots = (fetchPair[0] && fetchPair[0].snapshots) || [];
+    var currentFees = fetchPair[1];
+    document.getElementById('stat-fees-received').textContent = eur(currentFees);
+    var byDate = {};
+    var datesSet = {};
+    snapshots.forEach(function(s) {
+      if (!s.Date || !s.Category) return;
+      datesSet[s.Date] = true;
+      if (!byDate[s.Date]) byDate[s.Date] = {};
+      byDate[s.Date][s.Category] = s;
+    });
+    var dates = Object.keys(datesSet).sort();
+    var today = new Date().toISOString().slice(0, 10);
+    var target7 = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
+    var past7Date = pickClosest(dates, byDate, target7, 9);
+    if (past7Date) {
+      var dayRow = byDate[past7Date];
+      var totBudgeted = 0, totSpent = 0;
+      Object.keys(dayRow).forEach(function(c) {
+        totBudgeted += parseFloat(dayRow[c].Total) || 0;
+        totSpent += parseFloat(dayRow[c].Spent) || 0;
+      });
+      var anyRow = dayRow[Object.keys(dayRow)[0]];
+      past7 = {
+        budgeted: totBudgeted,
+        spent: totSpent,
+        eventBudget: parseFloat(anyRow.EventBudget) || 0,
+        feesReceived: parseFloat(anyRow.FeesReceived) || 0,
+        headroom: parseFloat(anyRow.Headroom) || 0,
+        currentFees: currentFees
+      };
+    } else {
+      past7 = { currentFees: currentFees };
+    }
+    updateStats();
+    var body = document.getElementById('trends-body');
+    if (!snapshots.length) {
+      body.innerHTML = '<div class="trends-empty">No history yet. Once the nightly snapshot runs (or an admin clicks <strong>Snapshot now</strong>), 7&#8209;day deltas and sparklines will appear here.</div>';
+      return;
+    }
+    var ct = getCategoryTotals();
+    var rowsHtml = categories.map(function(c) {
+      var cur = ct.budgeted[c] || 0;
+      var past = null;
+      if (past7Date && byDate[past7Date][c]) past = parseFloat(byDate[past7Date][c].Total) || 0;
+      var delta = past != null ? cur - past : null;
+      var deltaCls = 'flat', deltaTxt = past == null ? 'n/a' : '—';
+      if (past != null && Math.abs(delta) >= 0.5) {
+        deltaTxt = (delta > 0 ? '▲ ' : '▼ ') + eurRound(Math.abs(delta));
+        if (delta < 0) deltaCls = 'green';
+        else {
+          var pct = cur > 0 ? Math.abs(delta) / cur : 0;
+          if (pct > 0.15) deltaCls = 'red';
+          else if (pct > 0.05) deltaCls = 'amber';
+          else deltaCls = 'flat';
+        }
+      }
+      var points = [];
+      for (var i = 7; i >= 0; i--) {
+        var t = new Date(Date.now() - i * 7 * 86400000).toISOString().slice(0, 10);
+        var d = pickClosest(dates, byDate, t, 9);
+        points.push(d && byDate[d][c] ? (parseFloat(byDate[d][c].Total) || 0) : 0);
+      }
+      // Append today's live value so the rightmost point reflects current state
+      points[points.length - 1] = cur;
+      var spark = buildSparkline(points, categoryColors[c]);
+      return '<tr>' +
+        '<td><span class="swatch" style="background:' + categoryColors[c] + ';"></span>' + esc(c) + '</td>' +
+        '<td>' + eur(cur) + '</td>' +
+        '<td class="delta ' + deltaCls + '">' + deltaTxt + '</td>' +
+        '<td class="spark">' + spark + '</td>' +
+      '</tr>';
+    }).join('');
+    body.innerHTML = '<table class="trends-table"><thead><tr><th>Category</th><th>Total</th><th>Δ 7d</th><th>Last 8 weeks</th></tr></thead><tbody>' + rowsHtml + '</tbody></table>';
+  }
+  renderTrends();
+
+  if (isAdmin) {
+    var snapBtn = document.getElementById('snapshotBtn');
+    if (snapBtn) {
+      snapBtn.style.display = '';
+      snapBtn.addEventListener('click', async function() {
+        snapBtn.disabled = true;
+        var orig = snapBtn.textContent;
+        snapBtn.textContent = 'Saving…';
+        try {
+          var r = await JH.apiFetch('/api/budget', { action: 'snapshot' });
+          if (!r.ok) throw new Error('snapshot failed');
+          await renderTrends();
+          snapBtn.textContent = 'Saved';
+          setTimeout(function() { snapBtn.textContent = orig; snapBtn.disabled = false; }, 1500);
+        } catch (e) {
+          snapBtn.textContent = 'Failed';
+          setTimeout(function() { snapBtn.textContent = orig; snapBtn.disabled = false; }, 1500);
+        }
+      });
+    }
   }
 
   // AG Grid

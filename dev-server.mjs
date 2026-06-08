@@ -20,7 +20,7 @@ const apiFiles = ['auth', 'budget', 'drinks', 'events', 'inventory', 'logistics'
 
 for (const name of apiFiles) {
   const mod = await import(`./api/${name}.js`);
-  app.post(`/api/${name}`, async (req, res) => {
+  app.all(`/api/${name}`, async (req, res) => {
     try {
       await mod.default(req, res);
     } catch (e) {

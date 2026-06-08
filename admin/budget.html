@@ -61,6 +61,23 @@ access: general
     .budget-detail-row .label { color: var(--text-muted); }
     .budget-detail-row .value { color: var(--text); font-weight: 500; text-align: right; max-width: 60%; word-break: break-word; }
     #mobile-add-btn { padding: 0.4rem 0.9rem; background: var(--accent); border: none; border-radius: 6px; color: var(--bg); font-family: var(--heading); font-size: 0.82rem; font-weight: 600; cursor: pointer; }
+    .stat-delta { font-size: 0.72rem; margin-top: 4px; color: var(--text-muted); font-family: var(--body); letter-spacing: 0; min-height: 1em; }
+    .stat-delta.up { color: #f06292; }
+    .stat-delta.down { color: #6dcf72; }
+    .stat-delta.flat { color: var(--text-muted); }
+    .stat-delta.up-good { color: #6dcf72; }
+    .stat-delta.down-bad { color: #f06292; }
+    .trends-table { width: 100%; border-collapse: collapse; }
+    .trends-table th, .trends-table td { padding: 8px 10px; border-bottom: 1px solid var(--border); text-align: left; font-size: 0.85rem; }
+    .trends-table th { color: var(--text-muted); font-weight: 600; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; }
+    .trends-table td .swatch { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 8px; vertical-align: middle; }
+    .trends-table td.delta { font-variant-numeric: tabular-nums; }
+    .trends-table td.delta.amber { color: #ff9800; }
+    .trends-table td.delta.red { color: #f44336; font-weight: 600; }
+    .trends-table td.delta.green { color: #6dcf72; }
+    .trends-table td.delta.flat { color: var(--text-muted); }
+    .trends-table .spark { line-height: 0; }
+    .trends-empty { padding: 12px 4px; color: var(--text-muted); font-size: 0.85rem; }
     @media (max-width: 600px) {
       #budget-grid { height: 400px; }
       .filter-row { flex-wrap: wrap; }
@@ -85,23 +102,35 @@ access: general
     <div class="stat-card">
       <div class="stat-label">Barrio Fees Received</div>
       <div class="stat-number" id="stat-fees-received" style="color:#6dcf72;">-</div>
+      <div class="stat-delta" id="delta-fees-received"></div>
     </div>
     <div class="stat-card">
       <div class="stat-label">Event Budget</div>
       <div class="stat-number" id="stat-event-budget">-</div>
+      <div class="stat-delta" id="delta-event-budget"></div>
     </div>
     <div class="stat-card">
       <div class="stat-label">Total Budgeted</div>
       <div class="stat-number" id="stat-budgeted">-</div>
+      <div class="stat-delta" id="delta-budgeted"></div>
     </div>
     <div class="stat-card">
       <div class="stat-label">Total Spent</div>
       <div class="stat-number" id="stat-spent" style="color:#4caf50;">-</div>
+      <div class="stat-delta" id="delta-spent"></div>
     </div>
     <div class="stat-card">
       <div class="stat-label">Budget Headroom</div>
       <div class="stat-number" id="stat-headroom" style="color:#ff9800;">-</div>
+      <div class="stat-delta" id="delta-headroom"></div>
     </div>
+  </div>
+  <div class="panel" id="trends-panel" style="margin-bottom:20px;">
+    <div class="panel-header">
+      <h2>Category trends &mdash; 7&#8209;day change</h2>
+      <button class="fullscreen-btn" id="snapshotBtn" title="Write today's snapshot now" style="display:none;">Snapshot now</button>
+    </div>
+    <div id="trends-body" style="font-size:0.85rem;color:var(--text-muted);">Loading&hellip;</div>
   </div>
   <div class="charts-2col" style="display:grid;grid-template-columns:2fr 3fr;gap:20px;margin-bottom:20px;">
     <div class="panel">

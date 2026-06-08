@@ -2,7 +2,8 @@
   "framework": "jekyll",
   "buildCommand": "node scripts/build-home-photos-manifest.mjs && bundle exec jekyll build",
   "crons": [
-    { "path": "/api/members?cron=chase", "schedule": "0 10 * * 6" }
+    { "path": "/api/members?cron=chase", "schedule": "0 10 * * 6" },
+    { "path": "/api/budget?cron=snapshot", "schedule": "0 3 * * *" }
   ],
   "rewrites": [
     { "source": "/admin", "destination": "/admin.html" },
