@@ -80,7 +80,8 @@ vercel.json                     # URL rewrites & framework config
 - `GOOGLE_SERVICE_ACCOUNT_KEY` — Google service account JSON (stringified)
 
 ## Key Patterns
-- **JH namespace**: `window.JH` holds shared auth/utility functions (`esc`, `formatDate`, `formatDateLong`, `to24h`, `getHeadcount`, `getAllDates`, `initDate`, `initTime`, `isMobile`, `checkLogisticsPrompt`, `apiFetch`, `currentUser`)
+- **JH namespace**: `window.JH` holds shared auth/utility functions (`esc`, `formatDate`, `formatDateLong`, `to24h`, `getHeadcount`, `getAllDates`, `approvedLogistics`, `initDate`, `initTime`, `isMobile`, `checkLogisticsPrompt`, `apiFetch`, `currentUser`)
+- **Headcount = approved members present**: presence-based headcounts (drinks/meals charts, meals NoOrg subtraction) must run on logistics rows pre-filtered through `JH.approvedLogistics(logistics, members)`, which keeps only rows whose `MemberName` matches an *approved* member (legal or playa name) and dedupes by name. Raw `MemberLogistics` includes observers, pending applicants, stale rows, and guests, so counting it directly over-reports (e.g. 31 present vs 29 approved). Pages fetch logistics then assign `state.logistics = JH.approvedLogistics(...)` so every downstream count is approved-only.
 - **Event date constants**: `JH.EVENT_START`, `JH.EVENT_END`, `JH.EVENT_WEEK_START`, `JH.EVENT_WEEK_END`
 - **Auth flow**: Supabase session-based. `JH.authenticate()` checks Supabase session, fetches member data, sets `JH.currentUser`. `JH.apiFetch(url, body)` sends JWT in `Authorization: Bearer` header.
 - **All API endpoints are POST** with `Authorization: Bearer <jwt>` header and JSON body containing `{ action?, ...payload }`

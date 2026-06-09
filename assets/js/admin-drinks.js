@@ -41,7 +41,7 @@
     if (!res.ok) { console.error('drinks fetch failed'); return; }
     var data = await res.json();
     state.items = data.items || [];
-    state.logistics = data.logistics || [];
+    state.logistics = JH.approvedLogistics(data.logistics || [], members);
   }
 
   // ── Headcount chart ──────────────────────────────────────────────────────

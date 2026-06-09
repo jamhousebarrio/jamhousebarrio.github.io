@@ -53,7 +53,7 @@ import { num, perPerson, scaledTotal, mealKcalPerPerson, targetFor, energyStatus
     var data = await res.json();
     state.meals = data.meals || [];
     state.ingredients = data.ingredients || [];
-    state.logistics = data.logistics || [];
+    state.logistics = JH.approvedLogistics(data.logistics || [], members);
     canEdit = !!data.canEdit;
   }
 
