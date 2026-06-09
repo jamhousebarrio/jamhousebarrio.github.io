@@ -12,7 +12,7 @@ Admin dashboard and public site for JamHouse, a live music barrio at the Elsewhe
 ## Project Structure
 ```
 index.md                        # Public homepage
-apply.html                      # Application form
+apply.html                      # Application form (public form hidden when closed; ?invite=<code> reveals it for one-off exceptions)
 admin.html                      # Login page
 admin/
   applications.html             # Application review & status management
