@@ -1,4 +1,4 @@
-import { buildWeightIndex, typePoints, memberPoints } from '/assets/js/shift-points-logic.js';
+import { buildWeightIndex, typePoints, rolePoints, memberPoints } from '/assets/js/shift-points-logic.js';
 
 (async function () {
   var members = await JH.authenticate();
@@ -846,9 +846,6 @@ import { buildWeightIndex, typePoints, memberPoints } from '/assets/js/shift-poi
     // Arrival day earns no points (travel/arrival, not setup work); strike's
     // departure day likewise. Show every logged day, but tag the boundary day so
     // the count here matches the points the leaderboard awards. See memberPoints.
-    var setupEarnDays = Math.max(0, setupDays.length - 1);
-    var strikeEarnDays = Math.max(0, strikeDays.length - 1);
-
     function dayList(days, noPtsIndex, noPtsLabel) {
       return days.map(function (d, i) {
         var tag = i === noPtsIndex ? ' <span class="muted">· ' + noPtsLabel + ' (no points)</span>' : '';
@@ -856,11 +853,28 @@ import { buildWeightIndex, typePoints, memberPoints } from '/assets/js/shift-poi
       }).join('<br>');
     }
 
+    // Authoritative point figures come from the same memberPoints() the leaderboard
+    // uses, so the popup math always agrees with the score (incl. NoOrg subtraction).
+    var eventShifts = memberShifts.filter(function (s) {
+      var dt = parseDate(s.Date);
+      return dt && dt >= MAIN_START && dt <= MAIN_END;
+    });
+    var eventHours = eventShifts.reduce(function (sum, s) { return sum + durationHours(s.StartTime, s.EndTime); }, 0);
+    var memberRoleNames = rolesForMember(member);
+    var pts = memberPoints({
+      arrivalDate: log ? log.ArrivalDate : '',
+      departureDate: log ? log.DepartureDate : '',
+      noOrgDates: log ? log.NoOrgDates : '',
+      eventShifts: eventShifts,
+      roleNames: memberRoleNames,
+      index: weightIndex,
+    });
+
     var body = '';
     body += section(
       'Build / setup days',
       setupDays.length ? dayList(setupDays, 0, 'arrival') : '<span class="muted">No setup days logged.</span>',
-      setupDays.length ? setupEarnDays + 'd' : ''
+      setupDays.length ? pts.buildDays + 'd × ' + weightIndex.buildPts + ' = ' + pts.buildPoints + ' pts' : ''
     );
 
     body += section(
@@ -869,11 +883,14 @@ import { buildWeightIndex, typePoints, memberPoints } from '/assets/js/shift-poi
       noorg.length ? noorg.length + 'd' : ''
     );
 
-    var eventShifts = memberShifts.filter(function (s) {
-      var dt = parseDate(s.Date);
-      return dt && dt >= MAIN_START && dt <= MAIN_END;
-    });
-    var eventHours = eventShifts.reduce(function (sum, s) { return sum + durationHours(s.StartTime, s.EndTime); }, 0);
+    var rolesBody = memberRoleNames.length
+      ? memberRoleNames.map(function (rn) {
+          return '<div class="vol-shift-row"><span>' + JH.esc(rn) + '</span>' +
+            '<span class="vol-shift-pts">' + rolePoints(weightIndex, rn) + ' pts</span></div>';
+        }).join('')
+      : '<span class="muted">No roles assigned.</span>';
+    body += section('Lead roles', rolesBody, memberRoleNames.length ? pts.rolePoints + ' pts' : '');
+
     var eventBody = eventShifts.length
       ? eventShifts.map(function (s) {
           var t = slotLabel(s.StartTime, s.EndTime) || '—';
@@ -887,15 +904,16 @@ import { buildWeightIndex, typePoints, memberPoints } from '/assets/js/shift-poi
     body += section(
       'Event shifts',
       eventBody,
-      eventShifts.reduce(function (sum, s) { return sum + typePoints(weightIndex, s.Name); }, 0) +
-        ' pts' + (eventHours ? ' · ' + fmtHours(eventHours) : '')
+      pts.eventPoints + ' pts' + (eventHours ? ' · ' + fmtHours(eventHours) : '')
     );
 
     body += section(
       'Strike days',
       strikeDays.length ? dayList(strikeDays, strikeDays.length - 1, 'departure') : '<span class="muted">No strike days logged.</span>',
-      strikeDays.length ? strikeEarnDays + 'd' : ''
+      strikeDays.length ? pts.strikeDays + 'd × ' + weightIndex.strikePts + ' = ' + pts.strikePoints + ' pts' : ''
     );
+
+    body += '<div class="vol-section vol-total"><h4>Total <span style="color:var(--accent)">' + pts.points + ' pts</span></h4></div>';
 
     document.getElementById('vol-modal-body').innerHTML = body;
     volModal.classList.add('active');
