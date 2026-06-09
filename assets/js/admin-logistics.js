@@ -546,16 +546,20 @@ import { parseISO, ganttRange, enumerateDays, barCells, isEventDay, eeColorKey }
         };
       });
 
-    var combined = rides.concat(placeholders);
-    if (!combined.length) {
+    // Placeholders hidden by default — toggle via the chip below the list.
+    var showPlaceholders = false;
+    try { showPlaceholders = localStorage.getItem('jh.rideshare.showPlaceholders') === '1'; } catch (e) {}
+    var visible = showPlaceholders ? rides.concat(placeholders) : rides.slice();
+    if (!visible.length && !placeholders.length) {
       wrap.innerHTML = '<div class="empty-state">No drivers yet. Anyone whose transport is <strong>vehicle</strong> on the logistics form above will show up here automatically — or click <strong>+ Offer a ride</strong>.</div>';
       return;
     }
-    combined.sort(function (a, b) {
+    visible.sort(function (a, b) {
       // Posted rides first, placeholders (Transport=vehicle, no ride yet) last.
       if (!!a._placeholder !== !!b._placeholder) return a._placeholder ? 1 : -1;
       return (a.DateTo || '').localeCompare(b.DateTo || '') || ((a.CreatedAt || '').localeCompare(b.CreatedAt || ''));
     });
+    var combined = visible;
 
     function logisticsFor(name) {
       return (state.logistics || []).find(function (r) { return r.MemberName === name; }) || null;
@@ -619,8 +623,8 @@ import { parseISO, ganttRange, enumerateDays, barCells, isEventDay, eeColorKey }
       var legs = legHtml(ride, 'to', isPlaceholder, iAmDriver, seatsTotal) +
                  legHtml(ride, 'from', isPlaceholder, iAmDriver, seatsTotal);
       var cardStyle = isPlaceholder
-        ? 'border:1px dashed var(--border);border-radius:8px;padding:12px 14px;margin-bottom:10px;background:transparent;opacity:0.85;'
-        : 'border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:10px;background:var(--surface);';
+        ? 'border:1px dashed var(--border);border-radius:8px;padding:8px 12px;margin-bottom:8px;background:transparent;opacity:0.85;font-size:0.85rem;'
+        : 'border:1px solid var(--border);border-radius:8px;padding:8px 12px;margin-bottom:8px;background:var(--surface);font-size:0.88rem;';
       return '<div class="ride-card" style="' + cardStyle + '">' +
         '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;margin-bottom:6px;">' +
           '<div style="flex:1;min-width:200px;">' +
@@ -632,7 +636,21 @@ import { parseISO, ganttRange, enumerateDays, barCells, isEventDay, eeColorKey }
         legs +
       '</div>';
     }).join('');
-    wrap.innerHTML = html;
+    var toggleHtml = '';
+    if (placeholders.length) {
+      toggleHtml = '<div id="rideshare-placeholder-toggle" style="padding:8px 0;font-size:0.78rem;color:var(--text-muted);cursor:pointer;user-select:none;">' +
+        (showPlaceholders ? '▾' : '▸') + ' ' + placeholders.length + ' member' + (placeholders.length === 1 ? '' : 's') +
+        ' marked transport=vehicle but no ride posted — click to ' + (showPlaceholders ? 'hide' : 'show') +
+        '</div>';
+    }
+    wrap.innerHTML = html + toggleHtml;
+    var togBtn = wrap.querySelector('#rideshare-placeholder-toggle');
+    if (togBtn) {
+      togBtn.addEventListener('click', function () {
+        try { localStorage.setItem('jh.rideshare.showPlaceholders', showPlaceholders ? '0' : '1'); } catch (e) {}
+        renderRides();
+      });
+    }
 
     wrap.querySelectorAll('.btn-ride-claim').forEach(function (b) {
       b.addEventListener('click', function () { rideAction('ride-claim', { rideId: b.dataset.ride, direction: b.dataset.dir }); });
