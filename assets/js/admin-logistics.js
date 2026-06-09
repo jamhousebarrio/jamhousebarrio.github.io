@@ -638,10 +638,13 @@ import { parseISO, ganttRange, enumerateDays, barCells, isEventDay, eeColorKey }
     }).join('');
     var toggleHtml = '';
     if (placeholders.length) {
-      toggleHtml = '<div id="rideshare-placeholder-toggle" style="padding:8px 0;font-size:0.78rem;color:var(--text-muted);cursor:pointer;user-select:none;">' +
-        (showPlaceholders ? '▾' : '▸') + ' ' + placeholders.length + ' member' + (placeholders.length === 1 ? '' : 's') +
-        ' marked transport=vehicle but no ride posted — click to ' + (showPlaceholders ? 'hide' : 'show') +
-        '</div>';
+      var label = (showPlaceholders ? '▾ Hide' : '▸ Show') + ' ' + placeholders.length +
+        ' driver' + (placeholders.length === 1 ? '' : 's') + ' without a posted ride';
+      var btnStyle = 'width:100%;margin-top:10px;padding:10px 14px;background:rgba(232,168,76,0.1);' +
+        'border:1px dashed var(--accent);border-radius:8px;color:var(--accent);' +
+        'font-family:var(--heading);font-weight:600;font-size:0.85rem;cursor:pointer;text-align:left;user-select:none;' +
+        'transition:background 0.15s;';
+      toggleHtml = '<button type="button" id="rideshare-placeholder-toggle" style="' + btnStyle + '" onmouseover="this.style.background=\'rgba(232,168,76,0.18)\'" onmouseout="this.style.background=\'rgba(232,168,76,0.1)\'">' + label + '</button>';
     }
     wrap.innerHTML = html + toggleHtml;
     var togBtn = wrap.querySelector('#rideshare-placeholder-toggle');
