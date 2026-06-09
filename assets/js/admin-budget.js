@@ -437,6 +437,16 @@
     { field: 'Comment', sortable: true, filter: true, editable: isAdmin, flex: 1, minWidth: 200,
       cellEditor: 'agLargeTextCellEditor', cellEditorPopup: true, cellEditorParams: { maxLength: 500 },
       tooltipField: 'Comment' },
+    { headerName: 'Updated', field: 'UpdatedBy', sortable: true, filter: true, editable: false, width: 140, suppressSizeToFit: true,
+      cellRenderer: function(params) {
+        var who = (params.value || '').trim();
+        var when = (params.data.UpdatedAt || '').trim();
+        if (!who && !when) return '';
+        var pretty = when ? when.slice(0, 10).split('-').reverse().join('/') : '';
+        var tip = when ? when.replace('T', ' ').slice(0, 16) + (who ? ' · ' + who : '') : who;
+        return '<span title="' + tip.replace(/"/g, '&quot;') + '" style="color:var(--text-muted);font-size:0.78rem;">' + (who || '?') + (pretty ? '<br><span style="font-size:0.7rem;">' + pretty + '</span>' : '') + '</span>';
+      }
+    },
   ];
   if (isAdmin) {
     columnDefs.push({ headerName: '', cellRenderer: DeleteBtnRenderer, width: 40, maxWidth: 40, sortable: false, filter: false, resizable: false, suppressMenu: true, suppressHeaderMenuButton: true, suppressColumnsToolPanel: true, suppressFiltersToolPanel: true, headerClass: 'no-menu' });

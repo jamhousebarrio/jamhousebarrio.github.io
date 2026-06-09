@@ -298,10 +298,36 @@ export default async function handler(req, res) {
       spreadsheetId,
       range: 'Budget!1:1',
     });
-    const headers = (headersRes.data.values || [[]])[0] || [];
+    let headers = (headersRes.data.values || [[]])[0] || [];
     if (headers.length === 0) {
       return res.status(500).json({ error: "Budget sheet has no headers" });
     }
+    // Ensure audit columns exist; add them at the end of the header row if missing.
+    const auditCols = ['UpdatedAt', 'UpdatedBy'].filter(h => headers.indexOf(h) === -1);
+    if (auditCols.length) {
+      const startCol = headers.length;
+      headers = headers.concat(auditCols);
+      await sheets.spreadsheets.values.update({
+        spreadsheetId,
+        range: 'Budget!' + colToLetter(startCol) + '1',
+        valueInputOption: 'RAW',
+        requestBody: { values: [auditCols] },
+      });
+    }
+    const updatedBy = ((memberResult.member['Playa Name'] || memberResult.member.Name) || '').trim();
+    const updatedAt = new Date().toISOString();
+    const stampAudit = async (row) => {
+      await sheets.spreadsheets.values.batchUpdate({
+        spreadsheetId,
+        requestBody: {
+          valueInputOption: 'RAW',
+          data: [
+            { range: 'Budget!' + colToLetter(headers.indexOf('UpdatedAt')) + row, values: [[updatedAt]] },
+            { range: 'Budget!' + colToLetter(headers.indexOf('UpdatedBy')) + row, values: [[updatedBy]] },
+          ],
+        },
+      });
+    };
 
     if (action === 'add') {
       const { data } = payload;
@@ -343,6 +369,7 @@ export default async function handler(req, res) {
           requestBody: { values: [[paidVal]] },
         });
       }
+      await stampAudit(addedRow);
       return res.status(200).json({ success: true, row: addedRow });
     }
 
@@ -370,6 +397,7 @@ export default async function handler(req, res) {
         spreadsheetId,
         requestBody: { valueInputOption: 'USER_ENTERED', data: updates },
       });
+      await stampAudit(row);
       return res.status(200).json({ success: true });
     }
 
@@ -548,6 +576,7 @@ export default async function handler(req, res) {
               requestBody: { values: [[false]] },
             });
           }
+          await stampAudit(addedRow);
         }
       }
       return res.status(200).json({ success: true, budgetRow: createdBudgetRow });
