@@ -12,6 +12,7 @@ export const MAIN_START = parseDate('2026-07-07');
 export const MAIN_END = parseDate('2026-07-12');
 export const DEFAULT_TYPE_POINTS = 1;   // a shift type with no configured weight
 export const DEFAULT_DAY_POINTS = 10;   // build/strike day with no configured value
+export const DEFAULT_ROLE_POINTS = 10;  // a Roles-tab role with no configured weight
 
 const DAY_MS = 86400000;
 
@@ -38,6 +39,7 @@ export function durationHours(start, end) {
 // same (case-folded) Name follow last-write-wins.
 export function buildWeightIndex(weightRows) {
   const types = {};
+  const roles = {};
   let buildPts = DEFAULT_DAY_POINTS;
   let strikePts = DEFAULT_DAY_POINTS;
   (weightRows || []).forEach(function (w) {
@@ -45,10 +47,11 @@ export function buildWeightIndex(weightRows) {
     const pts = parseInt(w.Points, 10);
     if (isNaN(pts)) return;
     if (kind === 'type') types[(w.Name || '').toString().toLowerCase().trim()] = pts;
+    else if (kind === 'role') roles[(w.Name || '').toString().toLowerCase().trim()] = pts;
     else if (kind === 'build') buildPts = pts;
     else if (kind === 'strike') strikePts = pts;
   });
-  return { types: types, buildPts: buildPts, strikePts: strikePts };
+  return { types: types, roles: roles, buildPts: buildPts, strikePts: strikePts };
 }
 
 export function typePoints(index, typeName) {
@@ -57,6 +60,16 @@ export function typePoints(index, typeName) {
     return index.types[key];
   }
   return DEFAULT_TYPE_POINTS;
+}
+
+// Points for one role assignment. Configured weight wins; an unconfigured role
+// defaults to DEFAULT_ROLE_POINTS (10) — note this differs from typePoints (1).
+export function rolePoints(index, roleName) {
+  const key = (roleName || '').toString().toLowerCase().trim();
+  if (index && index.roles && Object.prototype.hasOwnProperty.call(index.roles, key)) {
+    return index.roles[key];
+  }
+  return DEFAULT_ROLE_POINTS;
 }
 
 // Count NoOrg dates that fall within [from, to] inclusive (a per-member build or
