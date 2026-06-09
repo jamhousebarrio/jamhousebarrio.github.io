@@ -432,6 +432,31 @@ JH.getHeadcount = function(logistics, dateStr) {
   }).length;
 };
 
+// Restrict raw MemberLogistics rows to ones that belong to an *approved* member,
+// so presence-based headcounts (drinks/meals charts, meals NoOrg subtraction)
+// count the barrio roster — not observers, pending applicants, stale rows, or
+// non-member guests who happen to have a logistics row. A row matches if its
+// MemberName equals an approved member's legal or playa name (case/space
+// insensitive). Deduped by matched name so a duplicate row can't re-inflate the
+// count. Pass the same `members` array JH.authenticate() returned.
+JH.approvedLogistics = function(logistics, members) {
+  var approved = {};
+  (members || []).forEach(function (m) {
+    if ((JH.val(m, 'Status') || '').toLowerCase().trim() !== 'approved') return;
+    var legal = (JH.val(m, 'Name') || '').toLowerCase().trim();
+    var playa = (JH.val(m, 'Playa Name') || '').toLowerCase().trim();
+    if (legal) approved[legal] = true;
+    if (playa) approved[playa] = true;
+  });
+  var seen = {};
+  return (logistics || []).filter(function (row) {
+    var name = (row.MemberName || '').toLowerCase().trim();
+    if (!name || !approved[name] || seen[name]) return false;
+    seen[name] = true;
+    return true;
+  });
+};
+
 JH.getAllDates = function(logistics) {
   var dateSet = {};
   logistics.forEach(function (l) {
