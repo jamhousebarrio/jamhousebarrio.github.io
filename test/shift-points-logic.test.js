@@ -1,8 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  MAIN_START, MAIN_END, DEFAULT_TYPE_POINTS, DEFAULT_DAY_POINTS,
-  daysInclusive, durationHours, buildWeightIndex, typePoints,
+  MAIN_START, MAIN_END, DEFAULT_TYPE_POINTS, DEFAULT_DAY_POINTS, DEFAULT_ROLE_POINTS,
+  daysInclusive, durationHours, buildWeightIndex, typePoints, rolePoints,
   noOrgDaysInWindow, memberPoints,
 } from '../assets/js/shift-points-logic.js';
 
@@ -44,6 +44,30 @@ test('buildWeightIndex: reads build/strike rows, ignores bad Points', () => {
   assert.equal(idx.buildPts, 12);
   assert.equal(idx.strikePts, 8);
   assert.equal(typePoints(idx, 'Shit Ninja'), DEFAULT_TYPE_POINTS); // bad row -> default
+});
+
+test('DEFAULT_ROLE_POINTS is 10', () => {
+  assert.equal(DEFAULT_ROLE_POINTS, 10);
+});
+
+test('buildWeightIndex: reads role rows into index.roles', () => {
+  const idx = buildWeightIndex([
+    { Kind: 'role', Name: 'Barrio Lead', Points: '15' },
+    { Kind: 'role', Name: 'Decor', Points: '0' },
+  ]);
+  assert.equal(idx.roles['barrio lead'], 15);
+  assert.equal(idx.roles['decor'], 0);
+});
+
+test('rolePoints: configured wins, unset defaults to 10, case-insensitive', () => {
+  const idx = buildWeightIndex([
+    { Kind: 'role', Name: 'Barrio Lead', Points: '15' },
+    { Kind: 'role', Name: 'Decor', Points: '0' },
+  ]);
+  assert.equal(rolePoints(idx, 'barrio lead'), 15);
+  assert.equal(rolePoints(idx, 'BARRIO LEAD'), 15);
+  assert.equal(rolePoints(idx, 'Consent Lead'), DEFAULT_ROLE_POINTS); // unset -> 10
+  assert.equal(rolePoints(idx, 'Decor'), 0); // explicit 0 is honored, NOT the default
 });
 
 test('typePoints: configured wins, unset falls back to 1, case-insensitive', () => {
