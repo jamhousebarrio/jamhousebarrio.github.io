@@ -29,6 +29,11 @@
 
   function eur(n) { return '\u20AC' + (Number(n) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
   function eurRound(n) { return '\u20AC' + Math.round(Number(n) || 0).toLocaleString(); }
+  function normalizeUrl(v) {
+    var s = (v || '').trim();
+    if (!s) return '';
+    return /^(https?:)?\/\//i.test(s) ? s : 'https://' + s.replace(/^\/+/, '');
+  }
 
   var past7 = null; // populated once snapshots are loaded
   function applyDelta(elId, current, past, upIsGood) {
@@ -431,7 +436,8 @@
       cellRenderer: function(params) {
         var v = (params.value || '').trim();
         if (!v) return isAdmin ? '<span style="color:#555;cursor:pointer;">+ link</span>' : '';
-        return '<a href="' + v.replace(/"/g, '&quot;') + '" target="_blank" title="' + v.replace(/"/g, '&quot;') + '" style="color:#e8a84c;text-decoration:none;">Link</a>';
+        var safe = normalizeUrl(v).replace(/"/g, '&quot;');
+        return '<a href="' + safe + '" target="_blank" rel="noopener" title="' + safe + '" style="color:#e8a84c;text-decoration:none;">Link</a>';
       }
     },
     { field: 'Comment', sortable: true, filter: true, editable: isAdmin, flex: 1, minWidth: 200,
@@ -628,7 +634,7 @@
       '<div class="budget-detail-row"><span class="label">Paid</span><span class="value"><input data-field="Paid" type="checkbox"' + (paid ? ' checked' : '') + (editable ? '' : ' disabled') + ' style="accent-color:var(--accent);width:18px;height:18px;"></span></div>' +
       '<div class="budget-detail-row"><span class="label">Discuss</span><span class="value"><input data-field="Discuss" type="checkbox"' + (discuss ? ' checked' : '') + (editable ? '' : ' disabled') + ' style="accent-color:#ff9800;width:18px;height:18px;"></span></div>' +
       '<div class="budget-detail-row"><span class="label">Paid by</span><span class="value">' + (editable ? '<input data-field="Paid by" value="' + esc(d['Paid by'] || '') + '" style="' + w + '">' : esc(d['Paid by'] || '')) + '</span></div>' +
-      '<div class="budget-detail-row"><span class="label">Link</span><span class="value">' + (editable ? '<input data-field="Link" value="' + esc(d.Link || '') + '" style="' + w + '">' : (d.Link ? '<a href="' + esc(d.Link) + '" target="_blank" style="color:var(--accent);text-decoration:none;">Link ↗</a>' : '')) + '</span></div>' +
+      '<div class="budget-detail-row"><span class="label">Link</span><span class="value">' + (editable ? '<input data-field="Link" value="' + esc(d.Link || '') + '" style="' + w + '">' : (d.Link ? '<a href="' + esc(normalizeUrl(d.Link)) + '" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none;">Link ↗</a>' : '')) + '</span></div>' +
       '<div class="budget-detail-row"><span class="label">Comment</span><span class="value">' + (editable ? '<textarea data-field="Comment" style="' + w + 'min-height:50px;resize:vertical;">' + esc(d.Comment || '') + '</textarea>' : esc(d.Comment || '')) + '</span></div>' +
       (editable ? '<div style="margin-top:12px;display:flex;gap:8px;"><button id="budget-detail-save" style="' + btnStyle + '">' + (isNew ? 'Add Item' : 'Save') + '</button><span id="budget-detail-msg" style="font-size:0.8rem;color:#888;align-self:center;"></span></div>' : '');
   }
@@ -748,7 +754,7 @@
     }
     wrap.innerHTML = shoppingRequests.map(function(r) {
       var statusClass = 'status-' + (r.Status || 'pending').toLowerCase();
-      var linkHtml = r.Link ? '<a href="' + esc(r.Link) + '" target="_blank" rel="noopener" class="req-link" style="color:var(--accent);font-size:0.8rem;">View ↗</a>' : '';
+      var linkHtml = r.Link ? '<a href="' + esc(normalizeUrl(r.Link)) + '" target="_blank" rel="noopener" class="req-link" style="color:var(--accent);font-size:0.8rem;">View ↗</a>' : '';
       var deleteBtn = isAdmin ? '<button class="req-delete-btn" data-id="' + esc(r.RequestID) + '" title="Delete request" style="background:none;border:none;color:#f44336;font-size:1.1rem;cursor:pointer;padding:4px 8px;line-height:1;">&times;</button>' : '';
       return '<div class="request-row" data-id="' + esc(r.RequestID) + '" style="cursor:pointer;">' +
         '<div>' +
@@ -820,7 +826,7 @@
       body += '<div><span style="' + lbl + '">Submitted by</span><div>' + esc(r.SubmittedBy || '') + '</div></div>';
       if (r.Description) body += '<div><span style="' + lbl + '">Why</span><div>' + esc(r.Description) + '</div></div>';
       if (r.Price) body += '<div><span style="' + lbl + '">Price estimate</span><div>&euro;' + esc(r.Price) + '</div></div>';
-      if (r.Link) body += '<div><span style="' + lbl + '">Link</span><div><a href="' + esc(r.Link) + '" target="_blank" rel="noopener" style="color:var(--accent);word-break:break-all">' + esc(r.Link) + '</a></div></div>';
+      if (r.Link) body += '<div><span style="' + lbl + '">Link</span><div><a href="' + esc(normalizeUrl(r.Link)) + '" target="_blank" rel="noopener" style="color:var(--accent);word-break:break-all">' + esc(r.Link) + '</a></div></div>';
       body += '<div><span style="' + lbl + '">Status</span><div><span class="request-status status-' + status.toLowerCase() + '">' + esc(status) + '</span></div></div>';
     }
     document.getElementById('req-detail-body').innerHTML = body;
