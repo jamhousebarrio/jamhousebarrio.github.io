@@ -546,20 +546,31 @@ import { parseISO, ganttRange, enumerateDays, barCells, isEventDay, eeColorKey }
         };
       });
 
-    // Placeholders hidden by default — toggle via the chip below the list.
+    // Pull "my" placeholder out so it ALWAYS shows at the top regardless of
+    // the toggle — the current user shouldn't have to hunt for "Set up your ride".
+    var myPlaceholder = null;
+    var otherPlaceholders = [];
+    placeholders.forEach(function (p) {
+      if (me && p.DriverName === me) { p._mine = true; myPlaceholder = p; }
+      else otherPlaceholders.push(p);
+    });
     var showPlaceholders = false;
     try { showPlaceholders = localStorage.getItem('jh.rideshare.showPlaceholders') === '1'; } catch (e) {}
-    var visible = showPlaceholders ? rides.concat(placeholders) : rides.slice();
-    if (!visible.length && !placeholders.length) {
+    var visible = rides.slice();
+    if (myPlaceholder) visible.unshift(myPlaceholder);
+    if (showPlaceholders) visible = visible.concat(otherPlaceholders);
+    if (!visible.length && !otherPlaceholders.length) {
       wrap.innerHTML = '<div class="empty-state">No drivers yet. Anyone whose transport is <strong>vehicle</strong> on the logistics form above will show up here automatically — or click <strong>+ Offer a ride</strong>.</div>';
       return;
     }
     visible.sort(function (a, b) {
-      // Posted rides first, placeholders (Transport=vehicle, no ride yet) last.
+      // My placeholder pinned at top, then posted rides by date, then other placeholders.
+      if (!!a._mine !== !!b._mine) return a._mine ? -1 : 1;
       if (!!a._placeholder !== !!b._placeholder) return a._placeholder ? 1 : -1;
       return (a.DateTo || '').localeCompare(b.DateTo || '') || ((a.CreatedAt || '').localeCompare(b.CreatedAt || ''));
     });
     var combined = visible;
+    var placeholders_other = otherPlaceholders; // alias used by toggle
 
     function logisticsFor(name) {
       return (state.logistics || []).find(function (r) { return r.MemberName === name; }) || null;
@@ -622,12 +633,21 @@ import { parseISO, ganttRange, enumerateDays, barCells, isEventDay, eeColorKey }
       var notesLine = ride.Notes ? '<div style="font-size:0.8rem;color:var(--text-muted);margin-top:6px;">' + JH.esc(ride.Notes) + '</div>' : '';
       var legs = legHtml(ride, 'to', isPlaceholder, iAmDriver, seatsTotal) +
                  legHtml(ride, 'from', isPlaceholder, iAmDriver, seatsTotal);
-      var cardStyle = isPlaceholder
-        ? 'border:1px dashed var(--border);border-radius:8px;padding:8px 12px;margin-bottom:8px;background:transparent;opacity:0.85;font-size:0.85rem;'
-        : 'border:1px solid var(--border);border-radius:8px;padding:8px 12px;margin-bottom:8px;background:var(--surface);font-size:0.88rem;';
+      var cardStyle;
+      if (isPlaceholder && ride._mine) {
+        cardStyle = 'border:2px solid var(--accent);border-radius:8px;padding:10px 12px;margin-bottom:10px;background:rgba(232,168,76,0.08);font-size:0.88rem;';
+      } else if (isPlaceholder) {
+        cardStyle = 'border:1px dashed var(--border);border-radius:8px;padding:8px 12px;margin-bottom:8px;background:transparent;opacity:0.85;font-size:0.85rem;';
+      } else {
+        cardStyle = 'border:1px solid var(--border);border-radius:8px;padding:8px 12px;margin-bottom:8px;background:var(--surface);font-size:0.88rem;';
+      }
+      var mineBanner = (isPlaceholder && ride._mine)
+        ? '<div style="font-size:0.78rem;color:var(--accent);font-weight:600;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:2px;">👋 You\'re driving — set up your ride</div>'
+        : '';
       return '<div class="ride-card" style="' + cardStyle + '">' +
         '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;margin-bottom:6px;">' +
           '<div style="flex:1;min-width:200px;">' +
+            mineBanner +
             '<div style="font-weight:600;color:var(--text);">' + JH.esc(ride.DriverName) + '</div>' +
             notesLine +
           '</div>' +
@@ -637,9 +657,9 @@ import { parseISO, ganttRange, enumerateDays, barCells, isEventDay, eeColorKey }
       '</div>';
     }).join('');
     var toggleHtml = '';
-    if (placeholders.length) {
-      var label = (showPlaceholders ? '▾ Hide' : '▸ Show') + ' ' + placeholders.length +
-        ' driver' + (placeholders.length === 1 ? '' : 's') + ' without a posted ride';
+    if (placeholders_other.length) {
+      var label = (showPlaceholders ? '▾ Hide' : '▸ Show') + ' ' + placeholders_other.length +
+        ' other driver' + (placeholders_other.length === 1 ? '' : 's') + ' without a posted ride';
       var btnStyle = 'width:100%;margin-top:10px;padding:10px 14px;background:rgba(232,168,76,0.1);' +
         'border:1px dashed var(--accent);border-radius:8px;color:var(--accent);' +
         'font-family:var(--heading);font-weight:600;font-size:0.85rem;cursor:pointer;text-align:left;user-select:none;' +

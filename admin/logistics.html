@@ -24,6 +24,16 @@ access: general
     }
     /* Widen the NoOrg column (10th col) so multi-day lists don't crush */
     .logistics-table th:nth-child(10), .logistics-table td:nth-child(10) { min-width: 140px; }
+    /* Mobile compactness for the Rideshare panel — tighter padding, smaller help block */
+    @media (max-width: 600px) {
+      #rideshare-panel { padding: 12px !important; }
+      #rideshare-panel .panel-header h2 { font-size: 1rem; }
+      #rideshare-panel p { margin-bottom: 6px !important; font-size: 0.78rem !important; }
+      #rideshare-panel ul { font-size: 0.78rem; line-height: 1.45 !important; }
+      #rideshare-panel ul li { margin-bottom: 4px; }
+      .ride-card { font-size: 0.82rem !important; padding: 7px 10px !important; margin-bottom: 6px !important; }
+      .ride-leg { padding: 6px 0 3px !important; }
+    }
     @media (max-width: 480px) {
       .logistics-table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
     }
