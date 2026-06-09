@@ -437,22 +437,30 @@ JH.getHeadcount = function(logistics, dateStr) {
 // count the barrio roster — not observers, pending applicants, stale rows, or
 // non-member guests who happen to have a logistics row. A row matches if its
 // MemberName equals an approved member's legal or playa name (case/space
-// insensitive). Deduped by matched name so a duplicate row can't re-inflate the
-// count. Pass the same `members` array JH.authenticate() returned.
+// insensitive).
+//
+// Deduped by *member identity*, NOT by the row's name string: members commonly
+// have two logistics rows — one entered under their legal name, one under their
+// playa name — and both names map to the same person, so a name-keyed dedup
+// would keep both and over-count (e.g. "David Burgess" + "Engineer Dave" = 2).
+// We map both of a member's names to one stable key (legal, else playa) and keep
+// the first row seen per key. Pass the `members` array JH.authenticate() returned.
 JH.approvedLogistics = function(logistics, members) {
-  var approved = {};
+  var nameToKey = {};
   (members || []).forEach(function (m) {
     if ((JH.val(m, 'Status') || '').toLowerCase().trim() !== 'approved') return;
     var legal = (JH.val(m, 'Name') || '').toLowerCase().trim();
     var playa = (JH.val(m, 'Playa Name') || '').toLowerCase().trim();
-    if (legal) approved[legal] = true;
-    if (playa) approved[playa] = true;
+    var key = legal || playa;
+    if (!key) return;
+    if (legal) nameToKey[legal] = key;
+    if (playa) nameToKey[playa] = key;
   });
   var seen = {};
   return (logistics || []).filter(function (row) {
-    var name = (row.MemberName || '').toLowerCase().trim();
-    if (!name || !approved[name] || seen[name]) return false;
-    seen[name] = true;
+    var key = nameToKey[(row.MemberName || '').toLowerCase().trim()];
+    if (!key || seen[key]) return false;
+    seen[key] = true;
     return true;
   });
 };
