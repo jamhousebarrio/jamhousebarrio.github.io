@@ -489,6 +489,13 @@ import { parseISO, ganttRange, enumerateDays, barCells, isEventDay, eeColorKey }
     renderGantt();
     await loadRides();
     renderRides();
+    // Re-honour any URL hash after async content has settled — browser's
+    // initial anchor jump happens before our panels finish populating, so
+    // the target ends up scrolled past. Re-scroll once everything is laid out.
+    if (location.hash && location.hash.length > 1) {
+      var target = document.querySelector(location.hash);
+      if (target) setTimeout(function () { target.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 80);
+    }
   }
 
   // ── Rideshare panel ───────────────────────────────────────────────────────
