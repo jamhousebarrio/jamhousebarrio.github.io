@@ -300,9 +300,9 @@
         }
       }
       var points = [];
-      for (var i = 7; i >= 0; i--) {
-        var t = new Date(Date.now() - i * 7 * 86400000).toISOString().slice(0, 10);
-        var d = pickClosest(dates, byDate, t, 9);
+      for (var i = 13; i >= 0; i--) {
+        var t = new Date(Date.now() - i * 86400000).toISOString().slice(0, 10);
+        var d = pickClosest(dates, byDate, t, 1);
         points.push(d && byDate[d][c] ? (parseFloat(byDate[d][c].Total) || 0) : 0);
       }
       // Append today's live value so the rightmost point reflects current state
@@ -315,7 +315,7 @@
         '<td class="spark">' + spark + '</td>' +
       '</tr>';
     }).join('');
-    body.innerHTML = '<table class="trends-table"><thead><tr><th>Category</th><th>Total</th><th>Δ 7d</th><th>Last 8 weeks</th></tr></thead><tbody>' + rowsHtml + '</tbody></table>';
+    body.innerHTML = '<table class="trends-table"><thead><tr><th>Category</th><th>Total</th><th>Δ 7d</th><th>Last 14 days</th></tr></thead><tbody>' + rowsHtml + '</tbody></table>';
   }
   renderTrends();
 
