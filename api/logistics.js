@@ -163,10 +163,30 @@ export default async function handler(req, res) {
       // Build row matching existing header order
       const newRow = existingHeaders.map(h => fieldMap[h] !== undefined ? fieldMap[h] : '');
 
+      // Match this member's existing row even if it was saved under their OTHER
+      // name (legal vs playa). Without this, a member who later adds/changes a
+      // playa name and saves again appends a SECOND row (orphan) instead of
+      // updating — the bug that produced the David Burgess/Engineer Dave dupes.
+      // The found row's MemberName is rewritten to the current `memberName`.
+      const variants = new Set([target.toLowerCase()]);
+      if (target === myName || target === myPlaya) {
+        if (myName) variants.add(myName.toLowerCase());
+        if (myPlaya) variants.add(myPlaya.toLowerCase());
+      } else if (auth.admin) {
+        // Admin editing someone else: look up that member's alternate name.
+        const mrows = await safeGet(sheets, id, 'Sheet1');
+        const tnorm = target.toLowerCase();
+        for (const m of toObjects(mrows)) {
+          const ml = (m.Name || '').trim().toLowerCase();
+          const mp = (m['Playa Name'] || '').trim().toLowerCase();
+          if (ml === tnorm || mp === tnorm) { if (ml) variants.add(ml); if (mp) variants.add(mp); break; }
+        }
+      }
+
       const nameCol = existingHeaders.indexOf('MemberName');
       let foundRowIndex = -1;
       for (let i = 1; i < existing.length; i++) {
-        if ((existing[i][nameCol] || '') === memberName) {
+        if (variants.has((existing[i][nameCol] || '').trim().toLowerCase())) {
           foundRowIndex = i + 1;
           break;
         }
