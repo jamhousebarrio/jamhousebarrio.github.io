@@ -208,11 +208,13 @@ title: Apply - JamHouse 2026
   <div class="form-container">
     <div class="form-header">
       <h1>JamHouse</h1>
-      <h2>Applications Closed</h2>
+      <h2 id="applyHeading">Applications Closed</h2>
     </div>
 
-    <!-- Applications closed for 2026 — form hidden below, intact for re-enabling next year -->
-    <div class="message" style="background: var(--surface, #141414); border: 1px solid var(--border, #2a2a2a); color: var(--text, #e0e0e0); font-size: 1.05rem; line-height: 1.7;">
+    <!-- Applications closed for 2026 — form hidden below, intact for re-enabling next year.
+         A private invite link (?invite=<code>) reveals the form for one-off exceptions;
+         see the INVITE bypass in the script below. -->
+    <div id="closedNotice" class="message" style="background: var(--surface, #141414); border: 1px solid var(--border, #2a2a2a); color: var(--text, #e0e0e0); font-size: 1.05rem; line-height: 1.7;">
       We have already reached our capacity for this year. Swing by our camp for a jam and a hangout. See you in less than a month!
     </div>
 
@@ -500,6 +502,24 @@ title: Apply - JamHouse 2026
 
   <script>
     const form = document.getElementById('applyForm');
+
+    // ── Private "exception" bypass ──────────────────────────────────────────
+    // Applications are closed to the public (the form above is hidden). A direct
+    // link carrying the invite code — e.g. /apply?invite=jamhouse-2026 — reveals
+    // the real form for one invited person. Submissions still land as "Pending"
+    // and are approved manually, so this is NOT a security boundary (the code is
+    // visible in page source); it only keeps the public page closed for normal
+    // visitors. The real gate is that you only approve the people you mean to.
+    // Rotate the code below whenever you want old links to stop working.
+    const INVITE_CODE = 'jamhouse-2026';
+    if (new URLSearchParams(location.search).get('invite') === INVITE_CODE) {
+      form.style.display = '';
+      const closed = document.getElementById('closedNotice');
+      if (closed) closed.style.display = 'none';
+      const heading = document.getElementById('applyHeading');
+      if (heading) heading.textContent = 'Application';
+    }
+
     // Conditional fields
     form.hasCar.addEventListener('change', function() {
       document.getElementById('movingCarGroup').style.display = this.value === 'Yes' ? '' : 'none';
