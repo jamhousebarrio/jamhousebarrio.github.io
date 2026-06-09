@@ -83,15 +83,22 @@ export function memberPoints(args) {
   const lastSetup = new Date(MAIN_START.getTime() - DAY_MS);
   const firstStrike = new Date(MAIN_END.getTime() + DAY_MS);
 
+  // The arrival day is travel/arrival, not setup work, so it earns no build
+  // points: counting starts the day AFTER arrival. Symmetrically, the departure
+  // day earns no strike points: counting ends the day BEFORE departure. Someone
+  // who arrives the day before the event (or leaves the day after) therefore
+  // contributes 0 build/strike days — they were only ever in transit.
   let buildDays = 0;
   let strikeDays = 0;
   if (arr && arr < MAIN_START) {
-    const gross = daysInclusive(arr, lastSetup);
-    buildDays = Math.max(0, gross - noOrgDaysInWindow(args.noOrgDates, arr, lastSetup));
+    const firstBuild = new Date(arr.getTime() + DAY_MS);
+    const gross = daysInclusive(firstBuild, lastSetup);
+    buildDays = Math.max(0, gross - noOrgDaysInWindow(args.noOrgDates, firstBuild, lastSetup));
   }
   if (dep && dep > MAIN_END) {
-    const gross = daysInclusive(firstStrike, dep);
-    strikeDays = Math.max(0, gross - noOrgDaysInWindow(args.noOrgDates, firstStrike, dep));
+    const lastStrike = new Date(dep.getTime() - DAY_MS);
+    const gross = daysInclusive(firstStrike, lastStrike);
+    strikeDays = Math.max(0, gross - noOrgDaysInWindow(args.noOrgDates, firstStrike, lastStrike));
   }
 
   const buildPoints = buildDays * index.buildPts;

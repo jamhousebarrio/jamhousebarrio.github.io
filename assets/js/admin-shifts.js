@@ -799,11 +799,24 @@ import { buildWeightIndex, typePoints, memberPoints } from '/assets/js/shift-poi
       return html;
     }
 
+    // Arrival day earns no points (travel/arrival, not setup work); strike's
+    // departure day likewise. Show every logged day, but tag the boundary day so
+    // the count here matches the points the leaderboard awards. See memberPoints.
+    var setupEarnDays = Math.max(0, setupDays.length - 1);
+    var strikeEarnDays = Math.max(0, strikeDays.length - 1);
+
+    function dayList(days, noPtsIndex, noPtsLabel) {
+      return days.map(function (d, i) {
+        var tag = i === noPtsIndex ? ' <span class="muted">· ' + noPtsLabel + ' (no points)</span>' : '';
+        return JH.esc(fmtDay(d)) + tag;
+      }).join('<br>');
+    }
+
     var body = '';
     body += section(
       'Build / setup days',
-      setupDays.length ? setupDays.map(function (d) { return JH.esc(fmtDay(d)); }).join('<br>') : '<span class="muted">No setup days logged.</span>',
-      setupDays.length ? setupDays.length + 'd' : ''
+      setupDays.length ? dayList(setupDays, 0, 'arrival') : '<span class="muted">No setup days logged.</span>',
+      setupDays.length ? setupEarnDays + 'd' : ''
     );
 
     body += section(
@@ -836,8 +849,8 @@ import { buildWeightIndex, typePoints, memberPoints } from '/assets/js/shift-poi
 
     body += section(
       'Strike days',
-      strikeDays.length ? strikeDays.map(function (d) { return JH.esc(fmtDay(d)); }).join('<br>') : '<span class="muted">No strike days logged.</span>',
-      strikeDays.length ? strikeDays.length + 'd' : ''
+      strikeDays.length ? dayList(strikeDays, strikeDays.length - 1, 'departure') : '<span class="muted">No strike days logged.</span>',
+      strikeDays.length ? strikeEarnDays + 'd' : ''
     );
 
     document.getElementById('vol-modal-body').innerHTML = body;

@@ -64,27 +64,62 @@ test('noOrgDaysInWindow: counts only dates inside [from,to] inclusive', () => {
 });
 
 test('memberPoints: build days minus NoOrg, times buildPts', () => {
-  // Arrives 4 Jul -> build window [4 Jul, 6 Jul] = 3 days; 1 NoOrg day in window.
+  // Arrives 4 Jul -> arrival day earns nothing; point-earning window [5 Jul, 6 Jul]
+  // = 2 days; 1 NoOrg day (5 Jul) in window.
   const idx = buildWeightIndex([{ Kind: 'build', Name: '', Points: '10' }]);
   const r = memberPoints({
     arrivalDate: '2026-07-04', departureDate: '2026-07-12',
     noOrgDates: '2026-07-05', eventShifts: [], index: idx,
   });
-  assert.equal(r.buildDays, 2);          // 3 present - 1 NoOrg
-  assert.equal(r.buildPoints, 20);       // 2 * 10
+  assert.equal(r.buildDays, 1);          // [5,6] = 2 days - 1 NoOrg
+  assert.equal(r.buildPoints, 10);       // 1 * 10
   assert.equal(r.strikePoints, 0);
-  assert.equal(r.points, 20);
+  assert.equal(r.points, 10);
+});
+
+test('memberPoints: arrival day earns no build points', () => {
+  // Arrive 4 Jul: day 4 is travel/arrival (0 pts), days 5 & 6 earn points.
+  const idx = buildWeightIndex([{ Kind: 'build', Name: '', Points: '10' }]);
+  const r = memberPoints({
+    arrivalDate: '2026-07-04', departureDate: '2026-07-12',
+    noOrgDates: '', eventShifts: [], index: idx,
+  });
+  assert.equal(r.buildDays, 2);          // [5,6], 4 Jul excluded
+  assert.equal(r.buildPoints, 20);
+});
+
+test('memberPoints: arriving the day before the event earns 0 build days', () => {
+  // Arrive 6 Jul (last possible setup day): arrival-only, no point-earning days.
+  const idx = buildWeightIndex([{ Kind: 'build', Name: '', Points: '10' }]);
+  const r = memberPoints({
+    arrivalDate: '2026-07-06', departureDate: '2026-07-12',
+    noOrgDates: '', eventShifts: [], index: idx,
+  });
+  assert.equal(r.buildDays, 0);
+  assert.equal(r.buildPoints, 0);
 });
 
 test('memberPoints: strike days open-ended after event', () => {
+  // Departs 14 Jul -> departure day earns nothing; point-earning window [13,13] = 1 day.
   const idx = buildWeightIndex([{ Kind: 'strike', Name: '', Points: '10' }]);
   const r = memberPoints({
-    arrivalDate: '2026-07-07', departureDate: '2026-07-14', // strike [13,14] = 2 days
+    arrivalDate: '2026-07-07', departureDate: '2026-07-14',
     noOrgDates: '', eventShifts: [], index: idx,
   });
-  assert.equal(r.strikeDays, 2);
-  assert.equal(r.strikePoints, 20);
+  assert.equal(r.strikeDays, 1);         // [13,13], 14 Jul excluded
+  assert.equal(r.strikePoints, 10);
   assert.equal(r.buildDays, 0);
+});
+
+test('memberPoints: departing the day after the event earns 0 strike days', () => {
+  // Depart 13 Jul (first possible strike day): departure-only, no point-earning days.
+  const idx = buildWeightIndex([{ Kind: 'strike', Name: '', Points: '10' }]);
+  const r = memberPoints({
+    arrivalDate: '2026-07-07', departureDate: '2026-07-13',
+    noOrgDates: '', eventShifts: [], index: idx,
+  });
+  assert.equal(r.strikeDays, 0);
+  assert.equal(r.strikePoints, 0);
 });
 
 test('memberPoints: event shifts sum type points and hours', () => {
@@ -107,9 +142,10 @@ test('memberPoints: event shifts sum type points and hours', () => {
 });
 
 test('memberPoints: NoOrg cannot push net days negative', () => {
+  // Arrive 5 Jul -> point-earning window [6,6] = 1 day; 3 NoOrg entries on 6 Jul.
   const idx = buildWeightIndex([{ Kind: 'build', Name: '', Points: '10' }]);
   const r = memberPoints({
-    arrivalDate: '2026-07-06', departureDate: '2026-07-12', // build [6,6] = 1 day
+    arrivalDate: '2026-07-05', departureDate: '2026-07-12',
     noOrgDates: '2026-07-06,2026-07-06,2026-07-06', index: idx, eventShifts: [],
   });
   assert.equal(r.buildDays, 0);     // max(0, 1 - 3)
