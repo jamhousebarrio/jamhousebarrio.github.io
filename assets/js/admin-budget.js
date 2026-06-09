@@ -437,15 +437,20 @@
     { field: 'Comment', sortable: true, filter: true, editable: isAdmin, flex: 1, minWidth: 200,
       cellEditor: 'agLargeTextCellEditor', cellEditorPopup: true, cellEditorParams: { maxLength: 500 },
       tooltipField: 'Comment' },
-    { headerName: 'Updated', field: 'UpdatedBy', sortable: true, filter: true, editable: false, width: 140, suppressSizeToFit: true,
-      cellRenderer: function(params) {
-        var who = (params.value || '').trim();
-        var when = (params.data.UpdatedAt || '').trim();
-        if (!who && !when) return '';
+    { headerName: 'Updated', field: 'UpdatedBy', sortable: true, filter: true, editable: false, width: 170, suppressSizeToFit: true,
+      valueGetter: function(p) {
+        var who = (p.data.UpdatedBy || '').trim();
+        var when = (p.data.UpdatedAt || '').trim();
         var pretty = when ? when.slice(0, 10).split('-').reverse().join('/') : '';
-        var tip = when ? when.replace('T', ' ').slice(0, 16) + (who ? ' · ' + who : '') : who;
-        return '<span title="' + tip.replace(/"/g, '&quot;') + '" style="color:var(--text-muted);font-size:0.78rem;">' + (who || '?') + (pretty ? '<br><span style="font-size:0.7rem;">' + pretty + '</span>' : '') + '</span>';
-      }
+        if (who && pretty) return pretty + ' · ' + who;
+        return who || pretty || '';
+      },
+      tooltipValueGetter: function(p) {
+        var when = (p.data.UpdatedAt || '').trim();
+        if (!when) return p.data.UpdatedBy || '';
+        return when.replace('T', ' ').slice(0, 16) + (p.data.UpdatedBy ? ' · ' + p.data.UpdatedBy : '');
+      },
+      cellStyle: { color: 'var(--text-muted)', fontSize: '0.8rem' }
     },
   ];
   if (isAdmin) {
