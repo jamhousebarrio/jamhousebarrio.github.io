@@ -165,6 +165,36 @@ test('memberPoints: event shifts sum type points and hours', () => {
   assert.equal(r.points, 8);
 });
 
+test('memberPoints: sums role points into total', () => {
+  const idx = buildWeightIndex([
+    { Kind: 'role', Name: 'Barrio Lead', Points: '10' },
+    { Kind: 'role', Name: 'Build lead', Points: '10' },
+  ]);
+  const r = memberPoints({
+    arrivalDate: '', departureDate: '', noOrgDates: '',
+    eventShifts: [], roleNames: ['Barrio Lead', 'Build lead'], index: idx,
+  });
+  assert.equal(r.rolePoints, 20);
+  assert.equal(r.points, 20);
+});
+
+test('memberPoints: unconfigured role defaults to 10', () => {
+  const idx = buildWeightIndex([]);
+  const r = memberPoints({
+    arrivalDate: '', departureDate: '', noOrgDates: '',
+    eventShifts: [], roleNames: ['Consent Lead'], index: idx,
+  });
+  assert.equal(r.rolePoints, 10);
+});
+
+test('memberPoints: no roles -> 0 role points', () => {
+  const idx = buildWeightIndex([]);
+  const r = memberPoints({
+    arrivalDate: '', departureDate: '', noOrgDates: '', eventShifts: [], index: idx,
+  });
+  assert.equal(r.rolePoints, 0);
+});
+
 test('memberPoints: NoOrg cannot push net days negative', () => {
   // Arrive 5 Jul -> point-earning window [6,6] = 1 day; 3 NoOrg entries on 6 Jul.
   const idx = buildWeightIndex([{ Kind: 'build', Name: '', Points: '10' }]);

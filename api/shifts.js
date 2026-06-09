@@ -79,7 +79,7 @@ export default async function handler(req, res) {
       // `types`, and writes buildPts/strikePts as given (omitted -> 0, not "leave
       // unchanged"). Require `types` to be an array so a malformed payload can't
       // silently wipe every weight and report success.
-      const { types, buildPts, strikePts } = payload;
+      const { types, roles, buildPts, strikePts } = payload;
       if (!Array.isArray(types)) return res.status(400).json({ error: 'types array required' });
 
       await ensureTab(sheets, spreadsheetId, WEIGHTS_TAB);
@@ -122,6 +122,37 @@ export default async function handler(req, res) {
           spreadsheetId, range: WEIGHTS_TAB, valueInputOption: 'RAW',
           requestBody: { values: typeRows },
         });
+      }
+
+      // 2b. If `roles` provided, full-replace Kind=role rows (same delete-then-
+      //     append pattern as types). Guarded on Array so callers that omit roles
+      //     (e.g. cleanupWeightsAfterDelete) leave role rows untouched rather than
+      //     wiping them. Re-read fresh so indices reflect the type delete/append.
+      if (Array.isArray(roles)) {
+        const rRows = await safeGet(sheets, spreadsheetId, WEIGHTS_TAB);
+        const rKindCol = rRows[0].indexOf('Kind');
+        const roleRowIdxs = [];
+        for (let i = 1; i < rRows.length; i++) {
+          if ((rRows[i][rKindCol] || '').toLowerCase() === 'role') roleRowIdxs.push(i);
+        }
+        roleRowIdxs.sort((a, b) => b - a);
+        if (roleRowIdxs.length && sheetId !== null) {
+          await sheets.spreadsheets.batchUpdate({
+            spreadsheetId,
+            requestBody: { requests: roleRowIdxs.map(idx => ({
+              deleteDimension: { range: { sheetId, dimension: 'ROWS', startIndex: idx, endIndex: idx + 1 } },
+            })) },
+          });
+        }
+        const roleRows = roles
+          .filter(t => t && t.name)
+          .map(t => ['role', String(t.name), String(parseInt(t.points, 10) || 0)]);
+        if (roleRows.length) {
+          await sheets.spreadsheets.values.append({
+            spreadsheetId, range: WEIGHTS_TAB, valueInputOption: 'RAW',
+            requestBody: { values: roleRows },
+          });
+        }
       }
 
       // 3. Upsert the two day-value singletons by Kind.

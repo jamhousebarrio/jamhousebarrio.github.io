@@ -14,6 +14,7 @@ import { buildWeightIndex, typePoints, memberPoints } from '/assets/js/shift-poi
   var shifts = [];
   var logistics = [];
   var weights = [];
+  var roles = [];
   var weightIndex = buildWeightIndex([]);
   var EVENT_DATES = ['2026-07-07', '2026-07-08', '2026-07-09', '2026-07-10', '2026-07-11', '2026-07-12'];
   var MAIN_START = parseDate('2026-07-07');
@@ -39,6 +40,13 @@ import { buildWeightIndex, typePoints, memberPoints } from '/assets/js/shift-poi
     var data = await r.json();
     weights = data.weights || [];
     weightIndex = buildWeightIndex(weights);
+  }
+
+  async function fetchRoles() {
+    var r = await JH.apiFetch('/api/roles', {});
+    if (!r.ok) { roles = []; return; }
+    var data = await r.json();
+    roles = data.roles || [];
   }
 
   // After a type's shifts are all deleted, drop its weight row so it doesn't
@@ -359,6 +367,21 @@ import { buildWeightIndex, typePoints, memberPoints } from '/assets/js/shift-poi
           '<input type="number" min="0" step="1" class="pts-type-input" data-name="' + JH.esc(t.name) + '" value="' + val + '"></div>';
       }).join('');
     }
+    var rolesList = document.getElementById('pts-roles-list');
+    var roleNames = roles.map(function (r) { return r.Name; }).filter(Boolean);
+    if (!roleNames.length) {
+      rolesList.innerHTML = '<div style="color:var(--text-muted);font-style:italic;padding:8px 0">No roles defined yet.</div>';
+    } else {
+      rolesList.innerHTML = roleNames.map(function (name) {
+        var key = name.toLowerCase().trim();
+        var hasWeight = Object.prototype.hasOwnProperty.call(weightIndex.roles, key);
+        var val = hasWeight ? weightIndex.roles[key] : 10;
+        return '<div class="pts-type-row">' +
+          '<label>' + JH.esc(name) + (hasWeight ? '' : ' <span style="opacity:0.6;font-style:italic">(default)</span>') + '</label>' +
+          '<input type="number" min="0" step="1" class="pts-role-input" data-name="' + JH.esc(name) + '" value="' + val + '"></div>';
+      }).join('');
+    }
+
     document.getElementById('points-msg').textContent = '';
     pointsModal.classList.add('active');
   }
@@ -374,9 +397,13 @@ import { buildWeightIndex, typePoints, memberPoints } from '/assets/js/shift-poi
     document.querySelectorAll('.pts-type-input').forEach(function (inp) {
       types.push({ name: inp.dataset.name, points: parseInt(inp.value, 10) || 0 });
     });
+    var rolesPayload = [];
+    document.querySelectorAll('.pts-role-input').forEach(function (inp) {
+      rolesPayload.push({ name: inp.dataset.name, points: parseInt(inp.value, 10) || 0 });
+    });
     var buildPts = parseInt(document.getElementById('pts-build').value, 10) || 0;
     var strikePts = parseInt(document.getElementById('pts-strike').value, 10) || 0;
-    var r = await JH.apiFetch('/api/shifts', { action: 'set-weights', types: types, buildPts: buildPts, strikePts: strikePts });
+    var r = await JH.apiFetch('/api/shifts', { action: 'set-weights', types: types, roles: rolesPayload, buildPts: buildPts, strikePts: strikePts });
     if (!r.ok) {
       var err = 'Failed.';
       try { var j = await r.json(); if (j && j.error) err = j.error; } catch (e) {}
@@ -658,6 +685,18 @@ import { buildWeightIndex, typePoints, memberPoints } from '/assets/js/shift-poi
 
   function norm(s) { return (s || '').toString().toLowerCase().trim(); }
 
+  // Role names assigned to this member — matches the member's playa OR legal name
+  // against each role's comma-separated AssignedTo. Mirrors the server-side rule in
+  // api/_lib/roles.js isAssignedToRole.
+  function rolesForMember(member) {
+    var playa = norm(JH.val(member, 'Playa Name'));
+    var legal = norm(JH.val(member, 'Name'));
+    return roles.filter(function (role) {
+      var assigned = (role.AssignedTo || '').split(',').map(norm).filter(Boolean);
+      return (playa && assigned.indexOf(playa) !== -1) || (legal && assigned.indexOf(legal) !== -1);
+    }).map(function (role) { return role.Name; });
+  }
+
   function computeContributions() {
     // Scoring delegates to the pure shift-points-logic module: points (admin-set
     // per type, plus per-day build/strike values) are the ranking currency;
@@ -673,22 +712,26 @@ import { buildWeightIndex, typePoints, memberPoints } from '/assets/js/shift-poi
         return dt && dt >= MAIN_START && dt <= MAIN_END;
       });
 
+      var memberRoles = rolesForMember(m);
       var r = memberPoints({
         arrivalDate: log ? log.ArrivalDate : '',
         departureDate: log ? log.DepartureDate : '',
         noOrgDates: log ? log.NoOrgDates : '',
         eventShifts: eventShifts,
+        roleNames: memberRoles,
         index: weightIndex,
       });
 
       return {
         name: name,
+        roles: memberRoles,
         setupDays: r.buildDays,
         strikeDays: r.strikeDays,
         eventHours: r.eventHours,
         eventPoints: r.eventPoints,
         buildPoints: r.buildPoints,
         strikePoints: r.strikePoints,
+        rolePoints: r.rolePoints,
         score: r.points,
       };
     }).filter(Boolean);
@@ -705,6 +748,7 @@ import { buildWeightIndex, typePoints, memberPoints } from '/assets/js/shift-poi
     if (entry.setupDays) stats.push('<strong>' + entry.setupDays + 'd</strong> build');
     if (entry.strikeDays) stats.push('<strong>' + entry.strikeDays + 'd</strong> strike');
     if (entry.eventPoints) stats.push('<strong>' + entry.eventPoints + '</strong> event pts');
+    if (entry.rolePoints) stats.push('<strong>' + entry.rolePoints + '</strong> role pts');
     if (entry.eventHours) stats.push('<span style="opacity:0.7">' + fmtHours(entry.eventHours) + '</span>');
     if (!stats.length) stats.push('<em style="opacity:0.6">no contribution logged</em>');
     return '<div class="lb-row vol-open-btn' + rankClass + '" data-name="' + JH.esc(entry.name) + '" title="Click for breakdown">' +
@@ -976,7 +1020,7 @@ import { buildWeightIndex, typePoints, memberPoints } from '/assets/js/shift-poi
   });
 
   async function reload() {
-    await Promise.all([fetchShifts(), fetchLogistics(), fetchWeights()]);
+    await Promise.all([fetchShifts(), fetchLogistics(), fetchWeights(), fetchRoles()]);
     renderStats();
     renderGrid();
     renderLeaderboard();

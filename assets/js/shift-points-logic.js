@@ -91,7 +91,7 @@ export function noOrgDaysInWindow(noOrgDates, from, to) {
 export function memberPoints(args) {
   const arr = parseDate(args.arrivalDate);
   const dep = parseDate(args.departureDate);
-  const index = args.index || { types: {}, buildPts: DEFAULT_DAY_POINTS, strikePts: DEFAULT_DAY_POINTS };
+  const index = args.index || { types: {}, roles: {}, buildPts: DEFAULT_DAY_POINTS, strikePts: DEFAULT_DAY_POINTS };
 
   const lastSetup = new Date(MAIN_START.getTime() - DAY_MS);
   const firstStrike = new Date(MAIN_END.getTime() + DAY_MS);
@@ -124,6 +124,11 @@ export function memberPoints(args) {
     eventHours += durationHours(s.StartTime, s.EndTime);
   });
 
+  let rolePts = 0;
+  (args.roleNames || []).forEach(function (rn) {
+    rolePts += rolePoints(index, rn);
+  });
+
   return {
     buildDays: buildDays,
     strikeDays: strikeDays,
@@ -131,6 +136,7 @@ export function memberPoints(args) {
     strikePoints: strikePoints,
     eventPoints: eventPoints,
     eventHours: eventHours,
-    points: buildPoints + strikePoints + eventPoints,
+    rolePoints: rolePts,
+    points: buildPoints + strikePoints + eventPoints + rolePts,
   };
 }
