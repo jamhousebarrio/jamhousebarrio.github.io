@@ -91,26 +91,56 @@ import { GATE, parseDate, isEarlyArrival, hasSetupNoOrg, barrioCap } from '/asse
         return ta - tb;
       });
 
+    var tableWrap = document.getElementById('ee-table-wrap');
+    var cardsWrap = document.getElementById('ee-cards');
+
     if (!early.length) {
-      document.getElementById('ee-table-wrap').innerHTML = '<div class="empty-state">No early arrivals yet.</div>';
+      tableWrap.innerHTML = '<div class="empty-state">No early arrivals yet.</div>';
+      cardsWrap.innerHTML = '<div class="empty-state">No early arrivals yet.</div>';
       return;
+    }
+
+    // Shared cell fragments so the table and mobile cards render the SAME
+    // controls (classes + data-name) — wireRow binds both trees identically.
+    function arrivesCell(r) {
+      return r.arrival ? JH.esc(JH.formatDate(r.arrival)) : '<span class="muted">—</span>';
+    }
+    function setupCell(r) {
+      return r.setupNoOrg ? '<span class="ee-badge">✓ setup</span>' : '<span class="muted">—</span>';
+    }
+    function sourceCell(r) {
+      return sourceSelect(r) + (r.source ? '' : '<span class="ee-warn-tag">⚠</span>');
+    }
+    function notesCell(r) {
+      return '<input class="ee-notes" data-name="' + JH.esc(r.name) + '" value="' + JH.esc(r.notes) + '" placeholder="optional">';
     }
 
     var html = '<table class="ee-table"><thead><tr>';
     html += '<th>Name</th><th>Arrives</th><th>NoOrg setup</th><th>EE source</th><th>Notes</th>';
     html += '</tr></thead><tbody>';
+    var cardsHtml = '';
     early.forEach(function (r) {
       var cls = r.source ? '' : ' class="uncovered"';
       html += '<tr' + cls + ' data-name="' + JH.esc(r.name) + '">';
       html += '<td><strong>' + JH.esc(r.name) + '</strong></td>';
-      html += '<td>' + (r.arrival ? JH.esc(JH.formatDate(r.arrival)) : '<span class="muted">—</span>') + '</td>';
-      html += '<td>' + (r.setupNoOrg ? '<span class="ee-badge">✓ setup</span>' : '<span class="muted">—</span>') + '</td>';
-      html += '<td>' + sourceSelect(r) + (r.source ? '' : '<span class="ee-warn-tag">⚠</span>') + '</td>';
-      html += '<td><input class="ee-notes" data-name="' + JH.esc(r.name) + '" value="' + JH.esc(r.notes) + '" placeholder="optional"></td>';
+      html += '<td>' + arrivesCell(r) + '</td>';
+      html += '<td>' + setupCell(r) + '</td>';
+      html += '<td>' + sourceCell(r) + '</td>';
+      html += '<td>' + notesCell(r) + '</td>';
       html += '</tr>';
+
+      // Mobile dual-render: same data, same controls, card layout.
+      cardsHtml += '<div class="m-card' + (r.source ? '' : ' uncovered') + '" data-name="' + JH.esc(r.name) + '">';
+      cardsHtml += '<div class="m-card-title">' + JH.esc(r.name) + '</div>';
+      cardsHtml += '<div class="m-card-row"><span class="m-card-label">Arrives</span><span class="m-card-val">' + arrivesCell(r) + '</span></div>';
+      cardsHtml += '<div class="m-card-row"><span class="m-card-label">NoOrg setup</span><span class="m-card-val">' + setupCell(r) + '</span></div>';
+      cardsHtml += '<div class="m-card-row"><span class="m-card-label">EE source</span><span class="m-card-val">' + sourceCell(r) + '</span></div>';
+      cardsHtml += '<div class="m-card-row"><span class="m-card-label">Notes</span><span class="m-card-val">' + notesCell(r) + '</span></div>';
+      cardsHtml += '</div>';
     });
     html += '</tbody></table>';
-    document.getElementById('ee-table-wrap').innerHTML = html;
+    tableWrap.innerHTML = html;
+    cardsWrap.innerHTML = cardsHtml;
 
     wireRow(pool);
   }
@@ -123,11 +153,13 @@ import { GATE, parseDate, isEarlyArrival, hasSetupNoOrg, barrioCap } from '/asse
       '<p class="muted">' + unknown.map(function (r) { return JH.esc(r.name); }).join(', ') + '</p>';
   }
 
-  function notesValueFor(name) {
-    var input = document.querySelector('.ee-notes[data-name="' + cssEscape(name) + '"]');
-    return input ? input.value : '';
+  // Find the sibling control in the SAME tree (table row or mobile card) —
+  // a document-wide lookup would always hit the desktop table's copy first,
+  // reading stale values when the user is editing the mobile cards.
+  function siblingControl(el, selector) {
+    var scope = el.closest('tr, .m-card');
+    return scope ? scope.querySelector(selector) : null;
   }
-  function cssEscape(s) { return (s || '').replace(/\\/g, '\\\\').replace(/"/g, '\\"'); }
 
   async function save(name, source, notes) {
     var r = await JH.apiFetch('/api/logistics', {
@@ -157,7 +189,8 @@ import { GATE, parseDate, isEarlyArrival, hasSetupNoOrg, barrioCap } from '/asse
             return;
           }
         }
-        if (await save(name, source, notesValueFor(name))) await reload();
+        var notesInp = siblingControl(sel, '.ee-notes');
+        if (await save(name, source, notesInp ? notesInp.value : '')) await reload();
       });
     });
     document.querySelectorAll('.ee-notes').forEach(function (inp) {
@@ -167,7 +200,7 @@ import { GATE, parseDate, isEarlyArrival, hasSetupNoOrg, barrioCap } from '/asse
         var name = inp.dataset.name;
         // Persist notes with whatever source is currently selected — including
         // none, so notes can be added before a pass type is picked.
-        var sel = document.querySelector('.ee-select[data-name="' + cssEscape(name) + '"]');
+        var sel = siblingControl(inp, '.ee-select');
         var source = sel ? sel.value : '';
         if (await save(name, source, inp.value)) await reload();
       });

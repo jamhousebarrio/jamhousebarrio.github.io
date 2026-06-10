@@ -34,6 +34,11 @@ access: admin
     .ee-unknown h2 { font-family: var(--heading); font-size: 0.95rem; color: var(--text-muted); }
     .empty-state { color: var(--text-muted); font-size: 0.9rem; padding: 40px; text-align: center; }
     #ee-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    /* Mobile cards: mirror the table's uncovered-row tint; let controls fill the value column. */
+    .m-card.uncovered { background: rgba(244,67,54,0.08); }
+    .m-card .m-card-val { flex: 1; min-width: 0; }
+    .m-card .ee-select { max-width: 100%; }
+    .m-card .ee-notes { box-sizing: border-box; }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="/assets/js/supabase-client.js"></script>
@@ -49,7 +54,10 @@ access: admin
 
   <div class="ee-stats" id="ee-stats"></div>
 
-  <div id="ee-table-wrap">
+  <div id="ee-table-wrap" class="hide-on-mobile">
+    <div class="empty-state">Loading&hellip;</div>
+  </div>
+  <div class="mobile-cards" id="ee-cards">
     <div class="empty-state">Loading&hellip;</div>
   </div>
 
