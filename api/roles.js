@@ -50,6 +50,6 @@ export default async function handler(req, res) {
     if (e.status) return res.status(e.status).json({ error: e.message });
     console.error('Roles API error:', e);
     await logError(req, e, { status: 500 });
-    return res.status(500).json({ error: e.message || 'Failed', detail: e.stack });
+    return res.status(500).json({ error: e.message || 'Failed', detail: e.message });
   }
 }
