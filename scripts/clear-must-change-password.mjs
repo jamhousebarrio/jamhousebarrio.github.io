@@ -16,8 +16,13 @@ const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SEC
   auth: { autoRefreshToken: false, persistSession: false },
 });
 
-const { data: { users }, error: listError } = await supabase.auth.admin.listUsers();
-if (listError) { console.error(listError); process.exit(1); }
+const users = [];
+for (let page = 1; page <= 20; page++) {
+  const { data, error: listError } = await supabase.auth.admin.listUsers({ page, perPage: 1000 });
+  if (listError) { console.error(listError); process.exit(1); }
+  users.push(...data.users);
+  if (data.users.length < 1000) break;
+}
 const target = users.find(u => u.email?.toLowerCase() === email.toLowerCase());
 if (!target) { console.error('no user found'); process.exit(1); }
 

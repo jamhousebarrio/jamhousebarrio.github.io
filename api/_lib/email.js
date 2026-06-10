@@ -31,7 +31,9 @@ export async function sendEmail({ to, subject, html, text, replyTo }) {
     subject,
     html,
     text: text || htmlToText(html),
-    reply_to: replyTo || process.env.EMAIL_REPLY_TO || 'fanteevi@gmail.com',
+    ...(replyTo || process.env.EMAIL_REPLY_TO
+      ? { reply_to: replyTo || process.env.EMAIL_REPLY_TO }
+      : {}),
   };
   const res = await fetch(RESEND_URL, {
     method: 'POST',
@@ -92,8 +94,8 @@ function getFeeConfig() {
 
 function getChatLinks() {
   return {
-    telegram: process.env.GROUP_CHAT_URL_TELEGRAM || 'https://t.me/+m8IcFErlLtwwZmQ0',
-    whatsapp: process.env.GROUP_CHAT_URL_WHATSAPP || 'https://chat.whatsapp.com/BVYTz7xiJCS61Dan7CEjna',
+    telegram: process.env.GROUP_CHAT_URL_TELEGRAM || '',
+    whatsapp: process.env.GROUP_CHAT_URL_WHATSAPP || '',
   };
 }
 
@@ -133,9 +135,14 @@ function countdownLine() {
 
 function helpLine() {
   const { telegram } = getChatLinks();
-  return `<p style="margin:24px 0 0 0; font-size:14px; color:${COLORS.inkSoft};">
+  if (telegram) {
+    return `<p style="margin:24px 0 0 0; font-size:14px; color:${COLORS.inkSoft};">
   Stuck? Reply to this email or hop into the
   <a href="${escapeHtml(telegram)}" style="color:${COLORS.accentDark}; font-weight:600;">JamHouse Telegram group</a>.
+</p>`;
+  }
+  return `<p style="margin:24px 0 0 0; font-size:14px; color:${COLORS.inkSoft};">
+  Stuck? Just reply to this email.
 </p>`;
 }
 
@@ -190,6 +197,13 @@ function renderLayout({ preheader, bodyHtml }) {
 export function tplInvite({ playaName, name, actionLink }) {
   const fee = getFeeConfig();
   const { telegram, whatsapp } = getChatLinks();
+  const chatLinks = [
+    telegram ? `<a href="${escapeHtml(telegram)}" style="color:${COLORS.accentDark}; font-weight:600;">Telegram — main channel</a>` : '',
+    whatsapp ? `<a href="${escapeHtml(whatsapp)}" style="color:${COLORS.accentDark}; font-weight:600;">WhatsApp — announcements</a>` : '',
+  ].filter(Boolean);
+  const chatSection = chatLinks.length
+    ? `\n${sectionHeading('Join the conversation')}\n<p style="margin:0 0 8px 0;">\n  ${chatLinks.join('<br>\n  ')}\n</p>\n`
+    : '';
   const bodyHtml = `
 <p style="font-size:18px; margin:0 0 12px 0; font-weight:600;">${greet({ playaName, name })}</p>
 <p style="margin:0 0 12px 0;">Your application was approved — welcome to the barrio.</p>
@@ -214,13 +228,7 @@ ${sectionHeading('About the barrio fee')}
 <p style="margin:0 0 8px 0; font-size:14px; color:${COLORS.inkSoft};">
   If it's a stretch right now, talk to us — we always figure something out together. No one stays out for money.
 </p>
-
-${sectionHeading('Join the conversation')}
-<p style="margin:0 0 8px 0;">
-  <a href="${escapeHtml(telegram)}" style="color:${COLORS.accentDark}; font-weight:600;">Telegram — main channel</a><br>
-  <a href="${escapeHtml(whatsapp)}" style="color:${COLORS.accentDark}; font-weight:600;">WhatsApp — announcements</a>
-</p>
-
+${chatSection}
 ${helpLine()}`;
 
   return {
@@ -234,6 +242,16 @@ ${helpLine()}`;
 
 export function tplObserverWelcome({ playaName, name, actionLink }) {
   const { telegram, whatsapp } = getChatLinks();
+  const chatLinks = [
+    telegram ? `<a href="${escapeHtml(telegram)}" style="color:${COLORS.accentDark}; font-weight:600;">Telegram — main channel</a>` : '',
+    whatsapp ? `<a href="${escapeHtml(whatsapp)}" style="color:${COLORS.accentDark}; font-weight:600;">WhatsApp — announcements</a>` : '',
+  ].filter(Boolean);
+  const chatSection = chatLinks.length
+    ? `\n${sectionHeading('Join the conversation')}\n<p style="margin:0 0 8px 0;">\n  ${chatLinks.join('<br>\n  ')}\n</p>\n`
+    : '';
+  const reachOutLine = telegram
+    ? `<p style="margin:0 0 12px 0;">The fastest way is the Telegram group below; otherwise just reply to this email.</p>`
+    : `<p style="margin:0 0 12px 0;">Just reply to this email and one of the leads will sort it out.</p>`;
   const bodyHtml = `
 <p style="font-size:18px; margin:0 0 12px 0; font-weight:600;">${greet({ playaName, name })}</p>
 <p style="margin:0 0 12px 0;">You've been added to JamHouse as an <strong>Observer</strong> — read-only access to what we're cooking up for the barrio at Elsewhere.</p>
@@ -244,16 +262,9 @@ ${sectionHeading('What Observer access means')}
 
 ${sectionHeading('Want to join us properly?')}
 <p style="margin:0 0 10px 0;">If you'd like to be a <strong>full barrio member</strong> — shifts, fees, the works — please reach out to one of the leads. Once they update your status, you'll get the full welcome with everything you need to know.</p>
-<p style="margin:0 0 12px 0;">The fastest way is the Telegram group below; otherwise just reply to this email.</p>
-
+${reachOutLine}
 ${cta('Set up access', actionLink)}
-
-${sectionHeading('Join the conversation')}
-<p style="margin:0 0 8px 0;">
-  <a href="${escapeHtml(telegram)}" style="color:${COLORS.accentDark}; font-weight:600;">Telegram — main channel</a><br>
-  <a href="${escapeHtml(whatsapp)}" style="color:${COLORS.accentDark}; font-weight:600;">WhatsApp — announcements</a>
-</p>
-
+${chatSection}
 ${helpLine()}`;
 
   return {

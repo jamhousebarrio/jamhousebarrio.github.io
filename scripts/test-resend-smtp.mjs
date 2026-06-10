@@ -5,7 +5,7 @@
 // Usage:
 //   RESEND_API_KEY=re_xxx \
 //   RESEND_FROM='noreply@jamhouse.space' \
-//   RESEND_TO='fanteevi@gmail.com' \
+//   RESEND_TO='you@example.com' \
 //   node scripts/test-resend-smtp.mjs
 //
 // Optional overrides: RESEND_HOST (default smtp.resend.com),

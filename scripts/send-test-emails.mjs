@@ -2,10 +2,11 @@
 // you can eyeball them in Gmail/Outlook before wiring the live flows over.
 //
 // Usage:
-//   RESEND_API_KEY=re_xxx node scripts/send-test-emails.mjs
+//   RESEND_API_KEY=re_xxx RESEND_TO=you@example.com node scripts/send-test-emails.mjs
 //
+// Required:
+//   RESEND_TO=you@example.com             # recipient address (no default)
 // Optional overrides:
-//   RESEND_TO=fanteevi@gmail.com          # default
 //   ONLY=invite|password-reset|dietary|magic-link  # send just one template
 //   EMAIL_FROM='JamHouse <noreply@jamhouse.space>'
 //   BARRIO_FEE_STANDARD=280 BARRIO_FEE_LOW_INCOME=180 BARRIO_FEE_DEADLINE='mid-May 2026'
@@ -19,8 +20,13 @@ import {
   tplMagicLink,
 } from '../api/_lib/email.js';
 
-const TO = process.env.RESEND_TO || 'fanteevi@gmail.com';
+const TO = process.env.RESEND_TO;
 const ONLY = (process.env.ONLY || '').toLowerCase();
+
+if (!TO) {
+  console.error('Set RESEND_TO to the recipient address');
+  process.exit(1);
+}
 
 if (!process.env.RESEND_API_KEY) {
   console.error('Missing RESEND_API_KEY. Re-run with:');
