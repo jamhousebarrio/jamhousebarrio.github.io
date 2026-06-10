@@ -385,7 +385,8 @@
   var gridBtn = document.getElementById('view-grid');
   var kanbanBtn = document.getElementById('view-kanban');
 
-  function applyView(v) {
+  function applyView(v, persist) {
+    if (persist === undefined) persist = true;
     if (v === 'kanban') {
       gridWrap.hidden = true;
       kanbanWrap.hidden = false;
@@ -398,13 +399,17 @@
       kanbanBtn.classList.remove('active');
       gridBtn.classList.add('active');
     }
-    writeView(v);
+    if (persist) writeView(v);
   }
 
   gridBtn.addEventListener('click', function() { applyView('grid'); });
   kanbanBtn.addEventListener('click', function() { applyView('kanban'); });
 
-  applyView(JH.isMobile ? 'grid' : readView());
+  function effectiveView() {
+    return window.matchMedia('(max-width: 768px)').matches ? 'grid' : readView();
+  }
+  applyView(effectiveView(), false);
+  window.matchMedia('(max-width: 768px)').addEventListener('change', function() { applyView(effectiveView(), false); });
 
   function relativeDays(timestamp) {
     if (!timestamp) return '';
