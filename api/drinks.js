@@ -34,9 +34,9 @@ export default async function handler(req, res) {
 
     switch (action) {
       case 'upsert': {
-        const { name, category, unit, perPersonPerDay, notes } = payload;
+        const { name, category, unit, perPersonPerDay, notes, originalName } = payload;
         if (!name) return res.status(400).json({ error: 'name required' });
-        await upsertRow(sheets, spreadsheetId, 'DrinksSnacks', 'Name', name, HEADERS,
+        await upsertRow(sheets, spreadsheetId, 'DrinksSnacks', 'Name', originalName || name, HEADERS,
           [name, category || '', unit || '', perPersonPerDay != null ? String(perPersonPerDay) : '', notes || '']);
         break;
       }
