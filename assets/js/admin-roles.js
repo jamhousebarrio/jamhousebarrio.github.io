@@ -182,22 +182,29 @@
     btn.textContent = 'Saving...';
     btn.disabled = true;
 
-    var r = await JH.apiFetch('/api/roles', {
-      action: 'upsert',
-      name: name,
-      originalName: editingName,
-      description: document.getElementById('field-description').value,
-      assignedTo: Array.from(document.getElementById('field-assignedTo').selectedOptions).map(function (o) { return o.value; }).join(', '),
-      status: document.getElementById('field-status').value,
-      notes: document.getElementById('field-notes').value,
-    });
-
-    btn.textContent = 'Save Role';
-    btn.disabled = false;
-
-    if (!r.ok) { var d = await r.json().catch(function () { return {}; }); alert(d.error || 'Save failed.'); return; }
-    closeModal();
-    await reload();
+    try {
+      var r;
+      try {
+        r = await JH.apiFetch('/api/roles', {
+          action: 'upsert',
+          name: name,
+          originalName: editingName,
+          description: document.getElementById('field-description').value,
+          assignedTo: Array.from(document.getElementById('field-assignedTo').selectedOptions).map(function (o) { return o.value; }).join(', '),
+          status: document.getElementById('field-status').value,
+          notes: document.getElementById('field-notes').value,
+        });
+      } catch (e) {
+        alert('Network error — not saved.');
+        return;
+      }
+      if (!r.ok) { var d = await r.json().catch(function () { return {}; }); alert(d.error || 'Save failed.'); return; }
+      closeModal();
+      await reload();
+    } finally {
+      btn.textContent = 'Save Role';
+      btn.disabled = false;
+    }
   }
 
   // ── Reload ────────────────────────────────────────────────────────────────

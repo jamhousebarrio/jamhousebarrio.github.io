@@ -187,25 +187,32 @@
     btn.textContent = 'Saving...';
     btn.disabled = true;
 
-    var r = await JH.apiFetch('/api/events', {
-      action: 'upsert',
-      id: editingId || crypto.randomUUID(),
-      name: name,
-      date: document.getElementById('event-date').value,
-      time: document.getElementById('event-time').value,
-      endTime: document.getElementById('event-end-time').value,
-      description: document.getElementById('event-description').value,
-      responsible: document.getElementById('event-responsible').value,
-      status: document.getElementById('event-status').value,
-      notes: document.getElementById('event-notes').value,
-    });
-
-    btn.textContent = 'Save Event';
-    btn.disabled = false;
-
-    if (!r.ok) { var d = await r.json().catch(function () { return {}; }); alert(d.error || 'Save failed.'); return; }
-    closeModal();
-    await reload();
+    try {
+      var r;
+      try {
+        r = await JH.apiFetch('/api/events', {
+          action: 'upsert',
+          id: editingId || crypto.randomUUID(),
+          name: name,
+          date: document.getElementById('event-date').value,
+          time: document.getElementById('event-time').value,
+          endTime: document.getElementById('event-end-time').value,
+          description: document.getElementById('event-description').value,
+          responsible: document.getElementById('event-responsible').value,
+          status: document.getElementById('event-status').value,
+          notes: document.getElementById('event-notes').value,
+        });
+      } catch (e) {
+        alert('Network error — not saved.');
+        return;
+      }
+      if (!r.ok) { var d = await r.json().catch(function () { return {}; }); alert(d.error || 'Save failed.'); return; }
+      closeModal();
+      await reload();
+    } finally {
+      btn.textContent = 'Save Event';
+      btn.disabled = false;
+    }
   });
 
   // ── Reload ────────────────────────────────────────────────────────────────

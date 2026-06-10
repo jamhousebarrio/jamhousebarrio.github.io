@@ -275,23 +275,30 @@ import { parseLabels, itemHasLabel, labelSuggestions } from './inventory-labels.
 
     if (labelText.value.trim()) addLabel(labelText.value);
 
-    var r = await JH.apiFetch('/api/inventory', {
-      action: 'upsert',
-      itemId: itemId,
-      name: name,
-      labels: currentLabels,
-      description: document.getElementById('field-description').value,
-      photoUrl: document.getElementById('field-photo').value,
-      quantity: document.getElementById('field-quantity').value,
-      location: document.getElementById('field-location').value,
-    });
-
-    btn.textContent = 'Save Item';
-    btn.disabled = false;
-
-    if (!r.ok) { var d = await r.json().catch(function () { return {}; }); alert(d.error || 'Save failed.'); return; }
-    closeModal();
-    await reload();
+    try {
+      var r;
+      try {
+        r = await JH.apiFetch('/api/inventory', {
+          action: 'upsert',
+          itemId: itemId,
+          name: name,
+          labels: currentLabels,
+          description: document.getElementById('field-description').value,
+          photoUrl: document.getElementById('field-photo').value,
+          quantity: document.getElementById('field-quantity').value,
+          location: document.getElementById('field-location').value,
+        });
+      } catch (e) {
+        alert('Network error — not saved.');
+        return;
+      }
+      if (!r.ok) { var d = await r.json().catch(function () { return {}; }); alert(d.error || 'Save failed.'); return; }
+      closeModal();
+      await reload();
+    } finally {
+      btn.textContent = 'Save Item';
+      btn.disabled = false;
+    }
   });
 
   // ── Init ──────────────────────────────────────────────────────────────────
