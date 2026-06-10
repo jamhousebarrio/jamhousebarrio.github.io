@@ -404,6 +404,9 @@ export default async function handler(req, res) {
       if (!row || !updates || typeof updates !== 'object') {
         return res.status(400).json({ error: 'Row and updates are required' });
       }
+      if (updates && 'Status' in updates && !ALLOWED_STATUSES.includes(updates['Status'])) {
+        return res.status(400).json({ error: 'Invalid status', allowed: ALLOWED_STATUSES });
+      }
       // Block Admin column changes from non-admins (already checked above, but explicit)
       if ('Admin' in updates && !auth.admin) {
         return res.status(403).json({ error: 'Only admins can change admin status' });
@@ -559,6 +562,8 @@ export default async function handler(req, res) {
         } catch (e) {
           failed.push({ email: m.email, error: e.message });
         }
+        // Resend free tier is 2 req/s; 500ms keeps us safely under.
+        await new Promise(r => setTimeout(r, 500));
       }
       return res.status(200).json({
         success: true,
