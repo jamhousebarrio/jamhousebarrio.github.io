@@ -288,12 +288,14 @@
     container.innerHTML = html;
     container.querySelectorAll('button[data-decision]').forEach(function(btn) {
       btn.addEventListener('click', async function() {
+        var decision = btn.getAttribute('data-decision');
+        if (!confirm((decision === 'approved' ? 'Approve' : 'Decline') + ' this low-income request?')) return;
         btn.disabled = true;
         try {
           var res = await JH.apiFetch('/api/members', {
             action: 'review-low-income',
             row: parseInt(btn.getAttribute('data-row')),
-            decision: btn.getAttribute('data-decision'),
+            decision: decision,
           });
           if (!res.ok) throw new Error('Failed');
           await load();
