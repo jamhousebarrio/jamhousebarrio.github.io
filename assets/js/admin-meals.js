@@ -207,8 +207,12 @@ import { num, perPerson, scaledTotal, mealKcalPerPerson, targetFor, energyStatus
     var planned = headcount();
     var hc = effectiveHeadcount(planned, state.logistics, meal.Date);
     var noorgOff = planned - hc; // > 0 only on setup/strike days with NoOrg-fed people
-    var photo = meal.PhotoURL
-      ? '<div class="meal-photo" style="background-image:url(\'' + JH.esc(meal.PhotoURL) + '\')">' + (canEdit ? '<button class="change-photo" data-meal-id="' + JH.esc(meal.MealID) + '">📷 Change</button>' : '') + '</div>'
+    // CSS-string sink: HTML-entity escaping alone can't protect url('…')
+    // (entities decode before CSS parsing), so strip every char that could
+    // terminate the CSS string/function and require an http(s) URL.
+    var safeUrl = /^https?:\/\//i.test(meal.PhotoURL || '') ? (meal.PhotoURL || '').replace(/['"()\\\s]/g, '') : '';
+    var photo = safeUrl
+      ? '<div class="meal-photo" style="background-image:url(\'' + JH.esc(safeUrl) + '\')">' + (canEdit ? '<button class="change-photo" data-meal-id="' + JH.esc(meal.MealID) + '">📷 Change</button>' : '') + '</div>'
       : '';
     var typeSel = canEdit
       ? '<select class="meal-type-inline" data-meal-id="' + JH.esc(meal.MealID) + '">' +

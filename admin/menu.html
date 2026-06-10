@@ -1,6 +1,6 @@
 ---
 layout: none
-title: Meal Plan - JamHouse Admin
+title: Dinner Menu - JamHouse Admin
 access: general
 ---
 <!DOCTYPE html>
@@ -8,7 +8,7 @@ access: general
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Meal Plan - JamHouse Admin</title>
+  <title>Dinner Menu - JamHouse Admin</title>
   <meta name="access" content="general">
   <link rel="icon" type="image/svg+xml" href="/images/favicon.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -468,8 +468,12 @@ function renderCard(n) {
     return '<span class="jh-side-tag">' + esc(s) + '</span>';
   }).join('');
 
-  var photo = mealPhotos[n.meal]
-    ? '<div class="jh-card-photo" style="background-image:url(\'' + esc(mealPhotos[n.meal]) + '\')"></div>'
+  // CSS-string sink: entity escaping can't protect url('…'), so strip every
+  // char that could terminate the CSS string and require an http(s) URL.
+  var rawPhoto = mealPhotos[n.meal] || '';
+  var safePhotoUrl = /^https?:\/\//i.test(rawPhoto) ? rawPhoto.replace(/['"()\\\s]/g, '') : '';
+  var photo = safePhotoUrl
+    ? '<div class="jh-card-photo" style="background-image:url(\'' + esc(safePhotoUrl) + '\')"></div>'
     : '';
 
   return '<div class="jh-card" style="border-color:' + borderColor + '">'
