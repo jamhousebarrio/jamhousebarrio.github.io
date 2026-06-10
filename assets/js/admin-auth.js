@@ -221,6 +221,7 @@ JH.contactLinks = function(v, telegram) {
   var html = '';
   if (digits) html += ' &nbsp;<a href="https://wa.me/' + digits + '" target="_blank" title="WhatsApp" style="text-decoration:none;">' + JH.waIcon + '</a>';
   var tgHandle = (telegram || '').trim().replace(/^@/, '');
+  tgHandle = tgHandle.replace(/[^A-Za-z0-9_]/g, '');
   if (tgHandle) {
     html += ' <a href="https://t.me/' + tgHandle + '" target="_blank" title="Telegram: @' + tgHandle + '" style="text-decoration:none;">' + JH.tgIcon + '</a>';
   } else if (digits) {
@@ -391,7 +392,7 @@ JH.mobilePhoneColumn = function(col) {
   col.cellRenderer = JH.IconsOnlyRenderer;
 };
 
-JH.esc = function(s) { return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); };
+JH.esc = function(s) { return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;'); };
 
 JH.to24h = function(t) {
   if (!t) return '';
