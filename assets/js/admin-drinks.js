@@ -93,6 +93,7 @@
 
   function renderItems() {
     var tbody = document.getElementById('drinks-tbody');
+    var cardsWrap = document.getElementById('drinks-cards');
     var dates = getAllDates();
     var peak = getPeakHeadcount();
 
@@ -101,9 +102,9 @@
     });
 
     if (!filtered.length) {
-      tbody.innerHTML = '<tr><td colspan="7" class="empty-state">' +
-        (state.items.length ? 'No items in this category.' : 'No items yet.' + (isAdmin ? ' Click "+ Add Item" to get started.' : '')) +
-        '</td></tr>';
+      var emptyMsg = state.items.length ? 'No items in this category.' : 'No items yet.' + (isAdmin ? ' Click "+ Add Item" to get started.' : '');
+      tbody.innerHTML = '<tr><td colspan="7" class="empty-state">' + emptyMsg + '</td></tr>';
+      cardsWrap.innerHTML = '<div class="m-card empty-state">' + emptyMsg + '</div>';
       return;
     }
 
@@ -114,7 +115,15 @@
       return (a.Name || '').toLowerCase() < (b.Name || '').toLowerCase() ? -1 : 1;
     });
 
+    // Same Edit/Delete buttons (classes + data-name) in both trees so
+    // bindItemEvents wires table rows AND mobile cards identically.
+    function actionButtons(item) {
+      return '<button class="btn-secondary btn-sm edit-item-btn" data-name="' + JH.esc(item.Name) + '">Edit</button>' +
+        '<button class="btn-danger btn-sm delete-item-btn" data-name="' + JH.esc(item.Name) + '">Delete</button>';
+    }
+
     var html = '';
+    var cardsHtml = '';
     sorted.forEach(function (item) {
       var rate = parseFloat(item.PerPersonPerDay) || 0;
       var peakDaily = peak * rate;
@@ -131,17 +140,31 @@
       html += '<td class="num-col"><strong>' + formatNum(peakDaily) + '</strong></td>';
       html += '<td class="num-col"><strong>' + formatNum(eventTotal) + '</strong></td>';
       if (isAdmin) {
-        html += '<td><div style="display:flex;gap:4px">' +
-          '<button class="btn-secondary btn-sm edit-item-btn" data-name="' + JH.esc(item.Name) + '">Edit</button>' +
-          '<button class="btn-danger btn-sm delete-item-btn" data-name="' + JH.esc(item.Name) + '">Delete</button>' +
-          '</div></td>';
+        html += '<td><div style="display:flex;gap:4px">' + actionButtons(item) + '</div></td>';
       } else {
         html += '<td></td>';
       }
       html += '</tr>';
+
+      // Mobile dual-render: same data, same buttons, card layout.
+      cardsHtml += '<div class="m-card">';
+      cardsHtml += '<div class="m-card-title">' + JH.esc(item.Name) +
+        '<span class="item-category ' + categoryClass(item.Category) + '">' + JH.esc(item.Category || 'Other') + '</span></div>';
+      cardsHtml += '<div class="m-card-row"><span class="m-card-label">Unit</span><span class="m-card-val">' + JH.esc(item.Unit) + '</span></div>';
+      cardsHtml += '<div class="m-card-row"><span class="m-card-label">Per person/day</span><span class="m-card-val">' + formatNum(rate) + '</span></div>';
+      cardsHtml += '<div class="m-card-row"><span class="m-card-label">Daily total</span><span class="m-card-val"><strong>' + formatNum(peakDaily) + '</strong></span></div>';
+      cardsHtml += '<div class="m-card-row"><span class="m-card-label">Event total</span><span class="m-card-val"><strong>' + formatNum(eventTotal) + '</strong></span></div>';
+      if (item.Notes) {
+        cardsHtml += '<div class="m-card-row"><span class="m-card-label">Notes</span><span class="m-card-val item-notes">' + JH.esc(item.Notes) + '</span></div>';
+      }
+      if (isAdmin) {
+        cardsHtml += '<div class="m-card-row"><span class="m-card-label">Actions</span><span class="m-card-val"><span style="display:inline-flex;gap:6px">' + actionButtons(item) + '</span></span></div>';
+      }
+      cardsHtml += '</div>';
     });
 
     tbody.innerHTML = html;
+    cardsWrap.innerHTML = cardsHtml;
     bindItemEvents();
   }
 

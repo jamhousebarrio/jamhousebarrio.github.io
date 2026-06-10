@@ -59,9 +59,10 @@ access: general
     .btn-secondary { padding: 0.45rem 1rem; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-family: var(--heading); font-size: 0.85rem; cursor: pointer; }
     .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
     @media (max-width: 480px) {
-      .drinks-table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
       .summary-cards { grid-template-columns: 1fr 1fr; }
     }
+    /* Mobile cards: notes sit under the value rows, muted like in the table. */
+    .m-card .item-notes { font-size: 0.78rem; color: var(--text-muted); font-style: italic; text-align: right; }
   </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="/assets/js/supabase-client.js"></script>
@@ -99,7 +100,7 @@ access: general
     <button class="add-item-btn" id="add-item-btn" style="display:none">+ Add Item</button>
   </div>
 
-  <div class="panel" style="padding:0;overflow:hidden">
+  <div class="panel hide-on-mobile" style="padding:0;overflow:hidden">
     <table class="drinks-table" id="drinks-table">
       <thead>
         <tr>
@@ -117,6 +118,7 @@ access: general
       </tbody>
     </table>
   </div>
+  <div class="mobile-cards" id="drinks-cards"></div>
 </div>
 
 <!-- Add / Edit Item Modal -->
