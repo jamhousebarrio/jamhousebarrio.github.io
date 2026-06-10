@@ -133,14 +133,17 @@
   }
 
   async function loadTasks() {
-    var data = await apiFetch({ action: 'todo-fetch' });
-    if (!data) {
+    var data = null;
+    try { data = await apiFetch({ action: 'todo-fetch' }); } catch (e) { console.error('[ToDo] fetch failed', e); }
+    // Anything other than a successful response with a tasks array is a failed
+    // load — never seed over a sheet we couldn't read.
+    if (!data || !Array.isArray(data.tasks)) {
       state.tasks = [];
       state.loadFailed = true;
       return;
     }
 
-    if (Array.isArray(data.tasks) && data.tasks.length > 0) {
+    if (data.tasks.length > 0) {
       state.tasks = data.tasks;
       return;
     }
