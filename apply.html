@@ -180,6 +180,28 @@ title: Apply - JamHouse 2026
       font-size: 1rem;
       line-height: 1.6;
     }
+    .lang-toggle {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 0.85rem;
+    }
+    .lang-toggle button {
+      background: none;
+      border: none;
+      color: var(--text-secondary, #888);
+      cursor: pointer;
+      font: inherit;
+      padding: 4px 6px;
+      letter-spacing: 0.05em;
+    }
+    .lang-toggle button:hover { color: var(--text, #e0e0e0); }
+    .lang-toggle button.active { color: var(--accent, #e8a84c); font-weight: 600; }
+    .lang-toggle .sep { color: var(--border, #2a2a2a); }
     @media (max-width: 600px) {
       .form-container {
         padding: 1rem 0.75rem 3rem;
@@ -205,51 +227,54 @@ title: Apply - JamHouse 2026
   </style>
 </head>
 <body>
+  <div class="lang-toggle" aria-label="Language">
+    <button type="button" data-lang-btn="en">EN</button><span class="sep">|</span><button type="button" data-lang-btn="es">ES</button>
+  </div>
   <div class="form-container">
     <div class="form-header">
       <h1>JamHouse</h1>
-      <h2 id="applyHeading">Applications Closed</h2>
+      <h2 id="applyHeading" data-i18n="headingClosed">Applications Closed</h2>
     </div>
 
     <!-- Applications closed for 2026 — form hidden below, intact for re-enabling next year.
          A private invite link (?invite=<code>) reveals the form for one-off exceptions;
          see the INVITE bypass in the script below. -->
-    <div id="closedNotice" class="message" style="display: block; background: var(--surface, #141414); border: 1px solid var(--border, #2a2a2a); color: var(--text, #e0e0e0); font-size: 1.05rem; line-height: 1.7;">
+    <div id="closedNotice" class="message" style="display: block; background: var(--surface, #141414); border: 1px solid var(--border, #2a2a2a); color: var(--text, #e0e0e0); font-size: 1.05rem; line-height: 1.7;" data-i18n="closedNotice">
       We have already reached our capacity for this year. Swing by our camp for a jam and a hangout. See you in less than a month!
     </div>
     <p id="closedBackLink" style="text-align:center;margin:-0.5rem 0 1.5rem;">
-      <a href="/" style="color:var(--text-secondary,#888);font-size:0.9rem;text-decoration:none;">&larr; Back to jamhouse.space</a>
+      <a href="/" style="color:var(--text-secondary,#888);font-size:0.9rem;text-decoration:none;" data-i18n="backHome">&larr; Back to jamhouse.space</a>
     </p>
 
     <div id="errorMsg" class="message error"></div>
 
     <div id="thankYou" class="thank-you">
-      <p>Your application has been submitted. We'll review it and get back to you soon.</p>
+      <p data-i18n="thankYou">Your application has been submitted. We'll review it and get back to you soon.</p>
     </div>
 
     <form id="applyForm" style="display:none">
       <!-- Section 1: About You -->
       <div class="form-section">
-        <h3>About You</h3>
-        <p class="section-desc">Tell us who you are.</p>
+        <h3 data-i18n="s1Title">About You</h3>
+        <p class="section-desc" data-i18n="s1Desc">Tell us who you are.</p>
 
         <div class="form-group">
-          <label>Name <span class="optional">*</span></label>
+          <label><span data-i18n="lName">Name</span> <span class="optional">*</span></label>
           <input type="text" name="name" required autocomplete="name" autocapitalize="words">
         </div>
         <div class="form-group">
-          <label>Playa Name <span class="optional">(optional)</span></label>
+          <label><span data-i18n="lPlayaName">Playa Name</span> <span class="optional" data-i18n="optional">(optional)</span></label>
           <input type="text" name="playaName" autocapitalize="words">
         </div>
         <div class="form-group">
-          <label>Email <span class="optional">*</span></label>
+          <label><span data-i18n="lEmail">Email</span> <span class="optional">*</span></label>
           <input type="email" name="email" required autocomplete="email" inputmode="email" autocapitalize="none" spellcheck="false">
         </div>
         <div class="form-group">
-          <label>Phone <span class="optional">*</span></label>
+          <label><span data-i18n="lPhone">Phone</span> <span class="optional">*</span></label>
           <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
             <select name="phoneCode" required style="width:auto;min-width:90px;flex-shrink:0">
-              <option value="">Code</option>
+              <option value="" data-i18n="optCode">Code</option>
               <option value="+31">+31 NL</option>
               <option value="+34">+34 ES</option>
               <option value="+33">+33 FR</option>
@@ -294,11 +319,11 @@ title: Apply - JamHouse 2026
           </div>
         </div>
         <div class="form-group">
-          <label>Telegram Handle <span class="optional">(optional)</span></label>
+          <label><span data-i18n="lTelegram">Telegram Handle</span> <span class="optional" data-i18n="optional">(optional)</span></label>
           <input type="text" name="telegram" placeholder="@username" autocapitalize="none" autocorrect="off" spellcheck="false">
         </div>
         <div class="form-group">
-          <label>Contact Methods</label>
+          <label data-i18n="lContactMethods">Contact Methods</label>
           <div class="checkbox-group">
             <label><input type="checkbox" name="contactWhatsApp" value="WhatsApp"> WhatsApp</label>
             <label><input type="checkbox" name="contactTelegram" value="Telegram"> Telegram</label>
@@ -306,203 +331,364 @@ title: Apply - JamHouse 2026
           </div>
         </div>
         <div class="form-group">
-          <label>Other contact method <span class="optional">(optional)</span></label>
+          <label><span data-i18n="lContactOther">Other contact method</span> <span class="optional" data-i18n="optional">(optional)</span></label>
           <input type="text" name="contactOther">
         </div>
         <div class="form-group">
-          <label>Where do you live? <span class="optional">*</span></label>
+          <label><span data-i18n="lLocation">Where do you live?</span> <span class="optional">*</span></label>
           <input type="text" name="location" required>
         </div>
         <div class="form-group">
-          <label>Nationality <span class="optional">*</span></label>
+          <label><span data-i18n="lNationality">Nationality</span> <span class="optional">*</span></label>
           <input type="text" name="nationality" required>
         </div>
         <div class="form-group">
-          <label>Gender <span class="optional">*</span></label>
+          <label><span data-i18n="lGender">Gender</span> <span class="optional">*</span></label>
           <select name="gender" required>
-            <option value="">Select...</option>
-            <option value="Male">Male</option>
-            <option value="Female">Female</option>
-            <option value="Non-binary">Non-binary</option>
-            <option value="Prefer not to say">Prefer not to say</option>
+            <option value="" data-i18n="optSelect">Select...</option>
+            <option value="Male" data-i18n="optMale">Male</option>
+            <option value="Female" data-i18n="optFemale">Female</option>
+            <option value="Non-binary" data-i18n="optNonBinary">Non-binary</option>
+            <option value="Prefer not to say" data-i18n="optPreferNot">Prefer not to say</option>
           </select>
         </div>
         <div class="form-group">
-          <label>Age <span class="optional">*</span></label>
+          <label><span data-i18n="lAge">Age</span> <span class="optional">*</span></label>
           <input type="number" name="age" min="18" max="120" required>
         </div>
         <div class="form-group">
-          <label>Primary Language</label>
+          <label data-i18n="lLanguage">Primary Language</label>
           <input type="text" name="language">
         </div>
         <div class="form-group">
-          <label>Other Languages</label>
+          <label data-i18n="lOtherLanguages">Other Languages</label>
           <input type="text" name="otherLanguages">
         </div>
       </div>
 
       <!-- Section 2: Burn Experience -->
       <div class="form-section">
-        <h3>Burn Experience</h3>
-        <p class="section-desc">Tell us about your burn history.</p>
+        <h3 data-i18n="s2Title">Burn Experience</h3>
+        <p class="section-desc" data-i18n="s2Desc">Tell us about your burn history.</p>
 
         <div class="form-group">
-          <label>Is this your first Burn? <span class="optional">*</span></label>
+          <label><span data-i18n="lFirstBurn">Is this your first Burn?</span> <span class="optional">*</span></label>
           <select name="firstBurn" required>
-            <option value="">Select...</option>
-            <option value="Yes">Yes</option>
-            <option value="No">No</option>
+            <option value="" data-i18n="optSelect">Select...</option>
+            <option value="Yes" data-i18n="optYes">Yes</option>
+            <option value="No" data-i18n="optNo">No</option>
           </select>
         </div>
         <div class="form-group">
-          <label>Is this your first Elsewhere/Nowhere? <span class="optional">*</span></label>
+          <label><span data-i18n="lFirstElsewhere">Is this your first Elsewhere/Nowhere?</span> <span class="optional">*</span></label>
           <select name="firstElsewhere" required>
-            <option value="">Select...</option>
-            <option value="Yes, this will be my first!">Yes, this will be my first!</option>
-            <option value="Yes, and I'm super excited!">Yes, and I'm super excited!</option>
-            <option value="No">No</option>
+            <option value="" data-i18n="optSelect">Select...</option>
+            <option value="Yes, this will be my first!" data-i18n="optFirstYes">Yes, this will be my first!</option>
+            <option value="Yes, and I'm super excited!" data-i18n="optFirstExcited">Yes, and I'm super excited!</option>
+            <option value="No" data-i18n="optNo">No</option>
           </select>
         </div>
         <div class="form-group">
-          <label>Do you know somebody from the Core Team?</label>
+          <label data-i18n="lKnowCoreTeam">Do you know somebody from the Core Team?</label>
           <input type="text" name="knowCoreTeam">
         </div>
       </div>
 
       <!-- Section 3: Values & Motivation -->
       <div class="form-section">
-        <h3>Values & Motivation</h3>
-        <p class="section-desc">We'd love to know what drives you.</p>
+        <h3 data-i18n="s3Title">Values & Motivation</h3>
+        <p class="section-desc" data-i18n="s3Desc">We'd love to know what drives you.</p>
 
         <div class="form-group">
-          <label>What does "Leave No Trace" evoke to you? <span class="optional">*</span></label>
+          <label><span data-i18n="lLeaveNoTrace">What does "Leave No Trace" evoke to you?</span> <span class="optional">*</span></label>
           <textarea name="leaveNoTrace" required></textarea>
         </div>
         <div class="form-group">
-          <label>What does "Consent" evoke to you? <span class="optional">*</span></label>
+          <label><span data-i18n="lConsent">What does "Consent" evoke to you?</span> <span class="optional">*</span></label>
           <textarea name="consent" required></textarea>
         </div>
         <div class="form-group">
-          <label>What are the main reasons you want to come to Elsewhere this year? <span class="optional">*</span></label>
+          <label><span data-i18n="lWhyElsewhere">What are the main reasons you want to come to Elsewhere this year?</span> <span class="optional">*</span></label>
           <textarea name="whyElsewhere" required></textarea>
         </div>
         <div class="form-group">
-          <label>What is your background?</label>
+          <label data-i18n="lBackground">What is your background?</label>
           <textarea name="background"></textarea>
         </div>
       </div>
 
       <!-- Section 4: Art, Skills & Fun -->
       <div class="form-section">
-        <h3>Art, Skills & Fun</h3>
-        <p class="section-desc">Show us what you've got.</p>
+        <h3 data-i18n="s4Title">Art, Skills & Fun</h3>
+        <p class="section-desc" data-i18n="s4Desc">Show us what you've got.</p>
 
         <div class="form-group">
-          <label>Will you present an artistic project? If so, describe it.</label>
+          <label data-i18n="lArtProject">Will you present an artistic project? If so, describe it.</label>
           <textarea name="artProject"></textarea>
         </div>
         <div class="form-group">
-          <label>Do you have skills useful for JamHouse? Musician, sound engineer, building, cooking, etc.</label>
+          <label data-i18n="lSkills">Do you have skills useful for JamHouse? Musician, sound engineer, building, cooking, etc.</label>
           <textarea name="skills"></textarea>
         </div>
         <div class="form-group">
-          <label>How many kg can you lift barehanded and hungover under the desert sun?</label>
+          <label data-i18n="lLiftKg">How many kg can you lift barehanded and hungover under the desert sun?</label>
           <input type="text" name="liftKg">
         </div>
         <div class="form-group">
-          <label>Do we need to know your deepest secrets?</label>
+          <label data-i18n="lDeepestSecrets">Do we need to know your deepest secrets?</label>
           <textarea name="deepestSecrets"></textarea>
         </div>
         <div class="form-group">
-          <label>Special talent or addiction to share?</label>
+          <label data-i18n="lTalents">Special talent or addiction to share?</label>
           <textarea name="talents"></textarea>
         </div>
       </div>
 
       <!-- Section 5: Logistics & Final -->
       <div class="form-section">
-        <h3>Logistics</h3>
-        <p class="section-desc">A few practical things.</p>
+        <h3 data-i18n="s5Title">Logistics</h3>
+        <p class="section-desc" data-i18n="s5Desc">A few practical things.</p>
 
         <div class="form-group">
-          <label>Do you have your ticket for Elsewhere 2026? <span class="optional">*</span></label>
+          <label><span data-i18n="lHasTicket">Do you have your ticket for Elsewhere 2026?</span> <span class="optional">*</span></label>
           <select name="hasTicket" required>
-            <option value="">Select...</option>
-            <option value="Yes">Yes</option>
-            <option value="No, not yet">No, not yet</option>
+            <option value="" data-i18n="optSelect">Select...</option>
+            <option value="Yes" data-i18n="optYes">Yes</option>
+            <option value="No, not yet" data-i18n="optNotYet">No, not yet</option>
           </select>
         </div>
         <div class="form-group">
-          <label>Are you able to join the build?</label>
+          <label data-i18n="lCanBuild">Are you able to join the build?</label>
           <select name="canBuild">
-            <option value="">Select...</option>
-            <option value="Yes">Yes</option>
-            <option value="No">No</option>
+            <option value="" data-i18n="optSelect">Select...</option>
+            <option value="Yes" data-i18n="optYes">Yes</option>
+            <option value="No" data-i18n="optNo">No</option>
           </select>
         </div>
         <div class="form-group">
-          <label>Are you coming by car?</label>
+          <label data-i18n="lHasCar">Are you coming by car?</label>
           <select name="hasCar">
-            <option value="">Select...</option>
-            <option value="Yes">Yes</option>
-            <option value="No">No</option>
+            <option value="" data-i18n="optSelect">Select...</option>
+            <option value="Yes" data-i18n="optYes">Yes</option>
+            <option value="No" data-i18n="optNo">No</option>
           </select>
         </div>
         <div class="form-group" id="movingCarGroup" style="display:none">
-          <label>If yes, are you planning to move your car during the festival?</label>
+          <label data-i18n="lMovingCar">If yes, are you planning to move your car during the festival?</label>
           <select name="movingCar">
-            <option value="">Select...</option>
-            <option value="Yes">Yes</option>
-            <option value="No">No</option>
+            <option value="" data-i18n="optSelect">Select...</option>
+            <option value="Yes" data-i18n="optYes">Yes</option>
+            <option value="No" data-i18n="optNo">No</option>
           </select>
         </div>
         <div class="form-group">
-          <label>Did you apply to another camp?</label>
+          <label data-i18n="lOtherCamp">Did you apply to another camp?</label>
           <select name="otherCamp">
-            <option value="">Select...</option>
-            <option value="No, it's JamHouse or bust">No, it's JamHouse or bust</option>
-            <option value="No, waiting for your feedback first">No, waiting for your feedback first</option>
-            <option value="Yes, waiting for their feedback">Yes, waiting for their feedback</option>
-            <option value="Yes, but they didn't accept me">Yes, but they didn't accept me</option>
+            <option value="" data-i18n="optSelect">Select...</option>
+            <option value="No, it's JamHouse or bust" data-i18n="optCampBust">No, it's JamHouse or bust</option>
+            <option value="No, waiting for your feedback first" data-i18n="optCampWaitingYou">No, waiting for your feedback first</option>
+            <option value="Yes, waiting for their feedback" data-i18n="optCampWaitingThem">Yes, waiting for their feedback</option>
+            <option value="Yes, but they didn't accept me" data-i18n="optCampRejected">Yes, but they didn't accept me</option>
           </select>
         </div>
         <div class="form-group">
-          <label>Are you ready to volunteer? <span class="optional">*</span></label>
+          <label><span data-i18n="lVolunteer">Are you ready to volunteer?</span> <span class="optional">*</span></label>
           <select name="volunteer" required>
-            <option value="">Select...</option>
-            <option value="Of course, count on me">Of course, count on me</option>
-            <option value="I just want to work on what is needed">I just want to work on what is needed</option>
-            <option value="Not really">Not really</option>
+            <option value="" data-i18n="optSelect">Select...</option>
+            <option value="Of course, count on me" data-i18n="optVolYes">Of course, count on me</option>
+            <option value="I just want to work on what is needed" data-i18n="optVolNeeded">I just want to work on what is needed</option>
+            <option value="Not really" data-i18n="optVolNot">Not really</option>
           </select>
         </div>
         <div class="form-group">
-          <label>How did you hear about JamHouse?</label>
+          <label data-i18n="lHowHeard">How did you hear about JamHouse?</label>
           <select name="howHeard">
-            <option value="">Select...</option>
-            <option value="Nowhere/Elsewhere website">Nowhere/Elsewhere website</option>
+            <option value="" data-i18n="optSelect">Select...</option>
+            <option value="Nowhere/Elsewhere website" data-i18n="optHeardWebsite">Nowhere/Elsewhere website</option>
             <option value="Facebook">Facebook</option>
-            <option value="Someone told me">Someone told me</option>
-            <option value="Other">Other</option>
+            <option value="Someone told me" data-i18n="optHeardTold">Someone told me</option>
+            <option value="Other" data-i18n="optHeardOther">Other</option>
           </select>
         </div>
         <div class="form-group">
-          <label>Special needs or accommodations?</label>
+          <label data-i18n="lSpecialNeeds">Special needs or accommodations?</label>
           <select name="specialNeeds">
-            <option value="">Select...</option>
-            <option value="Yes">Yes</option>
-            <option value="No">No</option>
+            <option value="" data-i18n="optSelect">Select...</option>
+            <option value="Yes" data-i18n="optYes">Yes</option>
+            <option value="No" data-i18n="optNo">No</option>
           </select>
         </div>
         <div class="form-group" id="needsDescriptionGroup" style="display:none">
-          <label>If yes, describe</label>
+          <label data-i18n="lNeedsDescription">If yes, describe</label>
           <textarea name="needsDescription"></textarea>
         </div>
       </div>
 
-      <button type="submit" class="submit-btn" id="submitBtn">Submit Application</button>
+      <button type="submit" class="submit-btn" id="submitBtn" data-i18n="submitBtn">Submit Application</button>
     </form>
   </div>
 
+  <script>
+  // Static, author-controlled copy only — never route user input through it.
+  // Note: option VALUES (what gets submitted/stored) stay English; only labels translate.
+  window.I18N = {
+    en: {
+      headingClosed: 'Applications Closed',
+      headingOpen: 'Application',
+      closedNotice: 'We have already reached our capacity for this year. Swing by our camp for a jam and a hangout. See you in less than a month!',
+      backHome: '&larr; Back to jamhouse.space',
+      thankYou: "Your application has been submitted. We'll review it and get back to you soon.",
+      s1Title: 'About You',
+      s1Desc: 'Tell us who you are.',
+      lName: 'Name',
+      lPlayaName: 'Playa Name',
+      optional: '(optional)',
+      lEmail: 'Email',
+      lPhone: 'Phone',
+      optCode: 'Code',
+      lTelegram: 'Telegram Handle',
+      lContactMethods: 'Contact Methods',
+      lContactOther: 'Other contact method',
+      lLocation: 'Where do you live?',
+      lNationality: 'Nationality',
+      lGender: 'Gender',
+      optSelect: 'Select...',
+      optMale: 'Male',
+      optFemale: 'Female',
+      optNonBinary: 'Non-binary',
+      optPreferNot: 'Prefer not to say',
+      lAge: 'Age',
+      lLanguage: 'Primary Language',
+      lOtherLanguages: 'Other Languages',
+      s2Title: 'Burn Experience',
+      s2Desc: 'Tell us about your burn history.',
+      lFirstBurn: 'Is this your first Burn?',
+      optYes: 'Yes',
+      optNo: 'No',
+      lFirstElsewhere: 'Is this your first Elsewhere/Nowhere?',
+      optFirstYes: 'Yes, this will be my first!',
+      optFirstExcited: "Yes, and I'm super excited!",
+      lKnowCoreTeam: 'Do you know somebody from the Core Team?',
+      s3Title: 'Values & Motivation',
+      s3Desc: "We'd love to know what drives you.",
+      lLeaveNoTrace: 'What does "Leave No Trace" evoke to you?',
+      lConsent: 'What does "Consent" evoke to you?',
+      lWhyElsewhere: 'What are the main reasons you want to come to Elsewhere this year?',
+      lBackground: 'What is your background?',
+      s4Title: 'Art, Skills & Fun',
+      s4Desc: "Show us what you've got.",
+      lArtProject: 'Will you present an artistic project? If so, describe it.',
+      lSkills: 'Do you have skills useful for JamHouse? Musician, sound engineer, building, cooking, etc.',
+      lLiftKg: 'How many kg can you lift barehanded and hungover under the desert sun?',
+      lDeepestSecrets: 'Do we need to know your deepest secrets?',
+      lTalents: 'Special talent or addiction to share?',
+      s5Title: 'Logistics',
+      s5Desc: 'A few practical things.',
+      lHasTicket: 'Do you have your ticket for Elsewhere 2026?',
+      optNotYet: 'No, not yet',
+      lCanBuild: 'Are you able to join the build?',
+      lHasCar: 'Are you coming by car?',
+      lMovingCar: 'If yes, are you planning to move your car during the festival?',
+      lOtherCamp: 'Did you apply to another camp?',
+      optCampBust: "No, it's JamHouse or bust",
+      optCampWaitingYou: 'No, waiting for your feedback first',
+      optCampWaitingThem: 'Yes, waiting for their feedback',
+      optCampRejected: "Yes, but they didn't accept me",
+      lVolunteer: 'Are you ready to volunteer?',
+      optVolYes: 'Of course, count on me',
+      optVolNeeded: 'I just want to work on what is needed',
+      optVolNot: 'Not really',
+      lHowHeard: 'How did you hear about JamHouse?',
+      optHeardWebsite: 'Nowhere/Elsewhere website',
+      optHeardTold: 'Someone told me',
+      optHeardOther: 'Other',
+      lSpecialNeeds: 'Special needs or accommodations?',
+      lNeedsDescription: 'If yes, describe',
+      submitBtn: 'Submit Application',
+      submitting: 'Submitting...',
+      confirmSubmit: 'Are you sure you want to submit your application?',
+      genericError: 'Something went wrong. Please try again.'
+    },
+    es: {
+      headingClosed: 'Solicitudes cerradas',
+      headingOpen: 'Solicitud',
+      closedNotice: 'Ya hemos completado el aforo de este año. Pásate por nuestro campamento a tocar y pasar el rato. ¡Nos vemos en menos de un mes!',
+      backHome: '&larr; Volver a jamhouse.space',
+      thankYou: 'Tu solicitud se ha enviado. La revisaremos y te responderemos pronto.',
+      s1Title: 'Sobre ti',
+      s1Desc: 'Cuéntanos quién eres.',
+      lName: 'Nombre',
+      lPlayaName: 'Nombre de playa',
+      optional: '(opcional)',
+      lEmail: 'Email',
+      lPhone: 'Teléfono',
+      optCode: 'Prefijo',
+      lTelegram: 'Usuario de Telegram',
+      lContactMethods: 'Medios de contacto',
+      lContactOther: 'Otro medio de contacto',
+      lLocation: '¿Dónde vives?',
+      lNationality: 'Nacionalidad',
+      lGender: 'Género',
+      optSelect: 'Selecciona...',
+      optMale: 'Hombre',
+      optFemale: 'Mujer',
+      optNonBinary: 'No binario',
+      optPreferNot: 'Prefiero no decirlo',
+      lAge: 'Edad',
+      lLanguage: 'Idioma principal',
+      lOtherLanguages: 'Otros idiomas',
+      s2Title: 'Experiencia burner',
+      s2Desc: 'Cuéntanos tu trayectoria burner.',
+      lFirstBurn: '¿Es tu primer burn?',
+      optYes: 'Sí',
+      optNo: 'No',
+      lFirstElsewhere: '¿Es tu primer Elsewhere/Nowhere?',
+      optFirstYes: '¡Sí, será el primero!',
+      optFirstExcited: '¡Sí, y tengo muchísimas ganas!',
+      lKnowCoreTeam: '¿Conoces a alguien del Core Team?',
+      s3Title: 'Valores y motivación',
+      s3Desc: 'Nos encantaría saber qué te mueve.',
+      lLeaveNoTrace: '¿Qué te evoca "Leave No Trace" (no dejar rastro)?',
+      lConsent: '¿Qué te evoca el "consentimiento"?',
+      lWhyElsewhere: '¿Cuáles son las principales razones por las que quieres venir a Elsewhere este año?',
+      lBackground: '¿Cuál es tu trayectoria?',
+      s4Title: 'Arte, habilidades y diversión',
+      s4Desc: 'Enséñanos lo que sabes hacer.',
+      lArtProject: '¿Vas a presentar un proyecto artístico? Si es así, descríbelo.',
+      lSkills: '¿Tienes habilidades útiles para JamHouse? Música, sonido, construcción, cocina, etc.',
+      lLiftKg: '¿Cuántos kilos puedes levantar a pelo y con resaca bajo el sol del desierto?',
+      lDeepestSecrets: '¿Necesitamos conocer tus secretos más oscuros?',
+      lTalents: '¿Algún talento especial o adicción que compartir?',
+      s5Title: 'Logística',
+      s5Desc: 'Unas cuantas cosas prácticas.',
+      lHasTicket: '¿Tienes ya tu entrada para Elsewhere 2026?',
+      optNotYet: 'No, todavía no',
+      lCanBuild: '¿Puedes venir a la construcción (build)?',
+      lHasCar: '¿Vienes en coche?',
+      lMovingCar: 'Si es así, ¿piensas mover el coche durante el festival?',
+      lOtherCamp: '¿Has solicitado plaza en otro campamento?',
+      optCampBust: 'No, JamHouse o nada',
+      optCampWaitingYou: 'No, primero espero vuestra respuesta',
+      optCampWaitingThem: 'Sí, estoy esperando su respuesta',
+      optCampRejected: 'Sí, pero no me aceptaron',
+      lVolunteer: '¿Estás dispuesto/a a hacer voluntariado?',
+      optVolYes: 'Claro, cuenta conmigo',
+      optVolNeeded: 'Quiero ayudar en lo que haga falta',
+      optVolNot: 'La verdad es que no',
+      lHowHeard: '¿Cómo conociste JamHouse?',
+      optHeardWebsite: 'Web de Nowhere/Elsewhere',
+      optHeardTold: 'Me lo contó alguien',
+      optHeardOther: 'Otro',
+      lSpecialNeeds: '¿Necesidades especiales o adaptaciones?',
+      lNeedsDescription: 'Si es así, descríbelas',
+      submitBtn: 'Enviar solicitud',
+      submitting: 'Enviando...',
+      confirmSubmit: '¿Seguro que quieres enviar tu solicitud?',
+      genericError: 'Algo ha ido mal. Inténtalo de nuevo, por favor.'
+    }
+  };
+  </script>
+  <script src="/assets/js/i18n.js"></script>
   <script>
     const form = document.getElementById('applyForm');
 
@@ -522,7 +708,11 @@ title: Apply - JamHouse 2026
       const backLink = document.getElementById('closedBackLink');
       if (backLink) backLink.style.display = 'none';
       const heading = document.getElementById('applyHeading');
-      if (heading) heading.textContent = 'Application';
+      if (heading) {
+        // Swap the i18n key so language toggles keep showing the open-form heading.
+        heading.setAttribute('data-i18n', 'headingOpen');
+        JHI18N.refresh();
+      }
     }
 
     // Conditional fields
@@ -538,13 +728,13 @@ title: Apply - JamHouse 2026
     form.addEventListener('submit', async function(e) {
       e.preventDefault();
 
-      if (!confirm('Are you sure you want to submit your application?')) return;
+      if (!confirm(JHI18N.t('confirmSubmit'))) return;
 
       const btn = document.getElementById('submitBtn');
       const errorMsg = document.getElementById('errorMsg');
       errorMsg.style.display = 'none';
       btn.disabled = true;
-      btn.textContent = 'Submitting...';
+      btn.textContent = JHI18N.t('submitting');
 
       const contactMethods = [];
       if (form.contactWhatsApp.checked) contactMethods.push('WhatsApp');
@@ -599,19 +789,21 @@ title: Apply - JamHouse 2026
         });
         if (!res.ok) {
           const err = await res.json().catch(() => ({}));
-          throw new Error(err.error || 'Something went wrong. Please try again.');
+          // Server-sent err.error strings stay English (they come from the API).
+          throw new Error(err.error || JHI18N.t('genericError'));
         }
         form.style.display = 'none';
         document.querySelector('.form-header').style.display = 'none';
         document.getElementById('thankYou').style.display = 'block';
       } catch (err) {
-        errorMsg.textContent = err.message;
+        // TypeError = network failure (browser's English "Failed to fetch") → translated generic message.
+        errorMsg.textContent = err instanceof TypeError ? JHI18N.t('genericError') : err.message;
         errorMsg.style.display = 'block';
         // The error box sits above a ~35-field form; without this the user
         // (parked at the submit button) never sees the failure message.
         document.getElementById('errorMsg').scrollIntoView({ behavior: 'smooth', block: 'center' });
         btn.disabled = false;
-        btn.textContent = 'Submit Application';
+        btn.textContent = JHI18N.t('submitBtn');
       }
     });
   </script>

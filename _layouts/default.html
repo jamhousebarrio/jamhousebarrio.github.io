@@ -104,6 +104,34 @@
       margin-top: 8px;
     }
     .hero-info a { color: var(--accent); text-decoration: none; }
+    .top-right-bar {
+      position: absolute;
+      top: 28px;
+      right: 28px;
+      z-index: 2;
+      display: flex;
+      gap: 14px;
+      align-items: center;
+    }
+    .lang-toggle {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-family: var(--heading);
+      font-size: 0.85rem;
+    }
+    .lang-toggle button {
+      background: none;
+      border: none;
+      color: rgba(255,255,255,0.55);
+      cursor: pointer;
+      font: inherit;
+      padding: 4px 6px;
+      letter-spacing: 0.05em;
+    }
+    .lang-toggle button:hover { color: rgba(255,255,255,0.85); }
+    .lang-toggle button.active { color: var(--accent); font-weight: 600; }
+    .lang-toggle .sep { color: rgba(255,255,255,0.3); }
     .scroll-arrow {
       position: absolute;
       bottom: 24px;
@@ -246,7 +274,8 @@
       .hero-content { padding: 24px 16px; }
       .hero-cta { padding: 12px 32px; font-size: 0.95rem; width: 100%; text-align: center; }
       .hero-desc { font-size: 0.9rem; }
-      .member-login-btn { top: 16px !important; right: 16px !important; font-size: 0.9rem !important; padding: 10px 18px !important; }
+      .top-right-bar { top: 16px; right: 16px; gap: 8px; }
+      .member-login-btn { font-size: 0.9rem !important; padding: 10px 18px !important; }
     }
   </style>
 </head>
@@ -256,12 +285,17 @@
     <div class="hero-bg"></div>
     <div class="hero-content">
       <div class="hero-title">JamHouse</div>
-      <div class="hero-sub">Live Music Barrio &middot; Elsewhere 2026</div>
-      <p class="hero-desc">Live music barrio. Third year on the playa. Built on loud, unrehearsed joy.</p>
-      <a href="/apply" class="hero-cta">Apply for Membership</a>
-      <div class="hero-info">Aragon, Spain &middot; July 2026 &middot; <a href="https://nobodies.team">nobodies.team</a></div>
+      <div class="hero-sub" data-i18n="heroSub">Live Music Barrio &middot; Elsewhere 2026</div>
+      <p class="hero-desc" data-i18n="heroDesc">Live music barrio. Third year on the playa. Built on loud, unrehearsed joy.</p>
+      <a href="/apply" class="hero-cta" data-i18n="heroCta">Apply for Membership</a>
+      <div class="hero-info" data-i18n="heroInfo">Aragon, Spain &middot; July 2026 &middot; <a href="https://nobodies.team">nobodies.team</a></div>
     </div>
-    <a href="/admin" class="member-login-btn" style="position:absolute;top:28px;right:28px;z-index:2;color:rgba(255,255,255,0.85);font-size:1.1rem;text-decoration:none;font-family:var(--heading);font-weight:500;padding:14px 30px;border:1px solid rgba(255,255,255,0.3);border-radius:8px;backdrop-filter:blur(4px);background:rgba(0,0,0,0.3);transition:all 0.2s;" title="Member Login">Member Login</a>
+    <div class="top-right-bar">
+      <div class="lang-toggle" aria-label="Language">
+        <button type="button" data-lang-btn="en">EN</button><span class="sep">|</span><button type="button" data-lang-btn="es">ES</button>
+      </div>
+      <a href="/admin" class="member-login-btn" style="color:rgba(255,255,255,0.85);font-size:1.1rem;text-decoration:none;font-family:var(--heading);font-weight:500;padding:14px 30px;border:1px solid rgba(255,255,255,0.3);border-radius:8px;backdrop-filter:blur(4px);background:rgba(0,0,0,0.3);transition:all 0.2s;" title="Member Login" data-i18n="memberLogin">Member Login</a>
+    </div>
     <a href="#beat-who" class="scroll-arrow" aria-label="Scroll down">&#x25BE;</a>
   </section>
   <main class="home-content">
@@ -285,6 +319,56 @@
     });
   })();
   </script>
+  <script>
+  // Static, author-controlled copy only (some entries contain trusted links).
+  window.I18N = {
+    en: {
+      heroSub: 'Live Music Barrio &middot; Elsewhere 2026',
+      heroDesc: 'Live music barrio. Third year on the playa. Built on loud, unrehearsed joy.',
+      heroCta: 'Apply for Membership',
+      heroInfo: 'Aragon, Spain &middot; July 2026 &middot; <a href="https://nobodies.team">nobodies.team</a>',
+      memberLogin: 'Member Login',
+      whoTitle: 'Who we are',
+      whoP1: 'JamHouse is a barrio of musicians and music lovers at <a href="https://nobodies.team">Elsewhere</a>, now in our 3rd year on the playa. We come from all over the world — artists, engineers, chefs, wanderers — an international mix that speaks the shared language of music.',
+      whoP2: 'Some of us are seasoned musicians, some are honorable groupies. What unites us is how much we love the music.',
+      whatTitle: 'What happens here',
+      whatLi1: 'Open stages and impromptu jam sessions',
+      whatLi2: 'Shared instruments — amps, drums, guitars, mics',
+      whatLi3: 'Group singalongs under the desert sky',
+      whatLi4: 'Tasty meals and cold drinks',
+      whatLi5: 'A shower with actual good pressure',
+      whatLi6: 'A shaded, welcoming home on the playa',
+      whatLi7: "Kind, supportive people who've got your back",
+      joinTitle: 'Come join us',
+      joinP1: "We're looking for people who want to be part of JamHouse for 2026. Musicians and non-musicians welcome — we need builders, cooks, and good energy just as much as we need guitar players.",
+      joinCta: 'Apply for Membership',
+      joinFootnote: 'JamHouse is part of <a href="https://nobodies.team">Elsewhere 2026</a> — a participatory burn event in the Aragon desert, July 2026.'
+    },
+    es: {
+      heroSub: 'Barrio de m&uacute;sica en vivo &middot; Elsewhere 2026',
+      heroDesc: 'Barrio de música en vivo. Tercer año en la playa. A base de alegría a todo volumen y sin ensayar.',
+      heroCta: 'Solicita tu plaza',
+      heroInfo: 'Arag&oacute;n, Espa&ntilde;a &middot; Julio 2026 &middot; <a href="https://nobodies.team">nobodies.team</a>',
+      memberLogin: 'Acceso miembros',
+      whoTitle: 'Quiénes somos',
+      whoP1: 'JamHouse es un barrio de músicos y amantes de la música en <a href="https://nobodies.team">Elsewhere</a>, ya en nuestro tercer año en la playa. Venimos de todo el mundo — artistas, ingenieros, cocineros, trotamundos — una mezcla internacional que habla el idioma común de la música.',
+      whoP2: 'Algunos somos músicos curtidos, otros groupies honorables. Lo que nos une es lo mucho que amamos la música.',
+      whatTitle: 'Qué pasa aquí',
+      whatLi1: 'Escenarios abiertos y jams improvisadas',
+      whatLi2: 'Instrumentos compartidos: amplis, batería, guitarras, micros',
+      whatLi3: 'Cantadas en grupo bajo el cielo del desierto',
+      whatLi4: 'Comida rica y bebidas frías',
+      whatLi5: 'Una ducha con presión de verdad',
+      whatLi6: 'Un hogar acogedor y con sombra en la playa',
+      whatLi7: 'Gente amable que te cubre las espaldas',
+      joinTitle: 'Únete a nosotros',
+      joinP1: 'Buscamos gente que quiera formar parte de JamHouse en 2026. Bienvenidos músicos y no músicos: necesitamos constructores, cocineros y buena energía tanto como guitarristas.',
+      joinCta: 'Solicita tu plaza',
+      joinFootnote: 'JamHouse forma parte de <a href="https://nobodies.team">Elsewhere 2026</a>, un burn participativo en el desierto de Aragón, julio de 2026.'
+    }
+  };
+  </script>
+  <script src="/assets/js/i18n.js"></script>
   {% else %}
   <header class="hero-compact">
     <a href="/" style="text-decoration:none">
