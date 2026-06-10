@@ -227,21 +227,33 @@
     btn.textContent = 'Saving...';
     btn.disabled = true;
 
-    var r = await JH.apiFetch('/api/drinks', {
-      action: 'upsert',
-      name: name,
-      category: document.getElementById('drink-category').value,
-      unit: document.getElementById('drink-unit').value,
-      perPersonPerDay: document.getElementById('drink-per-person').value,
-      notes: document.getElementById('drink-notes').value,
-    });
-
-    btn.textContent = 'Save Item';
-    btn.disabled = false;
-
-    if (!r.ok) { var d = await r.json().catch(function () { return {}; }); alert(d.error || 'Save failed.'); return; }
-    closeModal();
-    await reload();
+    try {
+      var r;
+      try {
+        // originalName keys the upsert on the pre-edit name so a rename
+        // updates the existing row instead of creating a duplicate.
+        r = await JH.apiFetch('/api/drinks', {
+          action: 'upsert',
+          originalName: editingName,
+          name: name,
+          category: document.getElementById('drink-category').value,
+          unit: document.getElementById('drink-unit').value,
+          perPersonPerDay: document.getElementById('drink-per-person').value,
+          notes: document.getElementById('drink-notes').value,
+        });
+      } catch (e) {
+        // Scoped to the apiFetch only: a reload() failure after a successful
+        // save must not false-alarm "not saved".
+        alert('Network error — not saved.');
+        return;
+      }
+      if (!r.ok) { var d = await r.json().catch(function () { return {}; }); alert(d.error || 'Save failed.'); return; }
+      closeModal();
+      await reload();
+    } finally {
+      btn.textContent = 'Save Item';
+      btn.disabled = false;
+    }
   });
 
   // ── Reload ─────────────────────────────────────────────────────────────────
