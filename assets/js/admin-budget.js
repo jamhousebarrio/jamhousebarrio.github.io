@@ -15,6 +15,18 @@
   var isAdmin = JH.isAdmin();
   var esc = JH.esc;
 
+  // Independent reads (history snapshots + fees received) start in parallel
+  // with the items fetch instead of waiting for it; renderTrends() consumes
+  // this shared promise on first run, then re-fetches fresh on later calls
+  // (e.g. after "Snapshot now").
+  function fetchTrendsData() {
+    return Promise.all([
+      JH.apiFetch('/api/budget', { action: 'fetch-history' }).then(function(r) { return r.ok ? r.json() : { snapshots: [] }; }).catch(function() { return { snapshots: [] }; }),
+      loadFeesReceived()
+    ]);
+  }
+  var trendsDataPromise = fetchTrendsData();
+
   // Fetch budget items
   var res = await JH.apiFetch('/api/budget', { action: 'fetch-items' });
   if (!res.ok) return;
@@ -243,10 +255,8 @@
     return best;
   }
   async function renderTrends() {
-    var fetchPair = await Promise.all([
-      JH.apiFetch('/api/budget', { action: 'fetch-history' }).then(function(r) { return r.ok ? r.json() : { snapshots: [] }; }).catch(function() { return { snapshots: [] }; }),
-      loadFeesReceived()
-    ]);
+    var fetchPair = await (trendsDataPromise || fetchTrendsData());
+    trendsDataPromise = null;
     var snapshots = (fetchPair[0] && fetchPair[0].snapshots) || [];
     var currentFees = fetchPair[1];
     document.getElementById('stat-fees-received').textContent = eur(currentFees);
@@ -903,6 +913,7 @@
   }
 
   async function handleRequestAction(id, action, newStatus) {
+    if (!confirm('Mark this request as ' + newStatus + '?')) return;
     var r = await JH.apiFetch('/api/budget', { action: action, requestId: id });
     if (!r.ok) { alert('Failed'); return; }
     var req = shoppingRequests.find(function(x) { return x.RequestID === id; });

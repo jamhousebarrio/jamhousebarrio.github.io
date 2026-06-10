@@ -87,6 +87,7 @@ access: general
       /* Phones: viewport-bounded grid so it doesn't fill the whole screen. */
       #budget-grid { height: 55vh; min-height: 300px; max-height: 360px; }
     }
+    .loading-pulse{animation:jh-pulse 1.2s ease-in-out infinite;opacity:.5}@keyframes jh-pulse{50%{opacity:.15}}
   </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="/assets/js/supabase-client.js"></script>
@@ -101,27 +102,27 @@ access: general
   <div class="stats-row">
     <div class="stat-card">
       <div class="stat-label">Barrio Fees Received</div>
-      <div class="stat-number" id="stat-fees-received" style="color:#6dcf72;">-</div>
+      <div class="stat-number" id="stat-fees-received" style="color:#6dcf72;"><span class="loading-pulse">…</span></div>
       <div class="stat-delta" id="delta-fees-received"></div>
     </div>
     <div class="stat-card">
       <div class="stat-label">Event Budget</div>
-      <div class="stat-number" id="stat-event-budget">-</div>
+      <div class="stat-number" id="stat-event-budget"><span class="loading-pulse">…</span></div>
       <div class="stat-delta" id="delta-event-budget"></div>
     </div>
     <div class="stat-card">
       <div class="stat-label">Total Budgeted</div>
-      <div class="stat-number" id="stat-budgeted">-</div>
+      <div class="stat-number" id="stat-budgeted"><span class="loading-pulse">…</span></div>
       <div class="stat-delta" id="delta-budgeted"></div>
     </div>
     <div class="stat-card">
       <div class="stat-label">Total Spent</div>
-      <div class="stat-number" id="stat-spent" style="color:#4caf50;">-</div>
+      <div class="stat-number" id="stat-spent" style="color:#4caf50;"><span class="loading-pulse">…</span></div>
       <div class="stat-delta" id="delta-spent"></div>
     </div>
     <div class="stat-card">
       <div class="stat-label">Budget Headroom</div>
-      <div class="stat-number" id="stat-headroom" style="color:#ff9800;">-</div>
+      <div class="stat-number" id="stat-headroom" style="color:#ff9800;"><span class="loading-pulse">…</span></div>
       <div class="stat-delta" id="delta-headroom"></div>
     </div>
   </div>
