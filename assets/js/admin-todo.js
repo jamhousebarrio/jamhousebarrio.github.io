@@ -2,12 +2,10 @@
   var members = await JH.authenticate();
   if (members === null) return;
 
-  var approvedMembers = [
-    'Alex', 'Alessia', 'Benergy', 'Blossom', 'Camille', 'Claudiu',
-    'Dima', 'Edward', 'Emil', 'Engineer Dave', 'Esben', 'Flipper',
-    'Frank', 'Goutiere', 'James', 'Jo', 'KitKat', 'Olivia',
-    'Raphael', 'Sara', 'Yona',
-  ];
+  var approvedMembers = members.filter(function (m) {
+    return (JH.val(m, 'Status') || '').toLowerCase() === 'approved';
+  }).map(function (m) { return JH.val(m, 'Playa Name') || JH.val(m, 'Name'); })
+    .filter(Boolean).sort(function (a, b) { return a.localeCompare(b); });
 
   var WEEKS = [
     'Week 1 — Apr 27–May 3',
@@ -68,7 +66,7 @@
   ];
 
   var CATEGORIES = ['General', 'Construction', 'Kitchen', 'Deco', 'Events'];
-  var state = { tasks: [], view: 'list', categoryFilter: '' };
+  var state = { tasks: [], view: 'list', categoryFilter: '', loadFailed: false };
   var chart = null;
   var dragTaskId = null;
 
@@ -129,33 +127,40 @@
       var err = {};
       try { err = await res.json(); } catch (e) {}
       console.error('[ToDo] API error', res.status, err);
-      return err;
+      return null;
     }
     return res.json();
   }
 
   async function loadTasks() {
     var data = await apiFetch({ action: 'todo-fetch' });
-    state.tasks = data.tasks || [];
-
-    if (state.tasks.length === 0) {
-      // Populate state immediately from seed data so UI shows tasks right away
-      state.tasks = SEED_TASKS.map(function (t) {
-        return { Id: makeId(), Task: t.task, Week: t.week, Responsible: '', Done: 'false' };
-      });
-
-      // Persist to sheet in background sequentially to avoid Sheets API rate limits
-      (async function () {
-        var toSave = state.tasks.slice();
-        for (var i = 0; i < toSave.length; i++) {
-          var t = toSave[i];
-          try {
-            await JH.apiFetch('/api/timeline', { action: 'todo-add', id: t.Id, task: t.Task, week: t.Week, responsible: '', done: 'false', category: 'General' });
-          } catch (e) { console.error('[ToDo] seed add failed', e); }
-        }
-        console.log('[ToDo] Seed complete.');
-      })();
+    if (!data) {
+      state.tasks = [];
+      state.loadFailed = true;
+      return;
     }
+
+    if (Array.isArray(data.tasks) && data.tasks.length > 0) {
+      state.tasks = data.tasks;
+      return;
+    }
+
+    // Successful fetch but genuinely empty — seed once
+    state.tasks = SEED_TASKS.map(function (t) {
+      return { Id: makeId(), Task: t.task, Week: t.week, Responsible: '', Done: 'false' };
+    });
+
+    // Persist to sheet in background sequentially to avoid Sheets API rate limits
+    (async function () {
+      var toSave = state.tasks.slice();
+      for (var i = 0; i < toSave.length; i++) {
+        var t = toSave[i];
+        try {
+          await JH.apiFetch('/api/timeline', { action: 'todo-add', id: t.Id, task: t.Task, week: t.Week, responsible: '', done: 'false', category: 'General' });
+        } catch (e) { console.error('[ToDo] seed add failed', e); }
+      }
+      console.log('[ToDo] Seed complete.');
+    })();
   }
 
   async function saveTask(taskObj) {
@@ -215,6 +220,10 @@
   // ── List view ──────────────────────────────────────────────────────────────
 
   function renderListView() {
+    if (state.loadFailed) {
+      document.getElementById('todo-view').innerHTML = '<p class="empty-state" style="color:var(--text-muted)">Couldn\'t load tasks — refresh to retry.</p>';
+      return;
+    }
     var sorted = state.tasks.slice().sort(function (a, b) { return weekIndex(a.Week) - weekIndex(b.Week); });
     var grouped = {};
     var weekOrder = [];
@@ -301,6 +310,10 @@
   // ── Kanban view ────────────────────────────────────────────────────────────
 
   function renderKanbanView() {
+    if (state.loadFailed) {
+      document.getElementById('todo-view').innerHTML = '<p class="empty-state" style="color:var(--text-muted)">Couldn\'t load tasks — refresh to retry.</p>';
+      return;
+    }
     var visibleTasks = state.categoryFilter
       ? state.tasks.filter(function (t) { return taskCategory(t) === state.categoryFilter; })
       : state.tasks;
