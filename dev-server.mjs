@@ -1,4 +1,5 @@
 import { createRequire } from 'module';
+import { readFileSync } from 'fs';
 const require = createRequire(import.meta.url);
 
 const express = require('express');
@@ -30,39 +31,14 @@ for (const name of apiFiles) {
   });
 }
 
-// ── Vercel-style rewrites ─────────────────────────────────────────────────────
-const rewrites = [
-  ['/admin', '/admin.html'],
-  ['/admin/applications', '/admin/applications.html'],
-  ['/admin/demographics', '/admin/demographics.html'],
-  ['/admin/budget', '/admin/budget.html'],
-  ['/admin/shifts', '/admin/shifts.html'],
-  ['/admin/inventory', '/admin/inventory.html'],
-  ['/admin/logistics', '/admin/logistics.html'],
-  ['/admin/meals', '/admin/meals.html'],
-  ['/admin/drinks', '/admin/drinks.html'],
-  ['/admin/events', '/admin/events.html'],
-  ['/admin/roles', '/admin/roles.html'],
-  ['/admin/timeline', '/admin/timeline.html'],
-  ['/admin/profile', '/admin/profile.html'],
-  ['/admin/build', '/admin/build.html'],
-  ['/admin/fee-paid', '/admin/fee-paid.html'],
-  ['/admin/info', '/admin/info.html'],
-  ['/admin/menu', '/admin/menu.html'],
-  ['/admin/todo', '/admin/todo.html'],
-  ['/apply', '/apply.html'],
-];
-
-for (const [source, dest] of rewrites) {
-  app.get(source, (req, res) => {
-    res.sendFile(path.join(__dirname, dest));
-  });
+// ── Vercel-style rewrites (read from vercel.json — single source of truth) ────
+const vercelCfg = JSON.parse(readFileSync(path.join(__dirname, 'vercel.json'), 'utf8'));
+for (const { source, destination } of vercelCfg.rewrites || []) {
+  app.get(source, (req, res) => res.sendFile(path.join(__dirname, destination)));
 }
 
 // ── Static files ──────────────────────────────────────────────────────────────
-app.use(express.static(__dirname, {
-  extensions: ['html'],
-}));
+app.use(express.static(__dirname));
 
 // ── Start ─────────────────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 3000;
