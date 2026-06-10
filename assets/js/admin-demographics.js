@@ -16,15 +16,20 @@
       var rolesData = await rolesRes.json();
       (rolesData.roles || []).forEach(function(role) {
         (role.AssignedTo || '').split(',').map(function(s) { return s.trim(); }).filter(Boolean).forEach(function(person) {
-          if (!rolesByMember[person]) rolesByMember[person] = [];
-          rolesByMember[person].push(role.Name);
+          var key = person.toLowerCase().trim();
+          if (!rolesByMember[key]) rolesByMember[key] = [];
+          rolesByMember[key].push(role.Name);
         });
       });
     }
   } catch (e) { console.error('Failed to load roles', e); }
   function memberRoles(m) {
-    var key = val(m, 'Playa Name') || val(m, 'Name') || '';
-    return (rolesByMember[key] || []).join(', ');
+    var out = [];
+    [val(m, 'Playa Name'), val(m, 'Name')].forEach(function (n) {
+      var hit = rolesByMember[(n || '').toLowerCase().trim()];
+      if (hit) hit.forEach(function (r) { if (out.indexOf(r) === -1) out.push(r); });
+    });
+    return out.join(', ');
   }
 
   // Last-login map (admin only — Supabase admin.listUsers requires service role).

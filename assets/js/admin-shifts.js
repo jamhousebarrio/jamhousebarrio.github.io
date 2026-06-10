@@ -1,4 +1,4 @@
-import { buildWeightIndex, typePoints, rolePoints, memberPoints } from '/assets/js/shift-points-logic.js';
+import { buildWeightIndex, typePoints, rolePoints, memberPoints, durationHours } from '/assets/js/shift-points-logic.js';
 
 (async function () {
   var members = await JH.authenticate();
@@ -79,15 +79,6 @@ import { buildWeightIndex, typePoints, rolePoints, memberPoints } from '/assets/
       return isNaN(dt2.getTime()) ? null : dt2;
     }
     return null;
-  }
-
-  function durationHours(start, end) {
-    if (!start || !end) return 0;
-    var sp = start.split(':'); var ep = end.split(':');
-    if (sp.length < 2 || ep.length < 2) return 0;
-    var mins = (+ep[0] * 60 + +ep[1]) - (+sp[0] * 60 + +sp[1]);
-    if (mins <= 0) mins += 24 * 60;
-    return mins / 60;
   }
 
   function slotKey(start, end) { return (start || '') + '|' + (end || ''); }
