@@ -55,6 +55,7 @@ export default async function handler(req, res) {
     }
 
     if (action === 'photo-add') {
+      if (auth.observer) return res.status(403).json({ error: 'Observers are read-only' });
       const { url, labels } = payload;
       if (!url) return res.status(400).json({ error: 'url required' });
       await ensurePhotosTab(sheets, spreadsheetId);
@@ -71,6 +72,7 @@ export default async function handler(req, res) {
     }
 
     if (action === 'photo-update-labels') {
+      if (auth.observer) return res.status(403).json({ error: 'Observers are read-only' });
       const { id, labels } = payload;
       if (!id) return res.status(400).json({ error: 'id required' });
       const rows = await safeGet(sheets, spreadsheetId, PHOTO_TAB);
@@ -98,6 +100,7 @@ export default async function handler(req, res) {
     }
 
     if (action === 'photo-delete') {
+      if (auth.observer) return res.status(403).json({ error: 'Observers are read-only' });
       const { id } = payload;
       if (!id) return res.status(400).json({ error: 'id required' });
       const rows = await safeGet(sheets, spreadsheetId, PHOTO_TAB);
