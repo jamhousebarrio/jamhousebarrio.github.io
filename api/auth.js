@@ -325,12 +325,16 @@ export default async function handler(req, res) {
       if (!targetEmail) return res.status(400).json({ error: 'email required' });
 
       const supabase = getSupabaseAdmin();
-      const { data: { users }, error: listError } = await supabase.auth.admin.listUsers();
-      if (listError) {
-        console.error('List users error:', listError);
-        return res.status(500).json({ error: 'Failed to find user' });
+      let target = null;
+      for (let page = 1; page <= 20 && !target; page++) {
+        const { data, error: listError } = await supabase.auth.admin.listUsers({ page, perPage: 1000 });
+        if (listError) {
+          console.error('List users error:', listError);
+          return res.status(500).json({ error: 'Failed to find user' });
+        }
+        target = (data.users || []).find(u => (u.email || '').toLowerCase() === targetEmail.toLowerCase()) || null;
+        if ((data.users || []).length < 1000) break;
       }
-      const target = users.find(u => u.email.toLowerCase() === targetEmail.toLowerCase());
       if (!target) {
         return res.status(200).json({ success: true, deleted: false });
       }
