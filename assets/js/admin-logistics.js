@@ -8,7 +8,12 @@ import { parseISO, ganttRange, enumerateDays, barCells, isEventDay, eeColorKey }
     return (m['Status'] || '').toLowerCase() === 'approved';
   });
 
-  var state = { logistics: [], myName: null, editingMember: null };
+  var state = { logistics: [], myName: null, editingMember: null, sortKey: 'arrives', sortDir: 'asc' };
+  try {
+    var savedSort = JSON.parse(localStorage.getItem('jh.logistics.sort') || '{}');
+    if (savedSort.key) state.sortKey = savedSort.key;
+    if (savedSort.dir === 'desc') state.sortDir = 'desc';
+  } catch (e) {}
 
   function activeName() { return state.editingMember || state.myName; }
 
@@ -288,18 +293,42 @@ import { parseISO, ganttRange, enumerateDays, barCells, isEventDay, eeColorKey }
       return '<span style="display:inline-block;padding:1px 8px;border-radius:10px;font-size:0.68rem;font-weight:700;text-transform:capitalize;color:#0a0a0a;background:' + EE_COLORS[key] + '">' + key + '</span>';
     }
 
-    // Sort approved members by arrival date (members with a date first, then alphabetically)
+    function sortValue(m, key) {
+      var nm = m['Playa Name'] || m['Name'] || '';
+      var row = logMap[nm] || logMap[m['Name']] || {};
+      switch (key) {
+        case 'name': return nm.toLowerCase();
+        case 'ee': return (eeMap[nm.toLowerCase().trim()] || eeMap[(m['Name'] || '').toLowerCase().trim()] || '');
+        case 'arrives': return row['ArrivalDate'] || '';
+        case 'time': return row['ArrivalTime'] || '';
+        case 'transport': return (row['Transport'] || '').toLowerCase();
+        case 'pickup': return (row['NeedsPickup'] || '').toLowerCase();
+        case 'departs': return row['DepartureDate'] || '';
+        case 'camping': return (row['CampingType'] || '').toLowerCase();
+        case 'size': return (row['TentSize'] || '').toLowerCase();
+        case 'noorg': return row['NoOrgDates'] || '';
+        case 'notes': return (row['Notes'] || '').toLowerCase();
+        default: return '';
+      }
+    }
+    var sortKey = state.sortKey || 'arrives';
+    var sortDir = state.sortDir === 'desc' ? 'desc' : 'asc';
     var sorted = approvedMembers.slice().sort(function (a, b) {
-      var nameA = a['Playa Name'] || a['Name'] || '';
-      var nameB = b['Playa Name'] || b['Name'] || '';
-      var rowA = logMap[nameA] || logMap[a['Name']];
-      var rowB = logMap[nameB] || logMap[b['Name']];
-      var dateA = rowA ? (rowA['ArrivalDate'] || '') : '';
-      var dateB = rowB ? (rowB['ArrivalDate'] || '') : '';
-      if (dateA && dateB) return dateA < dateB ? -1 : dateA > dateB ? 1 : 0;
-      if (dateA) return -1;
-      if (dateB) return 1;
-      return nameA < nameB ? -1 : nameA > nameB ? 1 : 0;
+      var va = sortValue(a, sortKey);
+      var vb = sortValue(b, sortKey);
+      var aEmpty = !va, bEmpty = !vb;
+      if (aEmpty !== bEmpty) return aEmpty ? 1 : -1;  // empties always last
+      if (aEmpty && bEmpty) {
+        var na = (a['Playa Name'] || a['Name'] || '').toLowerCase();
+        var nb = (b['Playa Name'] || b['Name'] || '').toLowerCase();
+        return na < nb ? -1 : na > nb ? 1 : 0;
+      }
+      if (va === vb) {
+        var na2 = (a['Playa Name'] || a['Name'] || '').toLowerCase();
+        var nb2 = (b['Playa Name'] || b['Name'] || '').toLowerCase();
+        return na2 < nb2 ? -1 : na2 > nb2 ? 1 : 0;
+      }
+      return sortDir === 'asc' ? (va < vb ? -1 : 1) : (va < vb ? 1 : -1);
     });
 
     // NoOrg duty days formatted as a list (shared by table + cards).
@@ -310,8 +339,16 @@ import { parseISO, ganttRange, enumerateDays, barCells, isEventDay, eeColorKey }
     }
 
     // ── Desktop table (hidden ≤480px) ──
+    function thSort(key, label) {
+      var isActive = sortKey === key;
+      var arrow = isActive ? (sortDir === 'asc' ? ' ▲' : ' ▼') : '';
+      var style = 'cursor:pointer;user-select:none;' + (isActive ? 'color:var(--accent);' : '');
+      return '<th data-sort-key="' + key + '" style="' + style + '">' + label + arrow + '</th>';
+    }
     var html = '<div class="hide-on-mobile" style="overflow-x:auto"><table class="logistics-table"><thead><tr>';
-    html += '<th>Name</th><th>EE</th><th>Arrives</th><th>Time</th><th>Transport</th><th>Pickup</th><th>Departs</th><th>Camping</th><th>Size</th><th>NoOrg</th><th>Notes</th>';
+    html += thSort('name', 'Name') + thSort('ee', 'EE') + thSort('arrives', 'Arrives') + thSort('time', 'Time') +
+            thSort('transport', 'Transport') + thSort('pickup', 'Pickup') + thSort('departs', 'Departs') +
+            thSort('camping', 'Camping') + thSort('size', 'Size') + thSort('noorg', 'NoOrg') + thSort('notes', 'Notes');
     html += '</tr></thead><tbody>';
 
     sorted.forEach(function (m) {
@@ -400,6 +437,21 @@ import { parseISO, ganttRange, enumerateDays, barCells, isEventDay, eeColorKey }
     cards += '</div>';
 
     wrap.innerHTML = html + cards;
+
+    // Click any column header to sort; click again to flip direction.
+    wrap.querySelectorAll('th[data-sort-key]').forEach(function (th) {
+      th.addEventListener('click', function () {
+        var k = th.dataset.sortKey;
+        if (state.sortKey === k) {
+          state.sortDir = state.sortDir === 'asc' ? 'desc' : 'asc';
+        } else {
+          state.sortKey = k;
+          state.sortDir = 'asc';
+        }
+        try { localStorage.setItem('jh.logistics.sort', JSON.stringify({ key: state.sortKey, dir: state.sortDir })); } catch (e) {}
+        renderAllMembers();
+      });
+    });
 
     // Wire edit pencils across BOTH the table and the cards.
     if (JH.isAdmin()) {
