@@ -217,6 +217,9 @@ title: Apply - JamHouse 2026
     <div id="closedNotice" class="message" style="display: block; background: var(--surface, #141414); border: 1px solid var(--border, #2a2a2a); color: var(--text, #e0e0e0); font-size: 1.05rem; line-height: 1.7;">
       We have already reached our capacity for this year. Swing by our camp for a jam and a hangout. See you in less than a month!
     </div>
+    <p id="closedBackLink" style="text-align:center;margin:-0.5rem 0 1.5rem;">
+      <a href="/" style="color:var(--text-secondary,#888);font-size:0.9rem;text-decoration:none;">&larr; Back to jamhouse.space</a>
+    </p>
 
     <div id="errorMsg" class="message error"></div>
 
@@ -516,6 +519,8 @@ title: Apply - JamHouse 2026
       form.style.display = '';
       const closed = document.getElementById('closedNotice');
       if (closed) closed.style.display = 'none';
+      const backLink = document.getElementById('closedBackLink');
+      if (backLink) backLink.style.display = 'none';
       const heading = document.getElementById('applyHeading');
       if (heading) heading.textContent = 'Application';
     }
@@ -602,6 +607,9 @@ title: Apply - JamHouse 2026
       } catch (err) {
         errorMsg.textContent = err.message;
         errorMsg.style.display = 'block';
+        // The error box sits above a ~35-field form; without this the user
+        // (parked at the submit button) never sees the failure message.
+        document.getElementById('errorMsg').scrollIntoView({ behavior: 'smooth', block: 'center' });
         btn.disabled = false;
         btn.textContent = 'Submit Application';
       }
