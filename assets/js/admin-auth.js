@@ -170,7 +170,7 @@ JH.sidebarNav = [
   { href: '/admin/logistics', icon: '&#9992;', text: 'Logistics', access: 'general' },
   { href: '/admin/early-entry', icon: '&#127903;', text: 'Early Entry', access: 'admin' },
   { href: '/admin/meals', icon: '&#127859;', text: 'Meals', access: 'general' },
-  { href: '/admin/menu', icon: '&#127869;', text: 'Meal Plan', access: 'general' },
+  { href: '/admin/menu', icon: '&#127869;', text: 'Dinner Menu', access: 'general' },
   { href: '/admin/drinks', icon: '&#127866;', text: 'Drinks & Snacks', access: 'general' },
   { href: '/admin/events', icon: '&#127926;', text: 'Events', access: 'general' },
   { href: '/admin/roles', icon: '&#128101;', text: 'Roles & Leads', access: 'general' },
@@ -190,7 +190,8 @@ JH.renderSidebar = function() {
   JH.sidebarNav.forEach(function(item) {
     var active = path === item.href ? ' active' : '';
     var observerAttr = item.observerHide ? ' data-observer-hide="1"' : '';
-    html += '<a class="nav-item' + active + '" href="' + item.href + '" data-access="' + item.access + '"' + observerAttr + '>' +
+    var hiddenStyle = item.access === 'admin' ? ' style="display:none"' : '';
+    html += '<a class="nav-item' + active + '" href="' + item.href + '" data-access="' + item.access + '"' + observerAttr + hiddenStyle + '>' +
       '<span class="icon">' + item.icon + '</span><span class="nav-item-text">' + item.text + '</span></a>';
   });
   html += '</div><div class="sidebar-footer"><div id="sidebar-role-badge"></div><a href="/">&#8592; Back to Site</a></div>';
@@ -205,8 +206,7 @@ JH.renderSidebar();
 JH.filterNav = function(isAdmin, isObserver) {
   document.querySelectorAll('.sidebar .nav-item').forEach(function(item) {
     var access = item.getAttribute('data-access');
-    if (access === 'admin' && !isAdmin) item.style.display = 'none';
-    if (isObserver && item.getAttribute('data-observer-hide') === '1') item.style.display = 'none';
+    item.style.display = ((access === 'admin' && !isAdmin) || (isObserver && item.getAttribute('data-observer-hide') === '1')) ? 'none' : '';
   });
 };
 
@@ -468,13 +468,19 @@ JH.approvedLogistics = function(logistics, members) {
 
 JH.getAllDates = function(logistics) {
   var dateSet = {};
+  function nextDay(s) {
+    var p = s.split('-');
+    var d = new Date(Date.UTC(+p[0], +p[1] - 1, +p[2]));
+    d.setUTCDate(d.getUTCDate() + 1);
+    return d.toISOString().slice(0, 10);
+  }
   logistics.forEach(function (l) {
     if (!l.ArrivalDate || !l.DepartureDate) return;
-    var d = new Date(l.ArrivalDate + 'T00:00:00');
-    var end = new Date(l.DepartureDate + 'T00:00:00');
-    while (d <= end) {
-      dateSet[d.toISOString().slice(0, 10)] = true;
-      d.setDate(d.getDate() + 1);
+    var d = l.ArrivalDate;
+    var guard = 0;
+    while (d <= l.DepartureDate && guard++ < 366) {
+      dateSet[d] = true;
+      d = nextDay(d);
     }
   });
   return Object.keys(dateSet).sort();
@@ -507,8 +513,11 @@ JH.checkLogisticsPrompt = async function() {
     if (!res.ok) return;
     var data = await res.json();
     sessionStorage.setItem('jh_logistics_checked', Date.now());
-    var myName = JH.currentUser.name;
-    var row = (data.logistics || []).find(function(r) { return r['MemberName'] === myName; });
+    var names = [JH.currentUser.name, JH.currentUser.playaName]
+      .filter(Boolean).map(function(n) { return n.toLowerCase().trim(); });
+    var row = (data.logistics || []).find(function(r) {
+      return names.indexOf((r['MemberName'] || '').toLowerCase().trim()) !== -1;
+    });
     if (row && (row['ArrivalDate'] || row['DepartureDate'])) return;
     var banner = document.createElement('div');
     banner.style.cssText = 'background:rgba(232,168,76,0.1);border:1px solid var(--accent);border-radius:8px;padding:10px 16px;margin-bottom:16px;font-size:0.84rem;color:var(--text);display:flex;align-items:center;justify-content:space-between;gap:12px;';
