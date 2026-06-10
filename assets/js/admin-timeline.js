@@ -216,7 +216,7 @@
 
     dates.forEach(function (date, di) {
       var openClass = di === 0 ? ' open' : '';
-      html += '<div class="m-acc' + openClass + '">';
+      html += '<div class="m-acc' + openClass + '" data-date="' + JH.esc(date) + '">';
       html += '<div class="m-acc-head">' + JH.esc(JH.formatDateLong(date)) + '<span class="chev">&#9662;</span></div>';
       html += '<div class="m-acc-body">';
 
@@ -311,7 +311,7 @@
         var newVal = textarea.value.trim();
         finish(newVal);
         if (newVal !== currentVal) {
-          saveCell(person, date, period, newVal, currentVal, null);
+          saveCell(person, date, period, newVal, currentVal);
         }
       }
 
@@ -344,7 +344,7 @@
           td.textContent = newVal;
 
           if (newVal !== currentVal) {
-            saveCell(td.dataset.person, td.dataset.date, td.dataset.period, newVal, currentVal, td);
+            saveCell(td.dataset.person, td.dataset.date, td.dataset.period, newVal, currentVal);
           }
         }
 
@@ -357,9 +357,35 @@
     });
   }
 
-  function saveCell(person, date, period, newVal, oldVal, td) {
+  // Re-render both the desktop table and the mobile accordion from state,
+  // preserving the grid's scroll position and which accordion days are open.
+  function rerenderPreservingView() {
+    var grid = document.querySelector('.timeline-grid');
+    var scrollLeft = grid ? grid.scrollLeft : 0;
+    var scrollTop = grid ? grid.scrollTop : 0;
+    var openDates = null;
+    var accs = document.querySelectorAll('.mobile-cards .m-acc');
+    if (accs.length) {
+      openDates = {};
+      accs.forEach(function (acc) {
+        if (acc.classList.contains('open')) openDates[acc.dataset.date] = true;
+      });
+    }
+
+    renderTimeline();
+
+    var newGrid = document.querySelector('.timeline-grid');
+    if (newGrid) { newGrid.scrollLeft = scrollLeft; newGrid.scrollTop = scrollTop; }
+    if (openDates) {
+      document.querySelectorAll('.mobile-cards .m-acc').forEach(function (acc) {
+        acc.classList.toggle('open', !!openDates[acc.dataset.date]);
+      });
+    }
+  }
+
+  function saveCell(person, date, period, newVal, oldVal) {
     JH.apiFetch('/api/timeline', { action: 'upsert', person: person, date: date, period: period, task: newVal }).then(function (r) {
-      if (!r.ok) { if (td) td.textContent = oldVal; alert('Save failed.'); return; }
+      if (!r.ok) { alert('Save failed.'); rerenderPreservingView(); return; }
       var entry = state.entries.find(function (e) {
         return e.Person === person && e.Date === date && e.Period === period;
       });
@@ -369,7 +395,9 @@
       } else if (entry) {
         state.entries = state.entries.filter(function (e) { return e !== entry; });
       }
-    }).catch(function () { if (td) td.textContent = oldVal; });
+      // Keep BOTH trees (desktop table + mobile accordion) in sync.
+      rerenderPreservingView();
+    }).catch(function () { rerenderPreservingView(); });
   }
 
   // ── Drag and drop tasks ───────────────────────────────────────────────────
@@ -402,7 +430,7 @@
         var existing = td.textContent.trim();
         var newVal = existing ? existing + '\n' + taskName : taskName;
         td.textContent = newVal;
-        saveCell(td.dataset.person, td.dataset.date, td.dataset.period, newVal, existing, td);
+        saveCell(td.dataset.person, td.dataset.date, td.dataset.period, newVal, existing);
       });
     });
   }
