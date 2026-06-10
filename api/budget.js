@@ -608,7 +608,7 @@ export default async function handler(req, res) {
         spreadsheetId,
         range: "'Barrio Fee'",
         valueInputOption: 'USER_ENTERED',
-        requestBody: { values: [[nextNum, name, expectedFee || 250, amount != null ? amount : '', paidInFull ? 'TRUE' : 'FALSE']] },
+        requestBody: { values: [[nextNum, name, expectedFee || 280, amount != null ? amount : '', paidInFull ? 'TRUE' : 'FALSE']] },
       });
 
       // Extract the row number that was added
