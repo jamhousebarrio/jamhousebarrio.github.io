@@ -134,15 +134,51 @@ import { buildWeightIndex, typePoints, rolePoints, memberPoints, durationHours }
         });
       });
     });
+    // Roles pool: every role assignment awards rolePoints (default 10) — mirrors
+    // the leaderboard's rolePoints(index, roleName) per AssignedTo entry.
+    var rolePool = 0;
+    (roles || []).forEach(function (role) {
+      var assigned = (role.AssignedTo || '').split(',').map(function (s) { return s.trim(); }).filter(Boolean);
+      rolePool += assigned.length * rolePoints(weightIndex, role.Name);
+    });
+    // Build/strike pool: each approved member's earnable build & strike days at
+    // their current arrival/departure, minus NoOrg days. Identical to what
+    // memberPoints() computes per member, summed across the barrio. Members
+    // without filled logistics contribute 0.
+    var buildPool = 0, strikePool = 0;
+    (approvedMembers || []).forEach(function (m) {
+      var name = (JH.val(m, 'Playa Name') || JH.val(m, 'Name') || '').toLowerCase().trim();
+      var log = (logistics || []).find(function (l) {
+        return (l.MemberName || '').toLowerCase().trim() === name;
+      });
+      if (!log) return;
+      var pts = memberPoints({
+        arrivalDate: log.ArrivalDate || '',
+        departureDate: log.DepartureDate || '',
+        noOrgDates: log.NoOrgDates || '',
+        eventShifts: [],
+        roleNames: [],
+        index: weightIndex,
+      });
+      buildPool += pts.buildPoints;
+      strikePool += pts.strikePoints;
+    });
+    var totalPool = eventPointPool + rolePool + buildPool + strikePool;
     document.getElementById('stat-types').textContent = types.length;
     document.getElementById('stat-filled').textContent = filledPeople;
     document.getElementById('stat-open').textContent = totalSlots - shifts.filter(function (s) { return s.AssignedTo; }).length;
     var poolEl = document.getElementById('stat-event-pool');
     var shareEl = document.getElementById('stat-fair-share');
     var memberCount = approvedMembers.length || 1;
-    if (poolEl) poolEl.textContent = eventPointPool;
+    if (poolEl) {
+      poolEl.textContent = totalPool;
+      poolEl.title = 'Event shifts: ' + eventPointPool +
+        ' · Build: ' + buildPool +
+        ' · Strike: ' + strikePool +
+        ' · Roles: ' + rolePool;
+    }
     if (shareEl) {
-      shareEl.textContent = (eventPointPool / memberCount).toFixed(1);
+      shareEl.textContent = (totalPool / memberCount).toFixed(1);
       shareEl.parentElement.querySelector('.stat-label').textContent = 'Fair Share / ' + memberCount;
     }
   }
