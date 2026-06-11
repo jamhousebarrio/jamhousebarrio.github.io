@@ -124,8 +124,12 @@ import { buildWeightIndex, typePoints, rolePoints, memberPoints, durationHours }
             totalSlots++;
             var people = (s.AssignedTo || '').split(',').filter(function (p) { return p.trim(); });
             filledPeople += people.length;
-            // Each scheduled slot is one unit of work-points the barrio needs covered.
-            eventPointPool += typePoints(weightIndex, s.Name);
+            // A cell's full point demand is points-per-position × number of positions.
+            // Blank/0/NaN MaxPerSlot defaults to 1 (one person slot). Mirrors how the
+            // leaderboard awards: each assigned name on a cell earns typePoints once.
+            var cap = parseInt(s.MaxPerSlot, 10);
+            if (!cap || cap < 1) cap = 1;
+            eventPointPool += typePoints(weightIndex, s.Name) * cap;
           }
         });
       });
@@ -135,8 +139,12 @@ import { buildWeightIndex, typePoints, rolePoints, memberPoints, durationHours }
     document.getElementById('stat-open').textContent = totalSlots - shifts.filter(function (s) { return s.AssignedTo; }).length;
     var poolEl = document.getElementById('stat-event-pool');
     var shareEl = document.getElementById('stat-fair-share');
+    var memberCount = approvedMembers.length || 1;
     if (poolEl) poolEl.textContent = eventPointPool;
-    if (shareEl) shareEl.textContent = (eventPointPool / 30).toFixed(1);
+    if (shareEl) {
+      shareEl.textContent = (eventPointPool / memberCount).toFixed(1);
+      shareEl.parentElement.querySelector('.stat-label').textContent = 'Fair Share / ' + memberCount;
+    }
   }
 
   // Renders the assignee chips + signup/remove/override controls for one shift
