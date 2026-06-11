@@ -115,7 +115,7 @@ import { buildWeightIndex, typePoints, rolePoints, memberPoints, durationHours }
 
   function renderStats() {
     var types = getShiftTypes();
-    var totalSlots = 0, filledPeople = 0;
+    var totalSlots = 0, filledPeople = 0, eventPointPool = 0;
     types.forEach(function (t) {
       t.slots.forEach(function (slot) {
         EVENT_DATES.forEach(function (d) {
@@ -124,6 +124,8 @@ import { buildWeightIndex, typePoints, rolePoints, memberPoints, durationHours }
             totalSlots++;
             var people = (s.AssignedTo || '').split(',').filter(function (p) { return p.trim(); });
             filledPeople += people.length;
+            // Each scheduled slot is one unit of work-points the barrio needs covered.
+            eventPointPool += typePoints(weightIndex, s.Name);
           }
         });
       });
@@ -131,6 +133,10 @@ import { buildWeightIndex, typePoints, rolePoints, memberPoints, durationHours }
     document.getElementById('stat-types').textContent = types.length;
     document.getElementById('stat-filled').textContent = filledPeople;
     document.getElementById('stat-open').textContent = totalSlots - shifts.filter(function (s) { return s.AssignedTo; }).length;
+    var poolEl = document.getElementById('stat-event-pool');
+    var shareEl = document.getElementById('stat-fair-share');
+    if (poolEl) poolEl.textContent = eventPointPool;
+    if (shareEl) shareEl.textContent = (eventPointPool / 30).toFixed(1);
   }
 
   // Renders the assignee chips + signup/remove/override controls for one shift
