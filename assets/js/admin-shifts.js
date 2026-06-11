@@ -396,6 +396,8 @@ import { buildWeightIndex, typePoints, rolePoints, memberPoints, durationHours }
   function openPointsModal() {
     document.getElementById('pts-build').value = weightIndex.buildPts;
     document.getElementById('pts-strike').value = weightIndex.strikePts;
+    document.getElementById('pts-zone-low').value = weightIndex.zoneLowPct;
+    document.getElementById('pts-zone-high').value = weightIndex.zoneHighPct;
     var list = document.getElementById('pts-types-list');
     var types = getShiftTypes();
     if (!types.length) {
@@ -446,7 +448,14 @@ import { buildWeightIndex, typePoints, rolePoints, memberPoints, durationHours }
     });
     var buildPts = parseInt(document.getElementById('pts-build').value, 10) || 0;
     var strikePts = parseInt(document.getElementById('pts-strike').value, 10) || 0;
-    var r = await JH.apiFetch('/api/shifts', { action: 'set-weights', types: types, roles: rolesPayload, buildPts: buildPts, strikePts: strikePts });
+    var zoneLowPct = parseInt(document.getElementById('pts-zone-low').value, 10);
+    var zoneHighPct = parseInt(document.getElementById('pts-zone-high').value, 10);
+    if (isNaN(zoneLowPct) || zoneLowPct < 1) zoneLowPct = 80;
+    if (isNaN(zoneHighPct) || zoneHighPct < 1) zoneHighPct = 120;
+    if (zoneHighPct <= zoneLowPct) {
+      msg.textContent = 'High band must be greater than low band'; msg.style.color = '#f44336'; return;
+    }
+    var r = await JH.apiFetch('/api/shifts', { action: 'set-weights', types: types, roles: rolesPayload, buildPts: buildPts, strikePts: strikePts, zoneLowPct: zoneLowPct, zoneHighPct: zoneHighPct });
     if (!r.ok) {
       var err = 'Failed.';
       try { var j = await r.json(); if (j && j.error) err = j.error; } catch (e) {}
@@ -787,9 +796,11 @@ import { buildWeightIndex, typePoints, rolePoints, memberPoints, durationHours }
 
   function zoneFor(score) {
     if (!lastFairShare || lastFairShare <= 0) return '';
+    var lowR = (weightIndex.zoneLowPct || 80) / 100;
+    var highR = (weightIndex.zoneHighPct || 120) / 100;
     var ratio = score / lastFairShare;
-    if (ratio >= 1.2) return ' zone-high';
-    if (ratio >= 0.8) return ' zone-mid';
+    if (ratio >= highR) return ' zone-high';
+    if (ratio >= lowR) return ' zone-mid';
     return ' zone-low';
   }
   var MEDALS = { 1: '🥇', 2: '🥈', 3: '🥉' };
@@ -833,11 +844,13 @@ import { buildWeightIndex, typePoints, rolePoints, memberPoints, durationHours }
 
     var html = '';
     if (lastFairShare > 0) {
+      var lowMult = (weightIndex.zoneLowPct || 80) / 100;
+      var highMult = (weightIndex.zoneHighPct || 120) / 100;
       html += '<div class="lb-share-banner">' +
         'Fair share target: <strong>' + lastFairShare.toFixed(1) + ' pts</strong> per member · ' +
-        '<span class="zone-high" style="padding:1px 6px;border-radius:8px;">high</span> ≥ ' + (lastFairShare * 1.2).toFixed(0) + ' · ' +
-        '<span class="zone-mid" style="padding:1px 6px;border-radius:8px;">on track</span> ' + (lastFairShare * 0.8).toFixed(0) + '–' + (lastFairShare * 1.2).toFixed(0) + ' · ' +
-        '<span class="zone-low" style="padding:1px 6px;border-radius:8px;">low</span> &lt; ' + (lastFairShare * 0.8).toFixed(0) +
+        '<span class="zone-high" style="padding:1px 6px;border-radius:8px;">high</span> ≥ ' + (lastFairShare * highMult).toFixed(0) + ' · ' +
+        '<span class="zone-mid" style="padding:1px 6px;border-radius:8px;">on track</span> ' + (lastFairShare * lowMult).toFixed(0) + '–' + (lastFairShare * highMult).toFixed(0) + ' · ' +
+        '<span class="zone-low" style="padding:1px 6px;border-radius:8px;">low</span> &lt; ' + (lastFairShare * lowMult).toFixed(0) +
         '</div>';
     }
     html += '<div class="lb-grid">';

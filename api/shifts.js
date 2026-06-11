@@ -79,7 +79,7 @@ export default async function handler(req, res) {
       // `types`, and writes buildPts/strikePts as given (omitted -> 0, not "leave
       // unchanged"). Require `types` to be an array so a malformed payload can't
       // silently wipe every weight and report success.
-      const { types, roles, buildPts, strikePts } = payload;
+      const { types, roles, buildPts, strikePts, zoneLowPct, zoneHighPct } = payload;
       if (!Array.isArray(types)) return res.status(400).json({ error: 'types array required' });
 
       await ensureTab(sheets, spreadsheetId, WEIGHTS_TAB);
@@ -160,6 +160,36 @@ export default async function handler(req, res) {
         WEIGHTS_HEADERS, ['build', '', String(parseInt(buildPts, 10) || 0)]);
       await upsertRow(sheets, spreadsheetId, WEIGHTS_TAB, 'Kind', 'strike',
         WEIGHTS_HEADERS, ['strike', '', String(parseInt(strikePts, 10) || 0)]);
+
+      // 4. Zone thresholds (low/high band multipliers, stored as integer %). Two
+      //    rows share Kind='zone' but use distinct Name, so upsertRow's single-col
+      //    match would collide; delete-then-append the zone rows instead.
+      if (zoneLowPct !== undefined || zoneHighPct !== undefined) {
+        const zRows = await safeGet(sheets, spreadsheetId, WEIGHTS_TAB);
+        const zKindCol = zRows[0].indexOf('Kind');
+        const zoneRowIdxs = [];
+        for (let i = 1; i < zRows.length; i++) {
+          if ((zRows[i][zKindCol] || '').toLowerCase() === 'zone') zoneRowIdxs.push(i);
+        }
+        zoneRowIdxs.sort((a, b) => b - a);
+        if (zoneRowIdxs.length && sheetId !== null) {
+          await sheets.spreadsheets.batchUpdate({
+            spreadsheetId,
+            requestBody: { requests: zoneRowIdxs.map(idx => ({
+              deleteDimension: { range: { sheetId, dimension: 'ROWS', startIndex: idx, endIndex: idx + 1 } },
+            })) },
+          });
+        }
+        const newZoneRows = [];
+        if (zoneLowPct !== undefined) newZoneRows.push(['zone', 'low', String(parseInt(zoneLowPct, 10) || 0)]);
+        if (zoneHighPct !== undefined) newZoneRows.push(['zone', 'high', String(parseInt(zoneHighPct, 10) || 0)]);
+        if (newZoneRows.length) {
+          await sheets.spreadsheets.values.append({
+            spreadsheetId, range: WEIGHTS_TAB, valueInputOption: 'RAW',
+            requestBody: { values: newZoneRows },
+          });
+        }
+      }
 
       return res.status(200).json({ success: true });
     }

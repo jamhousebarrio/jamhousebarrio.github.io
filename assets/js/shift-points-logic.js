@@ -13,6 +13,8 @@ export const MAIN_END = parseDate('2026-07-12');
 export const DEFAULT_TYPE_POINTS = 1;   // a shift type with no configured weight
 export const DEFAULT_DAY_POINTS = 10;   // build/strike day with no configured value
 export const DEFAULT_ROLE_POINTS = 10;  // a Roles-tab role with no configured weight
+export const DEFAULT_ZONE_LOW_PCT = 80;   // < 80% of fair share = low band
+export const DEFAULT_ZONE_HIGH_PCT = 120; // ≥ 120% of fair share = high band
 
 const DAY_MS = 86400000;
 
@@ -42,6 +44,8 @@ export function buildWeightIndex(weightRows) {
   const roles = {};
   let buildPts = DEFAULT_DAY_POINTS;
   let strikePts = DEFAULT_DAY_POINTS;
+  let zoneLowPct = DEFAULT_ZONE_LOW_PCT;
+  let zoneHighPct = DEFAULT_ZONE_HIGH_PCT;
   (weightRows || []).forEach(function (w) {
     const kind = (w.Kind || '').toString().toLowerCase().trim();
     const pts = parseInt(w.Points, 10);
@@ -50,8 +54,13 @@ export function buildWeightIndex(weightRows) {
     else if (kind === 'role') roles[(w.Name || '').toString().toLowerCase().trim()] = pts;
     else if (kind === 'build') buildPts = pts;
     else if (kind === 'strike') strikePts = pts;
+    else if (kind === 'zone') {
+      const n = (w.Name || '').toString().toLowerCase().trim();
+      if (n === 'low') zoneLowPct = pts;
+      else if (n === 'high') zoneHighPct = pts;
+    }
   });
-  return { types: types, roles: roles, buildPts: buildPts, strikePts: strikePts };
+  return { types: types, roles: roles, buildPts: buildPts, strikePts: strikePts, zoneLowPct: zoneLowPct, zoneHighPct: zoneHighPct };
 }
 
 export function typePoints(index, typeName) {
