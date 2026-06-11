@@ -19,6 +19,7 @@ import { buildWeightIndex, typePoints, rolePoints, memberPoints, durationHours }
   var EVENT_DATES = ['2026-07-07', '2026-07-08', '2026-07-09', '2026-07-10', '2026-07-11', '2026-07-12'];
   var MAIN_START = parseDate('2026-07-07');
   var MAIN_END = parseDate('2026-07-12');
+  var lastFairShare = 0;
 
   async function fetchShifts() {
     var r = await JH.apiFetch('/api/shifts', {});
@@ -177,8 +178,9 @@ import { buildWeightIndex, typePoints, rolePoints, memberPoints, durationHours }
         ' · Strike: ' + strikePool +
         ' · Roles: ' + rolePool;
     }
+    lastFairShare = totalPool / memberCount;
     if (shareEl) {
-      shareEl.textContent = (totalPool / memberCount).toFixed(1);
+      shareEl.textContent = lastFairShare.toFixed(1);
       shareEl.parentElement.querySelector('.stat-label').textContent = 'Fair Share / ' + memberCount;
     }
   }
@@ -783,8 +785,16 @@ import { buildWeightIndex, typePoints, rolePoints, memberPoints, durationHours }
     return (h % 1 === 0 ? h : h.toFixed(1)) + 'h';
   }
 
+  function zoneFor(score) {
+    if (!lastFairShare || lastFairShare <= 0) return '';
+    var ratio = score / lastFairShare;
+    if (ratio >= 1.5) return ' zone-high';
+    if (ratio >= 0.5) return ' zone-mid';
+    return ' zone-low';
+  }
   function renderRow(entry, rank, isTop) {
     var rankClass = isTop && rank <= 3 ? ' top-' + rank : '';
+    var zoneClass = zoneFor(entry.score);
     var stats = [];
     if (entry.setupDays) stats.push('<strong>' + entry.setupDays + 'd</strong> build');
     if (entry.strikeDays) stats.push('<strong>' + entry.strikeDays + 'd</strong> strike');
@@ -792,10 +802,17 @@ import { buildWeightIndex, typePoints, rolePoints, memberPoints, durationHours }
     if (entry.rolePoints) stats.push('<strong>' + entry.rolePoints + '</strong> role pts');
     if (entry.eventHours) stats.push('<span style="opacity:0.7">' + fmtHours(entry.eventHours) + '</span>');
     if (!stats.length) stats.push('<em style="opacity:0.6">no contribution logged</em>');
-    return '<div class="lb-row vol-open-btn' + rankClass + '" data-name="' + JH.esc(entry.name) + '" title="Click for breakdown">' +
+    var deltaLabel = '';
+    if (lastFairShare > 0) {
+      var diff = entry.score - lastFairShare;
+      var pct = Math.round((entry.score / lastFairShare) * 100);
+      deltaLabel = '<div class="lb-vs-share" title="vs fair share ' + lastFairShare.toFixed(1) + '">' +
+        (diff >= 0 ? '+' : '') + diff.toFixed(1) + ' · ' + pct + '%</div>';
+    }
+    return '<div class="lb-row vol-open-btn' + rankClass + zoneClass + '" data-name="' + JH.esc(entry.name) + '" title="Click for breakdown">' +
       '<div class="lb-rank">' + rank + '</div>' +
       '<div class="lb-name">' + JH.esc(entry.name) + '</div>' +
-      '<div class="lb-score"><strong>' + entry.score + '</strong> pts</div>' +
+      '<div class="lb-score"><strong>' + entry.score + '</strong> pts' + deltaLabel + '</div>' +
       '<div class="lb-stats">' + stats.join(' · ') + '</div>' +
       '</div>';
   }
@@ -812,7 +829,16 @@ import { buildWeightIndex, typePoints, rolePoints, memberPoints, durationHours }
     var top = sorted.filter(function (e) { return e.score > 0; });
     var bottom = sorted.filter(function (e) { return e.score === 0; });
 
-    var html = '<div class="lb-grid">';
+    var html = '';
+    if (lastFairShare > 0) {
+      html += '<div class="lb-share-banner">' +
+        'Fair share target: <strong>' + lastFairShare.toFixed(1) + ' pts</strong> per member · ' +
+        '<span class="zone-high" style="padding:1px 6px;border-radius:8px;">high</span> ≥ ' + (lastFairShare * 1.5).toFixed(0) + ' · ' +
+        '<span class="zone-mid" style="padding:1px 6px;border-radius:8px;">on track</span> ' + (lastFairShare * 0.5).toFixed(0) + '–' + (lastFairShare * 1.5).toFixed(0) + ' · ' +
+        '<span class="zone-low" style="padding:1px 6px;border-radius:8px;">low</span> &lt; ' + (lastFairShare * 0.5).toFixed(0) +
+        '</div>';
+    }
+    html += '<div class="lb-grid">';
     html += '<div class="lb-col top"><h3>Top volunteers</h3><div class="lb-list">';
     top.forEach(function (e, i) { html += renderRow(e, i + 1, true); });
     html += '</div></div>';
