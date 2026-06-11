@@ -788,13 +788,15 @@ import { buildWeightIndex, typePoints, rolePoints, memberPoints, durationHours }
   function zoneFor(score) {
     if (!lastFairShare || lastFairShare <= 0) return '';
     var ratio = score / lastFairShare;
-    if (ratio >= 1.5) return ' zone-high';
-    if (ratio >= 0.5) return ' zone-mid';
+    if (ratio >= 1.2) return ' zone-high';
+    if (ratio >= 0.8) return ' zone-mid';
     return ' zone-low';
   }
+  var MEDALS = { 1: '🥇', 2: '🥈', 3: '🥉' };
   function renderRow(entry, rank, isTop) {
     var rankClass = isTop && rank <= 3 ? ' top-' + rank : '';
     var zoneClass = zoneFor(entry.score);
+    var rankHtml = (isTop && MEDALS[rank]) ? '<span class="lb-medal">' + MEDALS[rank] + '</span>' : rank;
     var stats = [];
     if (entry.setupDays) stats.push('<strong>' + entry.setupDays + 'd</strong> build');
     if (entry.strikeDays) stats.push('<strong>' + entry.strikeDays + 'd</strong> strike');
@@ -810,9 +812,9 @@ import { buildWeightIndex, typePoints, rolePoints, memberPoints, durationHours }
         (diff >= 0 ? '+' : '') + diff.toFixed(1) + ' · ' + pct + '%</div>';
     }
     return '<div class="lb-row vol-open-btn' + rankClass + zoneClass + '" data-name="' + JH.esc(entry.name) + '" title="Click for breakdown">' +
-      '<div class="lb-rank">' + rank + '</div>' +
-      '<div class="lb-name">' + JH.esc(entry.name) + '</div>' +
+      '<div class="lb-rank">' + rankHtml + '</div>' +
       '<div class="lb-score"><strong>' + entry.score + '</strong> pts' + deltaLabel + '</div>' +
+      '<div class="lb-name">' + JH.esc(entry.name) + '</div>' +
       '<div class="lb-stats">' + stats.join(' · ') + '</div>' +
       '</div>';
   }
@@ -833,9 +835,9 @@ import { buildWeightIndex, typePoints, rolePoints, memberPoints, durationHours }
     if (lastFairShare > 0) {
       html += '<div class="lb-share-banner">' +
         'Fair share target: <strong>' + lastFairShare.toFixed(1) + ' pts</strong> per member · ' +
-        '<span class="zone-high" style="padding:1px 6px;border-radius:8px;">high</span> ≥ ' + (lastFairShare * 1.5).toFixed(0) + ' · ' +
-        '<span class="zone-mid" style="padding:1px 6px;border-radius:8px;">on track</span> ' + (lastFairShare * 0.5).toFixed(0) + '–' + (lastFairShare * 1.5).toFixed(0) + ' · ' +
-        '<span class="zone-low" style="padding:1px 6px;border-radius:8px;">low</span> &lt; ' + (lastFairShare * 0.5).toFixed(0) +
+        '<span class="zone-high" style="padding:1px 6px;border-radius:8px;">high</span> ≥ ' + (lastFairShare * 1.2).toFixed(0) + ' · ' +
+        '<span class="zone-mid" style="padding:1px 6px;border-radius:8px;">on track</span> ' + (lastFairShare * 0.8).toFixed(0) + '–' + (lastFairShare * 1.2).toFixed(0) + ' · ' +
+        '<span class="zone-low" style="padding:1px 6px;border-radius:8px;">low</span> &lt; ' + (lastFairShare * 0.8).toFixed(0) +
         '</div>';
     }
     html += '<div class="lb-grid">';
