@@ -536,11 +536,13 @@ import { parseISO, ganttRange, enumerateDays, barCells, isEventDay, eeColorKey }
 
   async function render() {
     await fetchData();
-    renderMyInfo();
-    renderAllMembers();
-    renderGantt();
-    await loadRides();
-    renderRides();
+    // Each panel renders independently so a failure in one (bad data, edge case)
+    // doesn't leave the rest stuck on "Loading…". Errors are surfaced in console
+    // for debugging but don't propagate.
+    try { renderMyInfo(); } catch (e) { console.error('renderMyInfo failed:', e); }
+    try { renderAllMembers(); } catch (e) { console.error('renderAllMembers failed:', e); }
+    try { renderGantt(); } catch (e) { console.error('renderGantt failed:', e); }
+    try { await loadRides(); renderRides(); } catch (e) { console.error('rideshare failed:', e); }
     // Re-honour any URL hash after async content has settled — browser's
     // initial anchor jump happens before our panels finish populating, so
     // the target ends up scrolled past. Re-scroll once everything is laid out.
