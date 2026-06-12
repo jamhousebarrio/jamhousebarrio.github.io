@@ -1,0 +1,67 @@
+---
+layout: none
+title: Emergency Info - JamHouse Admin
+access: admin
+---
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Emergency Info - JamHouse Admin</title>
+  <meta name="access" content="admin">
+  <link rel="icon" type="image/svg+xml" href="/images/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/admin.css">
+  <style>
+    .emerg-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+    .emerg-table th, .emerg-table td { padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: top; text-align: left; }
+    .emerg-table th { font-family: var(--heading); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); font-weight: 600; white-space: nowrap; background: var(--surface2); }
+    .emerg-table tr:hover td { background: var(--surface2); }
+    .emerg-table td.dim { color: var(--text-muted); font-style: italic; }
+    .emerg-name { font-weight: 700; }
+    .emerg-meta { color: var(--text-muted); font-size: 0.75rem; }
+    .emerg-toolbar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; }
+    .emerg-toolbar .btn-primary { padding: 8px 16px; }
+    .emerg-toolbar input { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); padding: 7px 10px; font-size: 0.85rem; min-width: 200px; }
+    .emerg-summary { color: var(--text-muted); font-size: 0.82rem; }
+    @media print {
+      body { background: #fff !important; color: #000 !important; }
+      .sidebar, .emerg-toolbar, .page-header .subtitle, nav { display: none !important; }
+      .main { margin: 0 !important; padding: 0 !important; }
+      .panel { background: #fff !important; border: none !important; padding: 0 !important; }
+      .page-header h1 { color: #000 !important; }
+      .emerg-table th, .emerg-table td { color: #000 !important; border-color: #999 !important; }
+      .emerg-table th { background: #eee !important; }
+      .emerg-table tr:hover td { background: #fff !important; }
+      .emerg-table td.dim { color: #555 !important; }
+      .emerg-table { font-size: 11pt; page-break-inside: auto; }
+      .emerg-table tr { page-break-inside: avoid; page-break-after: auto; }
+      @page { size: A4 landscape; margin: 12mm; }
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/assets/js/supabase-client.js"></script>
+</head>
+<body>
+<nav class="sidebar"></nav>
+<div class="main">
+  <div class="page-header">
+    <h1><span class="icon" style="color:var(--accent)">&#127973;</span> Emergency Info</h1>
+    <div class="subtitle">Medical conditions and emergency contacts — admin only, printable</div>
+  </div>
+  <div class="panel">
+    <div class="emerg-toolbar">
+      <input type="search" id="emerg-search" placeholder="Search name / phone / contact…">
+      <span class="emerg-summary" id="emerg-summary"></span>
+      <span style="flex:1"></span>
+      <button class="btn-primary" id="emerg-print-btn">&#128424; Print</button>
+    </div>
+    <div id="emerg-content"><div class="empty-state">Loading…</div></div>
+  </div>
+</div>
+<script src="/assets/js/admin-auth.js"></script>
+<script src="/assets/js/admin-emergency.js"></script>
+</body>
+</html>
