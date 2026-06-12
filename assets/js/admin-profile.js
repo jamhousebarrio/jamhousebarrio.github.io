@@ -157,6 +157,41 @@
     }
   });
 
+  // ── Emergency & Medical section ─────────────────────────────────────
+  var emergencyFields = ['Medical Conditions', 'Emergency Contact Name', 'Emergency Contact Phone', 'Emergency Contact Relation'];
+  emergencyFields.forEach(function (field) {
+    var input = document.getElementById('info-' + field.toLowerCase().replace(/ /g, '-'));
+    if (input && user.member) input.value = JH.val(user.member, field);
+  });
+  document.getElementById('emergency-form').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    var msg = document.getElementById('emergency-msg');
+    msg.textContent = 'Saving...';
+    msg.style.color = 'var(--text-muted)';
+    var updates = {};
+    emergencyFields.forEach(function (field) {
+      var input = document.getElementById('info-' + field.toLowerCase().replace(/ /g, '-'));
+      if (!input) return;
+      var newVal = input.value.trim();
+      var oldVal = user.member ? JH.val(user.member, field) : '';
+      if (newVal !== oldVal) updates[field] = newVal;
+    });
+    if (Object.keys(updates).length === 0) { msg.textContent = 'No changes'; return; }
+    try {
+      var res = await JH.apiFetch('/api/members', { action: 'update', row: user.row, updates: updates });
+      if (!res.ok) {
+        var err = await res.json().catch(function () { return {}; });
+        throw new Error(err.error || 'Failed');
+      }
+      msg.textContent = 'Saved!';
+      msg.style.color = '#4caf50';
+      for (var k in updates) { if (user.member) user.member[k] = updates[k]; }
+    } catch (ex) {
+      msg.textContent = ex.message;
+      msg.style.color = '#f44336';
+    }
+  });
+
   // ── Dietary Info section ───────────────────────────────────────────
   var dietarySection = document.getElementById('dietary-section');
   var dietaryNotes = document.getElementById('dietary-notes');

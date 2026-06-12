@@ -97,6 +97,37 @@ access: general
     </form>
   </div>
 
+  <div class="panel panel-form" id="emergency-section">
+    <div class="panel-header">
+      <h2>Emergency &amp; Medical</h2>
+      <span style="font-size:0.78rem;color:var(--text-muted)">Visible to admins only — used if something happens at the burn</span>
+    </div>
+    <form id="emergency-form">
+      <div class="form-grid">
+        <div class="form-group" style="grid-column:1 / -1;">
+          <label for="info-medical-conditions">Medical conditions / allergies</label>
+          <textarea id="info-medical-conditions" rows="2" placeholder="Asthma, severe nut allergy, daily medications, etc. Leave blank if none."></textarea>
+        </div>
+        <div class="form-group">
+          <label for="info-emergency-contact-name">Emergency contact — name</label>
+          <input type="text" id="info-emergency-contact-name" placeholder="Full name">
+        </div>
+        <div class="form-group">
+          <label for="info-emergency-contact-phone">Emergency contact — phone</label>
+          <input type="tel" id="info-emergency-contact-phone" placeholder="+34 ...">
+        </div>
+        <div class="form-group">
+          <label for="info-emergency-contact-relation">Relation to you</label>
+          <input type="text" id="info-emergency-contact-relation" placeholder="e.g. partner, parent, friend">
+        </div>
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn">Save Emergency Info</button>
+        <div id="emergency-msg" class="form-msg"></div>
+      </div>
+    </form>
+  </div>
+
   <div class="panel panel-form" id="dietary-section">
     <div class="panel-header">
       <h2>Dietary Info</h2>

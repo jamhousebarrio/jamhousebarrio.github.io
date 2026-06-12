@@ -59,6 +59,7 @@ const BARRIO_FEE = 280;
 const LOW_INCOME_FEE = 180;
 const FEE_COLUMNS = ['fee_total_sent', 'fee_received', 'low_income_request', 'low_income_status'];
 const DIETARY_COLUMNS = ['FoodType', 'DietaryNotes', 'LastDietaryPromptedAt'];
+const EMERGENCY_COLUMNS = ['Medical Conditions', 'Emergency Contact Name', 'Emergency Contact Phone', 'Emergency Contact Relation'];
 const ALLOWED_FOOD_TYPES = ['', 'Carnivore', 'Pescatarian', 'Vegetarian', 'Vegan'];
 
 async function tgSend(text) {
@@ -117,6 +118,19 @@ async function ensureFeeColumns(sheets, spreadsheetId, headers) {
 
 async function ensureDietaryColumns(sheets, spreadsheetId, headers) {
   const missing = DIETARY_COLUMNS.filter(c => headers.indexOf(c) === -1);
+  if (!missing.length) return headers;
+  const newHeaders = headers.concat(missing);
+  await sheets.spreadsheets.values.update({
+    spreadsheetId,
+    range: 'Sheet1!A1:' + colToLetter(newHeaders.length - 1) + '1',
+    valueInputOption: 'RAW',
+    requestBody: { values: [newHeaders] },
+  });
+  return newHeaders;
+}
+
+async function ensureEmergencyColumns(sheets, spreadsheetId, headers) {
+  const missing = EMERGENCY_COLUMNS.filter(c => headers.indexOf(c) === -1);
   if (!missing.length) return headers;
   const newHeaders = headers.concat(missing);
   await sheets.spreadsheets.values.update({
@@ -426,9 +440,16 @@ export default async function handler(req, res) {
         }
       }
 
+      // Add any emergency/medical columns if the user is editing them for the
+      // first time. Other unrecognised columns are still ignored (no silent
+      // schema sprawl from random clients).
+      let liveHeaders = headers;
+      if (EMERGENCY_COLUMNS.some(c => c in updates)) {
+        liveHeaders = await ensureEmergencyColumns(sheets, spreadsheetId, headers);
+      }
       var data = [];
       for (var key in updates) {
-        var col = headers.indexOf(key);
+        var col = liveHeaders.indexOf(key);
         if (col === -1) continue;
         data.push({ range: 'Sheet1!' + colToLetter(col) + row, values: [[updates[key]]] });
       }
