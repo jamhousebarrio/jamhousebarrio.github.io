@@ -49,7 +49,12 @@ access: general
     .shift-grid td:nth-child(2) { text-align: left; font-size: 0.78rem; color: var(--text-muted); min-width: 160px; max-width: 200px; }
     .shift-grid tr:hover td { background: rgba(255,255,255,0.015); }
 
-    .shift-cell { display: flex; flex-direction: column; gap: 4px; align-items: center; }
+    .shift-cell { display: flex; flex-direction: column; gap: 4px; align-items: center; padding: 4px; border-radius: 6px; border: 1px solid transparent; }
+    /* Fill-state colours mirror leaderboard zones (green = good, red = needs help). */
+    .shift-cell.fill-full,    .m-shift-cell.fill-full    { background: rgba(76,175,80,0.10); border-color: rgba(76,175,80,0.55); }
+    .shift-cell.fill-partial, .m-shift-cell.fill-partial { background: rgba(255,193,7,0.10); border-color: rgba(255,193,7,0.55); }
+    .shift-cell.fill-empty,   .m-shift-cell.fill-empty   { background: rgba(244,67,54,0.10); border-color: rgba(244,67,54,0.55); }
+    .m-shift-cell.fill-full, .m-shift-cell.fill-partial, .m-shift-cell.fill-empty { padding: 6px 8px; border-radius: 8px; border-width: 1px; border-style: solid; }
     .shift-chip { display: inline-block; padding: 3px 10px; border-radius: 10px; font-size: 0.75rem; font-weight: 500; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .shift-chip.filled { background: rgba(76,175,80,0.15); color: #4caf50; border: 1px solid #4caf50; }
     .shift-chip.open { background: none; color: var(--text-muted); border: 1px dashed var(--border); }

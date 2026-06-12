@@ -188,6 +188,19 @@ import { buildWeightIndex, typePoints, rolePoints, memberPoints, durationHours }
   // Renders the assignee chips + signup/remove/override controls for one shift
   // cell. Shared by the desktop grid and the mobile accordion so both reuse the
   // same data-attribute buttons handled by the delegated #shifts-wrap listener.
+  // Fill-state CSS class for the cell wrapper. Mirrors the leaderboard zone
+  // colours: green=full, yellow=partial, red=empty. Returns '' for no-shift
+  // cells (rendered as em-dash) so neutral grid background stays.
+  function cellFillClass(s) {
+    if (!s) return '';
+    var people = (s.AssignedTo || '').split(',').map(function (p) { return p.trim(); }).filter(Boolean);
+    var max = parseInt(s.MaxPerSlot || '', 10);
+    var hasCap = !isNaN(max) && max > 0;
+    if (!people.length) return ' fill-empty';
+    if (hasCap && people.length >= max) return ' fill-full';
+    return ' fill-partial';
+  }
+
   function renderShiftCellInner(s, typeName, date) {
     var html = '';
     if (!s) {
@@ -250,7 +263,7 @@ import { buildWeightIndex, typePoints, rolePoints, memberPoints, durationHours }
             html += '<div class="m-shift-head"><button class="role-name-btn role-desc-btn" data-name="' + nameEsc + '" title="Description">' + nameEsc + '</button>';
             if (slot.label) html += '<span class="m-shift-time">' + JH.esc(slot.label) + '</span>';
             html += '</div>';
-            html += '<div class="m-shift-cell">' + renderShiftCellInner(s, type.name, date) + '</div>';
+            html += '<div class="m-shift-cell' + cellFillClass(s) + '">' + renderShiftCellInner(s, type.name, date) + '</div>';
             html += '</div>';
           });
         });
@@ -294,7 +307,7 @@ import { buildWeightIndex, typePoints, rolePoints, memberPoints, durationHours }
           var s = slot.shiftsByDate[date];
           html += '<div class="slot-group">';
           if (slot.label) html += '<div class="slot-time">' + JH.esc(slot.label) + '</div>';
-          html += '<div class="shift-cell">';
+          html += '<div class="shift-cell' + cellFillClass(s) + '">';
           html += renderShiftCellInner(s, type.name, date);
           html += '</div></div>';
         });
