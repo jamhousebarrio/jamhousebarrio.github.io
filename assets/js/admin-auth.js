@@ -144,6 +144,18 @@ JH.authenticate = async function() {
       window.location.href = '/admin/demographics';
       return null;
     }
+
+    // Hard gate: every approved member must fill emergency info before they can
+    // use the portal. Empty (or missing column) on any of the four fields counts
+    // as not filled. The profile page is exempt so they can actually save.
+    if (me) {
+      var emergencyFields = ['Medical Conditions', 'Emergency Contact Name', 'Emergency Contact Phone', 'Emergency Contact Relation'];
+      var missingEmergency = emergencyFields.some(function (f) { return !(JH.val(me, f) || '').trim(); });
+      if (missingEmergency && window.location.pathname.indexOf('/admin/profile') === -1) {
+        window.location.href = '/admin/profile?prompt=emergency';
+        return null;
+      }
+    }
     JH.filterNav(data.admin, !!data.observer);
     if (data.observer) {
       var badge = document.getElementById('sidebar-role-badge');

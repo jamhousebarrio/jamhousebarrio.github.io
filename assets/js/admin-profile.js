@@ -159,15 +159,39 @@
 
   // ── Emergency & Medical section ─────────────────────────────────────
   var emergencyFields = ['Medical Conditions', 'Emergency Contact Name', 'Emergency Contact Phone', 'Emergency Contact Relation'];
+  var emergencySection = document.getElementById('emergency-section');
   emergencyFields.forEach(function (field) {
     var input = document.getElementById('info-' + field.toLowerCase().replace(/ /g, '-'));
     if (input && user.member) input.value = JH.val(user.member, field);
   });
+  // Hard-gate prompt: when admin-auth redirected the user here because emergency
+  // info is missing, show a blocking banner and outline the section.
+  var forcedEmergency = location.search.indexOf('prompt=emergency') !== -1;
+  if (forcedEmergency && emergencySection) {
+    var banner = document.createElement('div');
+    banner.style.cssText = 'background:rgba(244,67,54,0.12);border:1px solid #f44336;color:#ff7064;padding:12px 16px;border-radius:8px;margin-bottom:14px;font-size:0.9rem;font-weight:600;';
+    banner.innerHTML = '⚠️ Please fill in your emergency &amp; medical info below before continuing — this is required for everyone in the barrio.';
+    emergencySection.insertBefore(banner, emergencySection.firstChild);
+    setTimeout(function () {
+      emergencySection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      emergencySection.style.outline = '2px solid #f44336';
+      emergencySection.style.outlineOffset = '6px';
+    }, 100);
+  }
   document.getElementById('emergency-form').addEventListener('submit', async function (e) {
     e.preventDefault();
     var msg = document.getElementById('emergency-msg');
     msg.textContent = 'Saving...';
     msg.style.color = 'var(--text-muted)';
+    var blanks = emergencyFields.filter(function (field) {
+      var input = document.getElementById('info-' + field.toLowerCase().replace(/ /g, '-'));
+      return !input || !input.value.trim();
+    });
+    if (blanks.length) {
+      msg.textContent = 'Please fill in all 4 fields (use "none" for medical if you have no conditions).';
+      msg.style.color = '#f44336';
+      return;
+    }
     var updates = {};
     emergencyFields.forEach(function (field) {
       var input = document.getElementById('info-' + field.toLowerCase().replace(/ /g, '-'));
@@ -186,6 +210,11 @@
       msg.textContent = 'Saved!';
       msg.style.color = '#4caf50';
       for (var k in updates) { if (user.member) user.member[k] = updates[k]; }
+      // If we got here via the hard-gate prompt, send them to the demographics
+      // page now that the requirement is satisfied.
+      if (forcedEmergency) {
+        setTimeout(function () { window.location.href = '/admin/demographics'; }, 800);
+      }
     } catch (ex) {
       msg.textContent = ex.message;
       msg.style.color = '#f44336';
