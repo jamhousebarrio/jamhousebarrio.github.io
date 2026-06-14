@@ -819,7 +819,9 @@ import { buildWeightIndex, typePoints, rolePoints, memberPoints, durationHours }
   var MEDALS = { 1: '🥇', 2: '🥈', 3: '🥉' };
   function renderRow(entry, rank, isTop) {
     var rankClass = isTop && rank <= 3 ? ' top-' + rank : '';
-    var zoneClass = zoneFor(entry.score);
+    var noShifts = !entry.eventPoints;
+    var zoneClass = noShifts ? ' zone-low' : zoneFor(entry.score);
+    var noShiftClass = noShifts ? ' no-shifts' : '';
     var rankHtml = (isTop && MEDALS[rank]) ? '<span class="lb-medal">' + MEDALS[rank] + '</span>' : rank;
     var stats = [];
     if (entry.setupDays) stats.push('<strong>' + entry.setupDays + 'd</strong> build');
@@ -827,6 +829,7 @@ import { buildWeightIndex, typePoints, rolePoints, memberPoints, durationHours }
     if (entry.eventPoints) stats.push('<strong>' + entry.eventPoints + '</strong> event pts');
     if (entry.rolePoints) stats.push('<strong>' + entry.rolePoints + '</strong> role pts');
     if (entry.eventHours) stats.push('<span style="opacity:0.7">' + fmtHours(entry.eventHours) + '</span>');
+    if (noShifts) stats.unshift('<span class="lb-no-shifts-tag">No shifts signed up</span>');
     if (!stats.length) stats.push('<em style="opacity:0.6">no contribution logged</em>');
     var deltaLabel = '';
     if (lastFairShare > 0) {
@@ -835,7 +838,7 @@ import { buildWeightIndex, typePoints, rolePoints, memberPoints, durationHours }
       deltaLabel = '<div class="lb-vs-share" title="vs fair share ' + lastFairShare.toFixed(1) + '">' +
         (diff >= 0 ? '+' : '') + diff.toFixed(1) + ' · ' + pct + '%</div>';
     }
-    return '<div class="lb-row vol-open-btn' + rankClass + zoneClass + '" data-name="' + JH.esc(entry.name) + '" title="Click for breakdown">' +
+    return '<div class="lb-row vol-open-btn' + rankClass + zoneClass + noShiftClass + '" data-name="' + JH.esc(entry.name) + '" title="Click for breakdown">' +
       '<div class="lb-rank">' + rankHtml + '</div>' +
       '<div class="lb-score"><strong>' + entry.score + '</strong> pts' + deltaLabel + '</div>' +
       '<div class="lb-name">' + JH.esc(entry.name) + '</div>' +
