@@ -122,7 +122,7 @@ import { GATE, parseDate, isEarlyArrival, hasSetupNoOrg, barrioCap } from '/asse
     early.forEach(function (r) {
       var cls = r.source ? '' : ' class="uncovered"';
       html += '<tr' + cls + ' data-name="' + JH.esc(r.name) + '">';
-      html += '<td><strong>' + JH.esc(r.name) + '</strong></td>';
+      html += '<td><strong>' + JH.nameLink(r.name) + '</strong></td>';
       html += '<td>' + arrivesCell(r) + '</td>';
       html += '<td>' + setupCell(r) + '</td>';
       html += '<td>' + sourceCell(r) + '</td>';
@@ -131,7 +131,7 @@ import { GATE, parseDate, isEarlyArrival, hasSetupNoOrg, barrioCap } from '/asse
 
       // Mobile dual-render: same data, same controls, card layout.
       cardsHtml += '<div class="m-card' + (r.source ? '' : ' uncovered') + '" data-name="' + JH.esc(r.name) + '">';
-      cardsHtml += '<div class="m-card-title">' + JH.esc(r.name) + '</div>';
+      cardsHtml += '<div class="m-card-title">' + JH.nameLink(r.name) + '</div>';
       cardsHtml += '<div class="m-card-row"><span class="m-card-label">Arrives</span><span class="m-card-val">' + arrivesCell(r) + '</span></div>';
       cardsHtml += '<div class="m-card-row"><span class="m-card-label">NoOrg setup</span><span class="m-card-val">' + setupCell(r) + '</span></div>';
       cardsHtml += '<div class="m-card-row"><span class="m-card-label">EE source</span><span class="m-card-val">' + sourceCell(r) + '</span></div>';

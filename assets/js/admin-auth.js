@@ -343,34 +343,83 @@ JH.ensureMemberPanel = function() {
   ov.addEventListener('click', close);
 };
 
+// Fields admins see in the member panel, ordered for readability. New columns
+// added to Sheet1 also show up — they fall through to the "anything else" pass
+// below the ordered list so the panel grows automatically.
+JH._ADMIN_FIELD_ORDER = [
+  'Name', 'Status', 'Email', 'Phone', 'Telegram',
+  'Age', 'Gender', 'Nationality', 'Location',
+  'Medical Conditions', 'Emergency Contact Name', 'Emergency Contact Phone', 'Emergency Contact Relation',
+  'FoodType', 'DietaryNotes',
+  'First Burn', 'First Elsewhere/Nowhere', 'Has Ticket', 'Volunteer',
+  'fee_total_sent', 'fee_received', 'low_income_request', 'low_income_status',
+  'Admin', 'Responsible HR', 'Comments', 'Timestamp'
+];
+JH._ADMIN_PANEL_HIDE = { _row: 1, _date: 1, '': 1, LastDietaryPromptedAt: 1, 'Playa Name': 1 };
+// Pretty labels for snake_case / cramped columns; falls back to the key itself.
+JH._ADMIN_FIELD_LABEL = {
+  Name: 'Real Name',
+  fee_total_sent: 'Fee Sent',
+  fee_received: 'Fee Received',
+  low_income_request: 'Low-Income Request',
+  low_income_status: 'Low-Income Status',
+  'First Elsewhere/Nowhere': 'First Elsewhere',
+  FoodType: 'Food Type',
+  DietaryNotes: 'Dietary Notes'
+};
+
 JH.openMemberPanel = function(m, extras) {
   if (!m) return;
   JH.ensureMemberPanel();
   extras = extras || {};
   document.getElementById('member-panel-title').textContent =
     JH.val(m, 'Playa Name') || JH.val(m, 'Name') || 'Member';
-  // [label, value] in demographics order; Roles + Last Login come from extras.
-  var fields = [
-    ['Real Name', JH.val(m, 'Name')],
-    ['Age', JH.val(m, 'Age')],
-    ['Gender', JH.val(m, 'Gender')],
-    ['Nationality', JH.val(m, 'Nationality')],
-    ['Location', JH.val(m, 'Location')],
-    ['Roles', extras.roles || ''],
-    ['Phone', JH.val(m, 'Phone')],
-    ['Email', JH.val(m, 'Email')],
-    ['Admin', JH.val(m, 'Admin')],
-    ['Last Login', extras.lastLogin || ''],
-    ['First Burn', JH.val(m, 'First Burn')],
-    ['First Elsewhere', JH.val(m, 'First Elsewhere/Nowhere')],
-    ['Has Ticket', JH.val(m, 'Has Ticket')],
-    ['Volunteer', JH.val(m, 'Volunteer')]
-  ];
+  var fields;
+  if (JH.isAdmin && JH.isAdmin()) {
+    // Admins see every non-empty member field plus extras. Ordered list first,
+    // then any keys not yet listed (so new sheet columns surface automatically).
+    fields = [];
+    if (extras.roles) fields.push(['Roles', extras.roles]);
+    if (extras.lastLogin) fields.push(['Last Login', extras.lastLogin]);
+    JH._ADMIN_FIELD_ORDER.forEach(function(k) {
+      var v = JH.val(m, k);
+      if (v) fields.push([JH._ADMIN_FIELD_LABEL[k] || k, v]);
+    });
+    var seen = {};
+    JH._ADMIN_FIELD_ORDER.forEach(function(k) { seen[k] = 1; });
+    Object.keys(m).forEach(function(k) {
+      if (seen[k] || JH._ADMIN_PANEL_HIDE[k]) return;
+      var v = JH.val(m, k);
+      if (v) fields.push([JH._ADMIN_FIELD_LABEL[k] || k, v]);
+    });
+  } else {
+    // Non-admins keep the limited safe view (no contact info beyond phone/email,
+    // no medical/emergency, no fee/admin internals).
+    fields = [
+      ['Real Name', JH.val(m, 'Name')],
+      ['Age', JH.val(m, 'Age')],
+      ['Gender', JH.val(m, 'Gender')],
+      ['Nationality', JH.val(m, 'Nationality')],
+      ['Location', JH.val(m, 'Location')],
+      ['Roles', extras.roles || ''],
+      ['Phone', JH.val(m, 'Phone')],
+      ['Email', JH.val(m, 'Email')],
+      ['Last Login', extras.lastLogin || ''],
+      ['First Burn', JH.val(m, 'First Burn')],
+      ['First Elsewhere', JH.val(m, 'First Elsewhere/Nowhere')],
+      ['Has Ticket', JH.val(m, 'Has Ticket')],
+      ['Volunteer', JH.val(m, 'Volunteer')]
+    ];
+  }
   document.getElementById('member-panel-body').innerHTML = fields.filter(function(f) {
     return f[1];
   }).map(function(f) {
-    return '<div class="member-field"><span class="member-field-label">' + JH.esc(f[0]) +
-      '</span><span class="member-field-value">' + JH.esc(f[1]) + '</span></div>';
+    var val = String(f[1]);
+    // Long text (notes, comments, etc.) wraps to multi-line for legibility.
+    var multi = val.length > 60 || val.indexOf('\n') !== -1;
+    var cls = 'member-field' + (multi ? ' member-field-multi' : '');
+    return '<div class="' + cls + '"><span class="member-field-label">' + JH.esc(f[0]) +
+      '</span><span class="member-field-value">' + JH.esc(val) + '</span></div>';
   }).join('');
   document.getElementById('member-overlay').classList.add('active');
   document.getElementById('member-panel').classList.add('active');

@@ -514,7 +514,7 @@ import { parseISO, ganttRange, enumerateDays, barCells, isEventDay, eeColorKey }
 
     var body = dated.map(function (e) {
       var bc = barCells(e.arrival, e.departure, range.startISO, range.endISO);
-      var tds = '<td class="g-name" title="' + JH.esc(e.name) + '">' + JH.esc(e.name) + '</td>';
+      var tds = '<td class="g-name" title="' + JH.esc(e.name) + '">' + JH.nameLink(e.name) + '</td>';
       days.forEach(function (d, i) {
         var cls = 'g-cell' + (isEventDay(d) ? ' event' : '');
         if (bc && i >= bc.startIdx && i <= bc.endIdx) {
