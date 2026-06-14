@@ -798,6 +798,7 @@ import { buildWeightIndex, typePoints, rolePoints, memberPoints, durationHours }
         strikePoints: r.strikePoints,
         rolePoints: r.rolePoints,
         score: r.points,
+        isAdminMember: (JH.val(m, 'Admin') || '').toLowerCase() === 'yes',
       };
     }).filter(Boolean);
   }
@@ -819,11 +820,8 @@ import { buildWeightIndex, typePoints, rolePoints, memberPoints, durationHours }
   var MEDALS = { 1: '🥇', 2: '🥈', 3: '🥉' };
   function renderRow(entry, rank, isTop) {
     var rankClass = isTop && rank <= 3 ? ' top-' + rank : '';
-    // Barrio leads carry roles instead of shifts — don't shame them in red just
-    // because they haven't signed up for an event shift; their leadership is the
-    // contribution.
-    var hasRole = (entry.roles && entry.roles.length) || entry.rolePoints > 0;
-    var noShifts = !entry.eventPoints && !hasRole;
+    // Admins are exempt from the no-shifts red call-out.
+    var noShifts = !entry.eventPoints && !entry.isAdminMember;
     var zoneClass = noShifts ? ' zone-low' : zoneFor(entry.score);
     var noShiftClass = noShifts ? ' no-shifts' : '';
     var rankHtml = (isTop && MEDALS[rank]) ? '<span class="lb-medal">' + MEDALS[rank] + '</span>' : rank;
