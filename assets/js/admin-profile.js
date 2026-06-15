@@ -106,11 +106,20 @@
   // Personal info section
   var editableFields = ['Name', 'Playa Name', 'Email', 'Phone', 'Location', 'Nationality', 'Gender', 'Age'];
   var infoForm = document.getElementById('info-form');
+  var isUserAdmin = JH.isAdmin && JH.isAdmin();
 
   editableFields.forEach(function(field) {
     var input = document.getElementById('info-' + field.toLowerCase().replace(/ /g, '-'));
     if (input && user.member) {
       input.value = JH.val(user.member, field);
+    }
+    // Non-admins can't change Email (would break their Supabase→member lookup).
+    // Show it but disable so they understand it's locked rather than missing.
+    if (field === 'Email' && !isUserAdmin && input) {
+      input.disabled = true;
+      input.title = 'Ask an admin to change your email';
+      input.style.opacity = '0.6';
+      input.style.cursor = 'not-allowed';
     }
   });
 
@@ -122,6 +131,9 @@
 
     var updates = {};
     editableFields.forEach(function(field) {
+      // Skip Email for non-admins — disabled in the form, and the API rejects it
+      // anyway. Including it here would just produce a confusing error.
+      if (field === 'Email' && !isUserAdmin) return;
       var input = document.getElementById('info-' + field.toLowerCase().replace(/ /g, '-'));
       if (input) {
         var newVal = input.value.trim();

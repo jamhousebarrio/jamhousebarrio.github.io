@@ -60,6 +60,15 @@ const LOW_INCOME_FEE = 180;
 const FEE_COLUMNS = ['fee_total_sent', 'fee_received', 'low_income_request', 'low_income_status'];
 const DIETARY_COLUMNS = ['FoodType', 'DietaryNotes', 'LastDietaryPromptedAt'];
 const EMERGENCY_COLUMNS = ['Medical Conditions', 'Emergency Contact Name', 'Emergency Contact Phone', 'Emergency Contact Relation'];
+// Fields a member is allowed to change on their OWN Sheet1 row without being an
+// admin. Personal info from the profile page + emergency/medical. Intentionally
+// excludes Email (changing it breaks the Supabase→member lookup on next login)
+// and anything that affects access (Status, Admin, fee columns, etc.).
+const SELF_EDITABLE_FIELDS = [
+  'Name', 'Playa Name', 'Phone', 'Telegram',
+  'Location', 'Nationality', 'Gender', 'Age',
+  'Medical Conditions', 'Emergency Contact Name', 'Emergency Contact Phone', 'Emergency Contact Relation'
+];
 const ALLOWED_FOOD_TYPES = ['', 'Carnivore', 'Pescatarian', 'Vegetarian', 'Vegan'];
 
 async function tgSend(text) {
@@ -336,6 +345,43 @@ export default async function handler(req, res) {
       await writeCell(sheets, spreadsheetId, hdrs, auth.row, 'DietaryNotes', dietaryNotes);
       // Clear the prompt timestamp once filled (keeps "incomplete" check in sync)
       await writeCell(sheets, spreadsheetId, hdrs, auth.row, 'LastDietaryPromptedAt', '');
+      return res.status(200).json({ success: true });
+    }
+
+    // ── Self-update: a non-admin editing their OWN profile row ───────────
+    // Whitelist-gated so observers stay read-only and members can't poke at
+    // Status/Admin/fee fields. Runs BEFORE the blanket admin gate below.
+    if (action === 'update' && !auth.admin) {
+      if (auth.observer) return res.status(403).json({ error: 'Observer accounts are read-only' });
+      const { row, updates } = payload;
+      if (!row || !updates || typeof updates !== 'object') {
+        return res.status(400).json({ error: 'Row and updates are required' });
+      }
+      if (Number(row) !== Number(auth.row)) {
+        return res.status(403).json({ error: 'You can only edit your own profile' });
+      }
+      const badKeys = Object.keys(updates).filter(k => !SELF_EDITABLE_FIELDS.includes(k));
+      if (badKeys.length) {
+        return res.status(403).json({ error: 'These fields are not self-editable: ' + badKeys.join(', ') });
+      }
+      const r = await sheets.spreadsheets.values.get({ spreadsheetId, range: 'Sheet1!1:1' });
+      let liveHeaders = (r.data.values || [[]])[0] || [];
+      if (EMERGENCY_COLUMNS.some(c => c in updates)) {
+        liveHeaders = await ensureEmergencyColumns(sheets, spreadsheetId, liveHeaders);
+      }
+      const data = [];
+      for (const key in updates) {
+        const col = liveHeaders.indexOf(key);
+        if (col === -1) continue;
+        data.push({ range: 'Sheet1!' + colToLetter(col) + Number(row), values: [[updates[key]]] });
+      }
+      if (data.length === 0) {
+        return res.status(400).json({ error: 'No valid fields to update' });
+      }
+      await sheets.spreadsheets.values.batchUpdate({
+        spreadsheetId,
+        requestBody: { valueInputOption: 'RAW', data: data },
+      });
       return res.status(200).json({ success: true });
     }
 
