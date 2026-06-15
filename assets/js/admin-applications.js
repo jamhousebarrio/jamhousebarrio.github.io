@@ -188,9 +188,11 @@
             }
           }
         }
-      } else if (inviteRes.status === 403) {
-        // Member isn't Approved/Observer — every link path is gated, so just
-        // explain why; don't offer the manual-link fallback (it would also 403).
+      } else if (inviteRes.status === 422 || inviteRes.status === 404) {
+        // Member isn't Approved/Observer (422) or has no application (404) —
+        // every link path is gated, so just explain why; don't offer the
+        // manual-link fallback (it would fail the same way). These statuses
+        // pass through apiFetch (unlike 401/403, which force a re-login).
         var gateErr = await inviteRes.json().catch(function() { return {}; });
         alert(gateErr.error || (memberName + ' must be Approved before you can send a portal link.'));
       } else if (!inviteRes.ok) {

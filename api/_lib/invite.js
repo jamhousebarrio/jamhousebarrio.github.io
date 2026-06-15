@@ -31,8 +31,13 @@ export function shouldInvite(oldStatus, newStatus) {
 // in screening (e.g. "Vibe Check"). That link then expires and the self-serve
 // magic-link path correctly refuses to renew it, leaving the person stuck.
 // Throws an Error with `.status` (caught by each handler's outer try/catch):
-//   404 if no application exists, 403 if the member isn't Approved/Observer.
-// Returns the member object on success. `sheets` is injected for testability.
+//   404 if no application exists, 422 if the member isn't Approved/Observer.
+// NOTE: the ineligible case is 422 (not 403) on purpose — the shared client
+// `JH.apiFetch` treats 401/403 as a session-auth failure and force-redirects
+// to /admin, which would bounce the admin to the login page on what is really
+// a per-target validation error. 422 flows back to the caller so the UI can
+// show the reason inline. Returns the member on success. `sheets` is injected
+// for testability.
 export async function assertPortalEligible(sheets, spreadsheetId, email) {
   const row = await getMemberByEmail(sheets, spreadsheetId, email, { anyStatus: true });
   if (!row) {
@@ -44,7 +49,7 @@ export async function assertPortalEligible(sheets, spreadsheetId, email) {
     const e = new Error(
       `${row.member.Name || email} is "${row.member.Status || 'unset'}" — approve them (or set Observer) before sending a portal link.`,
     );
-    e.status = 403;
+    e.status = 422;
     throw e;
   }
   return row.member;

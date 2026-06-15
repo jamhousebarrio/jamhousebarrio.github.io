@@ -97,7 +97,7 @@ export default async function handler(req, res) {
 
       // Refuse to invite anyone who isn't Approved/Observer — minting a portal
       // link for a screening-stage member leaves them stuck once it expires
-      // (the self-serve renew path is status-gated). Throws 403/404 → outer catch.
+      // (the self-serve renew path is status-gated). Throws 422/404 → outer catch.
       const targetMember = await assertPortalEligible(sheets, process.env.SHEET_ID, email);
       const preStatus = (targetMember.Status || '').toString().toLowerCase().trim();
 

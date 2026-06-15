@@ -28,14 +28,16 @@ test('assertPortalEligible passes for Observer', async () => {
   assert.equal(m.Status, 'Observer');
 });
 
-test('assertPortalEligible blocks a non-portal status with 403 (and names the status)', async () => {
+test('assertPortalEligible blocks a non-portal status with 422 (and names the status)', async () => {
+  // 422 (not 403) so the shared apiFetch doesn't treat it as a session-auth
+  // failure and force-redirect to /admin — see the note in invite.js.
   await assert.rejects(
     () => assertPortalEligible(fakeSheets(ELIGIBILITY_ROSTER), SHEET, 'vic@x.com'),
-    (e) => e.status === 403 && /Vibe Check/.test(e.message),
+    (e) => e.status === 422 && /Vibe Check/.test(e.message),
   );
   await assert.rejects(
     () => assertPortalEligible(fakeSheets(ELIGIBILITY_ROSTER), SHEET, 'pat@x.com'),
-    (e) => e.status === 403,
+    (e) => e.status === 422,
   );
 });
 
