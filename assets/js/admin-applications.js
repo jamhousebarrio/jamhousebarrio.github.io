@@ -188,6 +188,11 @@
             }
           }
         }
+      } else if (inviteRes.status === 403) {
+        // Member isn't Approved/Observer — every link path is gated, so just
+        // explain why; don't offer the manual-link fallback (it would also 403).
+        var gateErr = await inviteRes.json().catch(function() { return {}; });
+        alert(gateErr.error || (memberName + ' must be Approved before you can send a portal link.'));
       } else if (!inviteRes.ok) {
         var inviteErr = await inviteRes.json().catch(function() { return {}; });
         if (confirm('Invite email failed: ' + (inviteErr.error || 'Unknown error') + '\n\nGenerate a one-time invite link you can send manually?')) {

@@ -24,6 +24,32 @@ export function shouldInvite(oldStatus, newStatus) {
   return false;
 }
 
+// Guard for the manual admin link-minting actions (invite / resend-invite /
+// generate-link). Those verify the *caller* is an admin but, unlike the
+// automatic paths (shouldInvite hook, sync-invites), never checked the
+// *target's* status — so an admin could mint a portal link for someone still
+// in screening (e.g. "Vibe Check"). That link then expires and the self-serve
+// magic-link path correctly refuses to renew it, leaving the person stuck.
+// Throws an Error with `.status` (caught by each handler's outer try/catch):
+//   404 if no application exists, 403 if the member isn't Approved/Observer.
+// Returns the member object on success. `sheets` is injected for testability.
+export async function assertPortalEligible(sheets, spreadsheetId, email) {
+  const row = await getMemberByEmail(sheets, spreadsheetId, email, { anyStatus: true });
+  if (!row) {
+    const e = new Error(`No application on file for ${email}.`);
+    e.status = 404;
+    throw e;
+  }
+  if (!PORTAL_STATUSES.has(norm(row.member.Status))) {
+    const e = new Error(
+      `${row.member.Name || email} is "${row.member.Status || 'unset'}" — approve them (or set Observer) before sending a portal link.`,
+    );
+    e.status = 403;
+    throw e;
+  }
+  return row.member;
+}
+
 // Given a roster of {email, status, ...} and a Set of lowercased emails that
 // already have a Supabase user, return the roster entries with no user.
 export function diffMissingInvites(roster, existingEmails) {

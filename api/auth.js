@@ -2,7 +2,7 @@ import { verifyToken, getMemberByEmail, isAdmin } from './_lib/auth.js';
 import { getSheets, colToLetter } from './_lib/sheets.js';
 import { logError } from './_lib/error-log.js';
 import { sendEmail, tplPasswordReset, tplDietaryPrompt, tplMagicLink } from './_lib/email.js';
-import { getSupabaseAdmin, sendMemberInvite } from './_lib/invite.js';
+import { getSupabaseAdmin, sendMemberInvite, assertPortalEligible } from './_lib/invite.js';
 
 const SITE_URL = process.env.SITE_URL || 'https://jamhouse.space';
 // Resend free tier is 2 req/s; 500ms keeps us safely under.
@@ -95,8 +95,10 @@ export default async function handler(req, res) {
       const { email } = payload;
       if (!email) return res.status(400).json({ error: 'email required' });
 
-      const preLookup = await getMemberByEmail(sheets, process.env.SHEET_ID, email, { anyStatus: true }).catch(() => null);
-      const targetMember = preLookup?.member || {};
+      // Refuse to invite anyone who isn't Approved/Observer — minting a portal
+      // link for a screening-stage member leaves them stuck once it expires
+      // (the self-serve renew path is status-gated). Throws 403/404 → outer catch.
+      const targetMember = await assertPortalEligible(sheets, process.env.SHEET_ID, email);
       const preStatus = (targetMember.Status || '').toString().toLowerCase().trim();
 
       // Shared helper mints the link (invite → recovery fallback for existing
@@ -136,6 +138,9 @@ export default async function handler(req, res) {
 
       const { email: targetEmail, type: linkType } = payload;
       if (!targetEmail) return res.status(400).json({ error: 'email required' });
+
+      // Same gate as the invite action — no portal links for non-Approved members.
+      await assertPortalEligible(sheets, process.env.SHEET_ID, targetEmail);
 
       const supabase = getSupabaseAdmin();
       const type = linkType || 'invite';
@@ -190,6 +195,9 @@ export default async function handler(req, res) {
 
       const { email: targetEmail } = payload;
       if (!targetEmail) return res.status(400).json({ error: 'email required' });
+
+      // Same gate — no portal links for non-Approved members.
+      await assertPortalEligible(sheets, process.env.SHEET_ID, targetEmail);
 
       await mintAndSendAuthEmail({
         supabase: getSupabaseAdmin(), sheets, email: targetEmail,
