@@ -365,7 +365,9 @@
   // ── Kanban view ─────────────────────────────────────────────────────────
   var LS_VIEW_KEY = 'jh.applications.view.v2';
   var LS_KB_EXPANDED_KEY = 'jh.applications.kanban.expanded';
-  var DEFAULT_EXPANDED_BUCKETS = ['Pending', 'In Progress'];
+  // All buckets expanded by default; users can collapse any column (persisted
+  // in LS_KB_EXPANDED_KEY, which overrides this for anyone who has toggled).
+  var DEFAULT_EXPANDED_BUCKETS = BUCKET_ORDER.slice();
 
   function readView() {
     try { return localStorage.getItem(LS_VIEW_KEY) || 'kanban'; } catch (e) { return 'kanban'; }
