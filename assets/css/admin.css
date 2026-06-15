@@ -499,7 +499,11 @@ body:has(.modal-overlay.active) { overflow: hidden; }
   border-radius: 6px;
   padding: 8px;
   min-width: 220px;
-  flex: 1;
+  /* Grow to share space, but cap width so a couple of active columns don't
+     balloon to fill the whole board (e.g. 670px each) when the terminal
+     buckets are collapsed. Board bg == page bg, so leftover space blends in. */
+  flex: 1 1 280px;
+  max-width: 360px;
   display: flex;
   flex-direction: column;
 }
@@ -568,6 +572,7 @@ body:has(.modal-overlay.active) { overflow: hidden; }
 .kb-col.collapsed {
   min-width: 60px;
   max-width: 60px;
+  flex: 0 0 60px;
   padding: 8px 4px;
   cursor: pointer;
 }
