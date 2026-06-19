@@ -40,8 +40,9 @@ access: general
     .m-task-row.arrived-late { background: rgba(255,193,7,0.10); border-left: 3px solid rgba(255,193,7,0.65); padding-left: 6px; margin-left: -6px; border-radius: 4px; }
     .m-task-row.too-late { background: rgba(140,140,140,0.10); border-left: 3px solid rgba(140,140,140,0.55); padding-left: 6px; margin-left: -6px; border-radius: 4px; opacity: 0.7; }
     /* Team pill rendered at top of each cell */
-    .cell-team { display: inline-block; padding: 1px 7px; border-radius: 999px; font-size: 0.66rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: #fff; margin-bottom: 4px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: middle; }
-    .cell-team .cell-team-x { background: rgba(0,0,0,0.25); border: none; color: #fff; margin-left: 4px; padding: 0 4px; border-radius: 999px; cursor: pointer; font-size: 0.7rem; line-height: 1; }
+    .cell-team { display: inline-flex; align-items: center; gap: 4px; padding: 1px 4px 1px 7px; border-radius: 999px; font-size: 0.66rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: #fff; margin-bottom: 4px; max-width: 100%; vertical-align: middle; }
+    .cell-team .cell-team-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; flex: 1 1 auto; }
+    .cell-team .cell-team-x { flex: 0 0 auto; background: rgba(0,0,0,0.25); border: none; color: #fff; padding: 0 5px; border-radius: 999px; cursor: pointer; font-size: 0.75rem; line-height: 1; }
     .cell-team .cell-team-x:hover { background: rgba(0,0,0,0.5); }
     .cell-team-row { display: block; margin-bottom: 3px; }
     /* Teams editor panel (top of page) */

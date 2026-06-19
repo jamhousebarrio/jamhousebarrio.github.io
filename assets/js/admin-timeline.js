@@ -362,9 +362,9 @@
           var noorg = isNoOrg(person, date);
 
           var teamPill = team ? (
-            '<span class="cell-team-row"><span class="cell-team" style="background:' + JH.esc(teamColor(team)) + '">' +
-            JH.esc(team) +
-            (isAdmin ? ' <button class="cell-team-x" data-person="' + JH.esc(person) + '" data-date="' + JH.esc(date) + '" data-period="' + JH.esc(period) + '" title="Remove team">&times;</button>' : '') +
+            '<span class="cell-team-row"><span class="cell-team" style="background:' + JH.esc(teamColor(team)) + '" title="' + JH.esc(team) + '">' +
+            '<span class="cell-team-text">' + JH.esc(team) + '</span>' +
+            (isAdmin ? '<button class="cell-team-x" data-person="' + JH.esc(person) + '" data-date="' + JH.esc(date) + '" data-period="' + JH.esc(period) + '" title="Remove team">&times;</button>' : '') +
             '</span></span>'
           ) : '';
 
