@@ -125,14 +125,43 @@
     return row && row.ArrivalTime ? JH.to24h(row.ArrivalTime) : '';
   }
 
+  // Cell is "available" (editable, not greyed-out) from the arrival day onward.
+  // Visual green/yellow tint is decided separately by arrivalHighlight().
   function isAvailable(person, date) {
     var arrival = getArrivalDate(person);
-    if (!arrival) return true; // no logistics info = assume available
-    // Available the day AFTER arrival
-    var arrDate = new Date(arrival + 'T00:00:00');
-    arrDate.setDate(arrDate.getDate() + 1);
-    var cellDate = new Date(date + 'T00:00:00');
-    return cellDate >= arrDate;
+    if (!arrival) return true;
+    return date >= arrival;
+  }
+
+  function parseTimeToMin(t) {
+    if (!t) return -1;
+    var m = (t + '').match(/^(\d{1,2}):(\d{2})$/);
+    if (!m) return -1;
+    return parseInt(m[1], 10) * 60 + parseInt(m[2], 10);
+  }
+
+  // Returns 'green' | 'yellow' | '' for a (person, date, period) cell:
+  //   green  – arrived before / well within working hours of that half-day
+  //   yellow – arrived mid-half-day (limited time to contribute)
+  //   ''     – not arrived yet, OR arrived too late to count for that half-day
+  // Morning thresholds: ≤08:00 green, <12:00 yellow, ≥12:00 nothing.
+  // Evening thresholds: <12:00 green, <20:00 yellow, ≥20:00 nothing.
+  // Missing arrival date OR missing time → green (assume present).
+  function arrivalHighlight(person, date, period) {
+    var arrival = getArrivalDate(person);
+    if (!arrival) return 'green';
+    if (date < arrival) return '';
+    if (date > arrival) return 'green';
+    var min = parseTimeToMin(getArrivalTime(person));
+    if (min < 0) return 'green';
+    if (period === 'Morning') {
+      if (min <= 8 * 60) return 'green';
+      if (min < 12 * 60) return 'yellow';
+      return '';
+    }
+    if (min < 12 * 60) return 'green';
+    if (min < 20 * 60) return 'yellow';
+    return '';
   }
 
   // ── Grid dates ────────────────────────────────────────────────────────────
@@ -328,11 +357,13 @@
             '</span></span>'
           ) : '';
 
-          var arrivedCls = (arrival && available) ? ' arrived' : '';
+          var hl = arrivalHighlight(person, date, period);
+          var arrivedCls = hl === 'green' ? ' arrived' : hl === 'yellow' ? ' arrived-late' : '';
           if (noorg) {
             html += '<td class="task-cell noorg" title="On NoOrg duty">NoOrg</td>';
           } else if (isAdmin && available) {
-            html += '<td class="task-cell' + arrivedCls + '" data-person="' + JH.esc(person) + '" data-date="' + JH.esc(date) + '" data-period="' + JH.esc(period) + '">' + teamPill + JH.esc(task) + '</td>';
+            var ttl = hl === 'yellow' ? ' title="Arrives mid half-day"' : '';
+            html += '<td class="task-cell' + arrivedCls + '"' + ttl + ' data-person="' + JH.esc(person) + '" data-date="' + JH.esc(date) + '" data-period="' + JH.esc(period) + '">' + teamPill + JH.esc(task) + '</td>';
           } else if (!available) {
             html += '<td class="task-cell unavailable" title="Not arrived yet">' + teamPill + JH.esc(task) + '</td>';
           } else {
@@ -415,8 +446,9 @@
           var team = getTeam(person, date, period);
           var available = isAvailable(person, date);
           var noorg = isNoOrg(person, date);
+          var hl = arrivalHighlight(person, date, period);
           if (task || team || noorg) hasContent = true;
-          rows.push({ period: period, task: task, team: team, available: available, noorg: noorg });
+          rows.push({ period: period, task: task, team: team, available: available, noorg: noorg, hl: hl });
         });
         if (!hasContent) return;
         anyPerson = true;
@@ -429,7 +461,8 @@
         html += '</div>';
 
         rows.forEach(function (r) {
-          html += '<div class="m-task-row">';
+          var rowHlCls = r.hl === 'green' ? ' arrived' : r.hl === 'yellow' ? ' arrived-late' : '';
+          html += '<div class="m-task-row' + rowHlCls + '">';
           html += '<span class="m-task-period">' + JH.esc(r.period) + '</span>';
           var teamPillM = r.team ? '<span class="cell-team" style="background:' + JH.esc(teamColor(r.team)) + '">' + JH.esc(r.team) + '</span>' : '';
           if (r.noorg) {
