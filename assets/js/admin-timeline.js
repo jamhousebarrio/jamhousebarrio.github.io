@@ -140,12 +140,13 @@
     return parseInt(m[1], 10) * 60 + parseInt(m[2], 10);
   }
 
-  // Returns 'green' | 'yellow' | '' for a (person, date, period) cell:
-  //   green  – arrived before / well within working hours of that half-day
-  //   yellow – arrived mid-half-day (limited time to contribute)
-  //   ''     – not arrived yet, OR arrived too late to count for that half-day
-  // Morning thresholds: ≤08:00 green, <12:00 yellow, ≥12:00 nothing.
-  // Evening thresholds: <12:00 green, <20:00 yellow, ≥20:00 nothing.
+  // Returns 'green' | 'yellow' | 'grey' | '':
+  //   green  – on-site and working that half-day
+  //   yellow – arriving mid half-day (limited time)
+  //   grey   – arrived too late for that half-day (e.g. lands 20:00 → grey eve)
+  //   ''     – not arrived at all (date < arrival), handled separately
+  // Morning thresholds: ≤08:00 green, <12:00 yellow, ≥12:00 grey.
+  // Evening thresholds: <12:00 green, <20:00 yellow, ≥20:00 grey.
   // Missing arrival date OR missing time → green (assume present).
   function arrivalHighlight(person, date, period) {
     var arrival = getArrivalDate(person);
@@ -157,11 +158,11 @@
     if (period === 'Morning') {
       if (min <= 8 * 60) return 'green';
       if (min < 12 * 60) return 'yellow';
-      return '';
+      return 'grey';
     }
     if (min < 12 * 60) return 'green';
     if (min < 20 * 60) return 'yellow';
-    return '';
+    return 'grey';
   }
 
   // ── Grid dates ────────────────────────────────────────────────────────────
@@ -358,16 +359,17 @@
           ) : '';
 
           var hl = arrivalHighlight(person, date, period);
-          var arrivedCls = hl === 'green' ? ' arrived' : hl === 'yellow' ? ' arrived-late' : '';
+          var arrivedCls = hl === 'green' ? ' arrived' : hl === 'yellow' ? ' arrived-late' : hl === 'grey' ? ' too-late' : '';
           if (noorg) {
             html += '<td class="task-cell noorg" title="On NoOrg duty">NoOrg</td>';
           } else if (isAdmin && available) {
-            var ttl = hl === 'yellow' ? ' title="Arrives mid half-day"' : '';
+            var ttl = hl === 'yellow' ? ' title="Arrives mid half-day"' : hl === 'grey' ? ' title="Arrives too late for this half-day"' : '';
             html += '<td class="task-cell' + arrivedCls + '"' + ttl + ' data-person="' + JH.esc(person) + '" data-date="' + JH.esc(date) + '" data-period="' + JH.esc(period) + '">' + teamPill + JH.esc(task) + '</td>';
           } else if (!available) {
             html += '<td class="task-cell unavailable" title="Not arrived yet">' + teamPill + JH.esc(task) + '</td>';
           } else {
-            html += '<td class="task-cell' + arrivedCls + '">' + teamPill + JH.esc(task) + '</td>';
+            var ttl2 = hl === 'yellow' ? ' title="Arrives mid half-day"' : hl === 'grey' ? ' title="Arrives too late for this half-day"' : '';
+            html += '<td class="task-cell' + arrivedCls + '"' + ttl2 + '>' + teamPill + JH.esc(task) + '</td>';
           }
         });
       });
@@ -461,7 +463,7 @@
         html += '</div>';
 
         rows.forEach(function (r) {
-          var rowHlCls = r.hl === 'green' ? ' arrived' : r.hl === 'yellow' ? ' arrived-late' : '';
+          var rowHlCls = r.hl === 'green' ? ' arrived' : r.hl === 'yellow' ? ' arrived-late' : r.hl === 'grey' ? ' too-late' : '';
           html += '<div class="m-task-row' + rowHlCls + '">';
           html += '<span class="m-task-period">' + JH.esc(r.period) + '</span>';
           var teamPillM = r.team ? '<span class="cell-team" style="background:' + JH.esc(teamColor(r.team)) + '">' + JH.esc(r.team) + '</span>' : '';

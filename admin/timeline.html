@@ -34,8 +34,11 @@ access: general
     .timeline-table td.task-cell.arrived:hover { background: rgba(76,175,80,0.18); }
     .timeline-table td.task-cell.arrived-late { background: rgba(255,193,7,0.12); }
     .timeline-table td.task-cell.arrived-late:hover { background: rgba(255,193,7,0.22); }
+    .timeline-table td.task-cell.too-late { background: rgba(140,140,140,0.10); opacity: 0.7; }
+    .timeline-table td.task-cell.too-late:hover { background: rgba(140,140,140,0.20); opacity: 1; }
     .m-task-row.arrived { background: rgba(76,175,80,0.08); border-left: 3px solid rgba(76,175,80,0.55); padding-left: 6px; margin-left: -6px; border-radius: 4px; }
     .m-task-row.arrived-late { background: rgba(255,193,7,0.10); border-left: 3px solid rgba(255,193,7,0.65); padding-left: 6px; margin-left: -6px; border-radius: 4px; }
+    .m-task-row.too-late { background: rgba(140,140,140,0.10); border-left: 3px solid rgba(140,140,140,0.55); padding-left: 6px; margin-left: -6px; border-radius: 4px; opacity: 0.7; }
     /* Team pill rendered at top of each cell */
     .cell-team { display: inline-block; padding: 1px 7px; border-radius: 999px; font-size: 0.66rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: #fff; margin-bottom: 4px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: middle; }
     .cell-team .cell-team-x { background: rgba(0,0,0,0.25); border: none; color: #fff; margin-left: 4px; padding: 0 4px; border-radius: 999px; cursor: pointer; font-size: 0.7rem; line-height: 1; }
@@ -109,7 +112,7 @@ access: general
 
   <div class="mobile-dnd-hint">Tip: tap a cell to edit &mdash; drag-and-drop is desktop-only.</div>
   <div class="mobile-edit-hint">Tap a task to edit. Drag-and-drop task chips are desktop-only.</div>
-  <div class="timeline-legend">Grey = not arrived yet · Green = on-site &amp; available · Yellow = arrives mid half-day · Red = NoOrg. Drag a team chip onto a cell to assign a half-day.</div>
+  <div class="timeline-legend">Grey = not arrived (or arrives too late for the half-day) · Green = on-site &amp; available · Yellow = arrives mid half-day · Red = NoOrg. Drag a team chip onto a cell to assign a half-day.</div>
 
   <!-- Teams editor (admin only; rendered by JS) -->
   <div id="teams-panel-wrap"></div>
