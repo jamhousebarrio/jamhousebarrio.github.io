@@ -154,7 +154,12 @@
     if (date < arrival) return '';
     if (date > arrival) return 'green';
     var min = parseTimeToMin(getArrivalTime(person));
-    if (min < 0) return 'green';
+    if (min < 0) {
+      // Arrival time unknown: assume an afternoon arrival — morning grey,
+      // evening green. Less optimistic than before; user prefers to plan
+      // around the worst-case morning rather than over-commit them.
+      return period === 'Morning' ? 'grey' : 'green';
+    }
     if (period === 'Morning') {
       if (min <= 8 * 60) return 'green';
       if (min < 12 * 60) return 'yellow';
