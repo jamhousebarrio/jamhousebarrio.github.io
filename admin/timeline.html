@@ -28,8 +28,8 @@ access: general
     .timeline-table td.task-cell.editing textarea { width: 100%; min-height: 50px; background: var(--bg); color: var(--text); border: 2px solid var(--accent); font-family: var(--body); font-size: 0.78rem; padding: 4px 6px; resize: vertical; box-sizing: border-box; outline: none; }
     .timeline-table tr.resource-row td { background: rgba(232,168,76,0.05); font-size: 0.75rem; color: var(--text-muted); }
     .timeline-table tr.resource-row td.name-cell { font-weight: 700; color: var(--accent); }
-    .timeline-table td.task-cell.unavailable { background: rgba(255,255,255,0.02); cursor: not-allowed; }
-    .timeline-table td.task-cell.unavailable:hover { background: rgba(255,255,255,0.02); }
+    .timeline-table td.task-cell.unavailable { background: rgba(140,140,140,0.10); cursor: not-allowed; opacity: 0.7; }
+    .timeline-table td.task-cell.unavailable:hover { background: rgba(140,140,140,0.10); }
     .timeline-table td.task-cell.arrived { background: rgba(76,175,80,0.10); }
     .timeline-table td.task-cell.arrived:hover { background: rgba(76,175,80,0.18); }
     .timeline-table td.task-cell.arrived-late { background: rgba(255,193,7,0.12); }
@@ -112,7 +112,7 @@ access: general
 
   <div class="mobile-dnd-hint">Tip: tap a cell to edit &mdash; drag-and-drop is desktop-only.</div>
   <div class="mobile-edit-hint">Tap a task to edit. Drag-and-drop task chips are desktop-only.</div>
-  <div class="timeline-legend">Grey = not arrived (or arrives too late for the half-day) · Green = on-site &amp; available · Yellow = arrives mid half-day · Red = NoOrg. Drag a team chip onto a cell to assign a half-day.</div>
+  <div class="timeline-legend">Green = on-site &amp; available · Yellow = arrives mid half-day · Grey = not available this half-day · Red = NoOrg. Drag a team chip onto a cell to assign a half-day.</div>
 
   <!-- Teams editor (admin only; rendered by JS) -->
   <div id="teams-panel-wrap"></div>

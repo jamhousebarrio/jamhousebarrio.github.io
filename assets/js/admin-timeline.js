@@ -160,7 +160,8 @@
       if (min < 12 * 60) return 'yellow';
       return 'grey';
     }
-    if (min < 12 * 60) return 'green';
+    // Evening: arrived by 13:00 still counts as fully on for the afternoon.
+    if (min <= 13 * 60) return 'green';
     if (min < 20 * 60) return 'yellow';
     return 'grey';
   }
