@@ -788,6 +788,100 @@
     });
   }
 
+  // ── Print build week ─────────────────────────────────────────────────────
+
+  function buildPrintHtml() {
+    function esc(s) { return (s == null ? '' : String(s)).replace(/[&<>"]/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]; }); }
+    var dates = ['2026-07-01', '2026-07-02', '2026-07-03', '2026-07-04', '2026-07-05', '2026-07-06'];
+    var people = getGridPeople().filter(function (p) {
+      var arr = getArrivalDate(p);
+      // Include anyone arriving on or before Mon 07-06 (so build crew is shown).
+      return !arr || arr <= '2026-07-06';
+    });
+    var periods = ['Morning', 'Evening'];
+
+    var css = '\
+      @page { size: A4 landscape; margin: 8mm; }\
+      * { box-sizing: border-box; }\
+      body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #111; margin: 0; line-height: 1.3; }\
+      h1 { font-size: 15pt; margin: 0 0 2mm; letter-spacing: -0.01em; }\
+      .sub { color: #555; font-size: 9pt; margin-bottom: 3mm; }\
+      table { width: 100%; border-collapse: collapse; font-size: 8.5pt; table-layout: fixed; }\
+      th, td { padding: 3px 5px; border: 1px solid #bbb; vertical-align: top; word-wrap: break-word; }\
+      th { background: #111; color: #fff; font-weight: 600; font-size: 8pt; text-transform: uppercase; letter-spacing: 0.04em; }\
+      th.day { background: #333; }\
+      th.period { background: #555; font-size: 7.5pt; }\
+      td.name { font-weight: 700; width: 24mm; background: #f3f3f3; }\
+      td.name .arr { display: block; font-weight: 400; color: #666; font-size: 7pt; }\
+      td.cell { min-height: 12mm; }\
+      td.cell.green { background: rgba(76,175,80,0.12); }\
+      td.cell.yellow { background: rgba(255,193,7,0.16); }\
+      td.cell.grey { background: rgba(140,140,140,0.18); color: #999; }\
+      td.cell.noorg { background: rgba(244,67,54,0.14); color: #b71c1c; font-style: italic; text-align: center; }\
+      .team-tag { display: inline-block; padding: 1px 5px; border-radius: 8px; font-size: 7pt; font-weight: 700; color: #fff; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 2px; }\
+      .task-text { white-space: pre-wrap; font-size: 8.5pt; }\
+      .footer { margin-top: 3mm; font-size: 7pt; color: #888; display: flex; justify-content: space-between; }\
+    ';
+
+    var body = '<h1>JamHouse — Build Week Setup Timeline</h1>';
+    body += '<div class="sub">Elsewhere 2026 · build days Wed 1 Jul – Mon 6 Jul</div>';
+    body += '<table><thead><tr><th class="name">Person</th>';
+    dates.forEach(function (d) {
+      var dt = new Date(d + 'T00:00:00Z');
+      body += '<th class="day" colspan="2">' + esc(dt.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' })) + '</th>';
+    });
+    body += '</tr><tr><th class="name"></th>';
+    dates.forEach(function () {
+      periods.forEach(function (p) { body += '<th class="period">' + esc(p) + '</th>'; });
+    });
+    body += '</tr></thead><tbody>';
+
+    people.forEach(function (person) {
+      var arr = getArrivalDate(person);
+      var arrTime = getArrivalTime(person);
+      body += '<tr><td class="name">' + esc(person) +
+        (arr ? '<span class="arr">arr ' + esc(JH.formatDate(arr)) + (arrTime ? ' ' + esc(arrTime) : '') + '</span>' : '') + '</td>';
+      dates.forEach(function (date) {
+        periods.forEach(function (period) {
+          var task = getTask(person, date, period);
+          var team = getTeam(person, date, period);
+          var hl = arrivalHighlight(person, date, period);
+          var noorg = isNoOrg(person, date);
+          var cls = noorg ? 'noorg' : hl;
+          if (noorg) {
+            body += '<td class="cell noorg">NoOrg</td>';
+          } else {
+            body += '<td class="cell ' + cls + '">';
+            if (team) body += '<span class="team-tag" style="background:' + esc(teamColor(team)) + '">' + esc(team) + '</span>';
+            if (task) body += '<div class="task-text">' + esc(task) + '</div>';
+            body += '</td>';
+          }
+        });
+      });
+      body += '</tr>';
+    });
+    body += '</tbody></table>';
+    body += '<div class="footer"><span>Printed ' + new Date().toLocaleDateString('en-GB') + '</span><span>jamhouse.space</span></div>';
+
+    return '<!DOCTYPE html><html><head><meta charset="utf-8"><title>JamHouse Build Timeline</title><style>' + css + '</style></head><body>' + body + '</body></html>';
+  }
+
+  function bindPrintButton() {
+    var btn = document.getElementById('print-timeline-btn');
+    if (!btn || btn._wired) return;
+    btn._wired = true;
+    btn.addEventListener('click', function () {
+      var html = buildPrintHtml();
+      var w = window.open('', '_blank');
+      if (!w) { alert('Popup blocked — allow popups for this site to print.'); return; }
+      w.document.open();
+      w.document.write(html);
+      w.document.close();
+      w.focus();
+      setTimeout(function () { try { w.print(); } catch (e) {} }, 300);
+    });
+  }
+
   function bindEventDaysToggle() {
     var btn = document.getElementById('toggle-event-days');
     if (!btn || btn._wired) return;
@@ -810,6 +904,7 @@
     await fetchData();
     renderTimeline();
     bindEventDaysToggle();
+    bindPrintButton();
   }
 
   await reload();
