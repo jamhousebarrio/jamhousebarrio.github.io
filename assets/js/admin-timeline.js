@@ -77,6 +77,11 @@
     return row ? row.ArrivalDate : '';
   }
 
+  function getArrivalTime(person) {
+    var row = state.logistics.find(function (l) { return l.MemberName === person; });
+    return row && row.ArrivalTime ? JH.to24h(row.ArrivalTime) : '';
+  }
+
   function isAvailable(person, date) {
     var arrival = getArrivalDate(person);
     if (!arrival) return true; // no logistics info = assume available
@@ -151,9 +156,10 @@
     // People rows
     people.forEach(function (person) {
       var arrival = getArrivalDate(person);
+      var arrTime = getArrivalTime(person);
       html += '<tr>';
       html += '<td class="name-cell">' + JH.esc(person);
-      if (arrival) html += '<span class="arrival-badge">arr: ' + JH.formatDate(arrival) + '</span>';
+      if (arrival) html += '<span class="arrival-badge">arr: ' + JH.formatDate(arrival) + (arrTime ? ' ' + JH.esc(arrTime) : '') + '</span>';
       html += '</td>';
 
       dates.forEach(function (date) {
@@ -256,8 +262,9 @@
 
         html += '<div class="m-card">';
         var arrival = getArrivalDate(person);
+        var arrTime = getArrivalTime(person);
         html += '<div class="m-day-person">' + JH.esc(person);
-        if (arrival) html += ' <span class="arrival-badge">arr: ' + JH.esc(JH.formatDate(arrival)) + '</span>';
+        if (arrival) html += ' <span class="arrival-badge">arr: ' + JH.esc(JH.formatDate(arrival)) + (arrTime ? ' ' + JH.esc(arrTime) : '') + '</span>';
         html += '</div>';
 
         rows.forEach(function (r) {
