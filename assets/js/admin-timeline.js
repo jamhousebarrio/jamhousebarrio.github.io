@@ -20,6 +20,19 @@
     return m['Playa Name'] || m['Name'] || '';
   }).filter(Boolean).sort();
 
+  // Observers (non-approved) must not appear in the setup-timeline grid even if
+  // they have logistics/timeline rows. Build a name lookup so getGridPeople can
+  // skip them when merging Timeline entries.
+  var observerNames = {};
+  members.forEach(function (m) {
+    if ((m['Status'] || '').toLowerCase() === 'observer') {
+      var p = m['Playa Name'] || '';
+      var l = m['Name'] || '';
+      if (p) observerNames[p] = true;
+      if (l) observerNames[l] = true;
+    }
+  });
+
   // ── Data fetching ─────────────────────────────────────────────────────────
 
   async function fetchData() {
@@ -91,8 +104,10 @@
     var set = {};
     // All approved members
     approvedMembers.forEach(function (m) { set[m] = true; });
-    // Plus anyone in entries
-    state.entries.forEach(function (e) { if (e.Person) set[e.Person] = true; });
+    // Plus anyone in entries — but skip observers (they shouldn't be in the build grid).
+    state.entries.forEach(function (e) {
+      if (e.Person && !observerNames[e.Person]) set[e.Person] = true;
+    });
     var result = [];
     approvedMembers.forEach(function (m) { if (set[m]) { result.push(m); delete set[m]; } });
     Object.keys(set).sort().forEach(function (p) { result.push(p); });

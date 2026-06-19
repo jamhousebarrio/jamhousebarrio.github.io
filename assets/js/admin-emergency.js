@@ -10,8 +10,7 @@
   function val(m, key) { return JH.val(m, key); }
 
   var approved = members.filter(function (m) {
-    var s = (val(m, 'Status') || '').toLowerCase();
-    return s === 'approved' || s === 'observer';
+    return (val(m, 'Status') || '').toLowerCase() === 'approved';
   });
 
   function renderTable(filter) {
