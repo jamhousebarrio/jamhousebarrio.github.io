@@ -262,6 +262,22 @@ access: general
   </div>
 </div>
 
+<!-- Sign-out confirmation modal -->
+<div class="modal-overlay" id="signout-modal">
+  <div class="modal">
+    <h2>Sign out of this shift? <button class="modal-close" id="signout-modal-close">&times;</button></h2>
+    <div id="signout-info" style="font-size:0.9rem;color:var(--text);margin:8px 0 14px;line-height:1.5"></div>
+    <div style="background:rgba(244,67,54,0.10);border:1px solid rgba(244,67,54,0.55);border-radius:8px;padding:12px;font-size:0.88rem;line-height:1.5;color:var(--text)">
+      <strong style="color:#f44336">Important:</strong> you are responsible for finding someone to cover for you. Please contact another barrio member directly and arrange for them to sign up in your place <strong>before</strong> signing out.
+    </div>
+    <div class="modal-actions" style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap">
+      <button id="signout-confirm" class="btn-danger" style="flex:1;min-width:160px">Yes, sign me out</button>
+      <button id="signout-cancel" class="btn-primary" style="flex:1;min-width:120px">Cancel</button>
+      <span id="signout-msg" class="msg" style="flex-basis:100%"></span>
+    </div>
+  </div>
+</div>
+
 <!-- Assign modal -->
 <div class="modal-overlay" id="assign-modal">
   <div class="modal">

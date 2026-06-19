@@ -365,10 +365,11 @@ import { buildWeightIndex, typePoints, rolePoints, memberPoints, durationHours }
       var person = btn.dataset.person;
       var shiftId = btn.dataset.id;
       var isSelf = btn.dataset.self === '1';
-      var prompt = isSelf
-        ? 'Sign out of this shift?\n\nIMPORTANT: you are responsible for finding someone to cover for you. Please arrange a replacement with another barrio member directly and ask them to sign up in your place BEFORE signing out.\n\nContinue?'
-        : 'Remove ' + person + ' from this shift?';
-      if (!confirm(prompt)) return;
+      if (isSelf) {
+        openSignoutModal(shiftId, person);
+        return;
+      }
+      if (!confirm('Remove ' + person + ' from this shift?')) return;
       var r = await JH.apiFetch('/api/shifts', { action: 'remove-assignee', shiftId: shiftId, memberName: person });
       if (!r.ok) {
         var msg = 'Failed.';
@@ -746,6 +747,52 @@ import { buildWeightIndex, typePoints, rolePoints, memberPoints, durationHours }
 
     assignModal.classList.remove('active');
     msg.textContent = '';
+    await reload();
+  });
+
+  // ── Sign-out confirmation modal ────────────────────────────────────────
+
+  var signoutModal = document.getElementById('signout-modal');
+  var signoutShiftId = null;
+  var signoutPerson = null;
+
+  function openSignoutModal(shiftId, person) {
+    signoutShiftId = shiftId;
+    signoutPerson = person;
+    var info = document.getElementById('signout-info');
+    var shift = shifts.find(function (s) { return s.ShiftID === shiftId; });
+    if (shift) {
+      info.textContent = (shift.Name || '') + ' — ' + JH.formatDateLong(shift.Date) +
+        (shift.StartTime ? ' · ' + JH.to24h(shift.StartTime) + (shift.EndTime ? '–' + JH.to24h(shift.EndTime) : '') : '');
+    } else {
+      info.textContent = '';
+    }
+    document.getElementById('signout-msg').textContent = '';
+    signoutModal.classList.add('active');
+  }
+
+  function closeSignoutModal() {
+    signoutModal.classList.remove('active');
+    signoutShiftId = null;
+    signoutPerson = null;
+  }
+
+  document.getElementById('signout-modal-close').addEventListener('click', closeSignoutModal);
+  document.getElementById('signout-cancel').addEventListener('click', closeSignoutModal);
+  signoutModal.addEventListener('click', function (e) { if (e.target === signoutModal) closeSignoutModal(); });
+
+  document.getElementById('signout-confirm').addEventListener('click', async function () {
+    if (!signoutShiftId || !signoutPerson) return;
+    var msg = document.getElementById('signout-msg');
+    msg.textContent = 'Signing you out...'; msg.style.color = '#888';
+    var r = await JH.apiFetch('/api/shifts', { action: 'remove-assignee', shiftId: signoutShiftId, memberName: signoutPerson });
+    if (!r.ok) {
+      var err = 'Failed.';
+      try { var j = await r.json(); if (j && j.error) err = j.error; } catch (e) {}
+      msg.textContent = err; msg.style.color = '#f44336';
+      return;
+    }
+    closeSignoutModal();
     await reload();
   });
 
