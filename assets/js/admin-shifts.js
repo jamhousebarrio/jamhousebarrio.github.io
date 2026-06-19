@@ -219,10 +219,11 @@ import { buildWeightIndex, typePoints, rolePoints, memberPoints, durationHours }
     var isFull = !isNaN(maxNum) && maxNum > 0 && people.length >= maxNum;
     people.forEach(function (person) {
       html += '<span class="shift-chip filled">' + JH.nameLink(person);
-      var canRemove = isAdmin || (!isObserver && isMyName(person));
+      var mine = isMyName(person);
+      var canRemove = isAdmin || (!isObserver && mine);
       if (canRemove) {
-        var selfAttr = (!isAdmin && isMyName(person)) ? ' data-self="1"' : '';
-        var ttl = isAdmin ? ('Remove ' + person) : 'Sign out of this shift';
+        var selfAttr = mine ? ' data-self="1"' : '';
+        var ttl = mine ? 'Sign out of this shift' : ('Remove ' + person);
         html += ' <button class="remove-btn remove-person-btn" data-id="' + JH.esc(s.ShiftID) + '" data-person="' + JH.esc(person) + '"' + selfAttr + ' title="' + JH.esc(ttl) + '">&times;</button>';
       }
       html += '</span>';
