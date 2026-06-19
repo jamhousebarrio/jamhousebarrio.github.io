@@ -118,7 +118,10 @@ access: general
 
   <div class="mobile-dnd-hint">Tip: tap a cell to edit &mdash; drag-and-drop is desktop-only.</div>
   <div class="mobile-edit-hint">Tap a task to edit. Drag-and-drop task chips are desktop-only.</div>
-  <div class="timeline-legend">Green = on-site &amp; available · Yellow = arrives mid half-day · Grey = not available this half-day · Red = NoOrg. Drag a team chip onto a cell to assign a half-day.</div>
+  <div class="timeline-legend">
+    Green = on-site &amp; available · Yellow = arrives mid half-day · Grey = not available this half-day · Red = NoOrg. Drag a team chip onto a cell to assign a half-day.
+    <button id="toggle-event-days" style="margin-left:10px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:0.75rem;padding:4px 10px;cursor:pointer">Show event days (07-12)</button>
+  </div>
 
   <!-- Teams editor (admin only; rendered by JS) -->
   <div id="teams-panel-wrap"></div>

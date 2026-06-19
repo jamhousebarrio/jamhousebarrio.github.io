@@ -5,6 +5,9 @@
   var isAdmin = JH.isAdmin();
   var state = { entries: [], logistics: [], tasks: [], teams: [], noOrgMap: {} };
   var taskPanelOpen = true;
+  // Hide event days (07-07 onward) by default — page is for setup planning.
+  var hideEventDays = localStorage.getItem('jh_timeline_hide_event') !== '0';
+  var EVENT_START_ISO = '2026-07-07';
 
   // Fallback palette when a team is auto-discovered from existing entries that
   // don't have a saved colour in localStorage.
@@ -174,14 +177,14 @@
   // ── Grid dates ────────────────────────────────────────────────────────────
 
   function getGridDates() {
-    // Always start from July 1, include any dates from entries
     var set = {};
-    // Default: July 1–12
     for (var i = 1; i <= 12; i++) {
       set['2026-07-' + String(i).padStart(2, '0')] = true;
     }
     state.entries.forEach(function (e) { if (e.Date) set[e.Date] = true; });
-    return Object.keys(set).sort();
+    var all = Object.keys(set).sort();
+    if (hideEventDays) return all.filter(function (d) { return d < EVENT_START_ISO; });
+    return all;
   }
 
   function getGridPeople() {
@@ -785,11 +788,28 @@
     });
   }
 
+  function bindEventDaysToggle() {
+    var btn = document.getElementById('toggle-event-days');
+    if (!btn || btn._wired) return;
+    btn._wired = true;
+    function refresh() {
+      btn.textContent = hideEventDays ? 'Show event days (07-12)' : 'Hide event days (07-12)';
+    }
+    refresh();
+    btn.addEventListener('click', function () {
+      hideEventDays = !hideEventDays;
+      localStorage.setItem('jh_timeline_hide_event', hideEventDays ? '1' : '0');
+      refresh();
+      renderTimeline();
+    });
+  }
+
   // ── Reload ────────────────────────────────────────────────────────────────
 
   async function reload() {
     await fetchData();
     renderTimeline();
+    bindEventDaysToggle();
   }
 
   await reload();
