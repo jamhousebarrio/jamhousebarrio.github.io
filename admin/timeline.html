@@ -47,7 +47,12 @@ access: general
     .task-panel-add { display: flex; gap: 8px; margin-top: 10px; }
     .task-panel-add input { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 0.82rem; padding: 6px 10px; flex: 1; }
     .task-panel-add button { padding: 6px 14px; background: var(--accent); border: none; border-radius: 6px; color: var(--bg); font-family: var(--heading); font-size: 0.8rem; font-weight: 600; cursor: pointer; }
-    .arrival-badge { font-size: 0.65rem; color: var(--text-muted); display: block; }
+    .arrival-badge { font-size: 0.65rem; color: var(--text-muted); display: block; margin-top: 2px; }
+    .arrival-badge.arrived-pill { display: inline-block; background: rgba(76,175,80,0.20); color: #4caf50; padding: 2px 7px; border-radius: 999px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; font-size: 0.62rem; border: 1px solid rgba(76,175,80,0.5); }
+    .timeline-table td.name-cell.arrived { background: linear-gradient(to right, rgba(76,175,80,0.18), var(--surface) 70%); border-left: 3px solid #4caf50; }
+    .timeline-table tr:has(td.name-cell.arrived) td { background-color: rgba(76,175,80,0.04); }
+    .m-day-person.arrived { color: #4caf50; }
+    .m-day-person.arrived::before { content: '● '; color: #4caf50; }
     .mobile-dnd-hint { display: none; }
     @media (max-width: 768px) { .mobile-dnd-hint { display: block; color: var(--text-muted); font-size: 0.8rem; margin-bottom: 10px; } }
     /* Mobile day-accordion (≤480px; .mobile-cards visibility handled by admin.css) */

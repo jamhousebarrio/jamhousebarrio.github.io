@@ -64,6 +64,16 @@
     return row ? row.ArrivalDate : '';
   }
 
+  function todayISO() {
+    var d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+
+  function hasArrived(person) {
+    var arrival = getArrivalDate(person);
+    return !!(arrival && arrival <= todayISO());
+  }
+
   function isAvailable(person, date) {
     var arrival = getArrivalDate(person);
     if (!arrival) return true; // no logistics info = assume available
@@ -133,9 +143,14 @@
     // People rows
     people.forEach(function (person) {
       var arrival = getArrivalDate(person);
+      var arrived = hasArrived(person);
       html += '<tr>';
-      html += '<td class="name-cell">' + JH.esc(person);
-      if (arrival) html += '<span class="arrival-badge">arr: ' + JH.formatDate(arrival) + '</span>';
+      html += '<td class="name-cell' + (arrived ? ' arrived' : '') + '">' + JH.esc(person);
+      if (arrival) {
+        html += arrived
+          ? '<span class="arrival-badge arrived-pill" title="On-site since ' + JH.esc(JH.formatDate(arrival)) + '">✓ On site</span>'
+          : '<span class="arrival-badge">arrives ' + JH.formatDate(arrival) + '</span>';
+      }
       html += '</td>';
 
       dates.forEach(function (date) {
@@ -237,8 +252,13 @@
 
         html += '<div class="m-card">';
         var arrival = getArrivalDate(person);
-        html += '<div class="m-day-person">' + JH.esc(person);
-        if (arrival) html += ' <span class="arrival-badge">arr: ' + JH.esc(JH.formatDate(arrival)) + '</span>';
+        var arrived = hasArrived(person);
+        html += '<div class="m-day-person' + (arrived ? ' arrived' : '') + '">' + JH.esc(person);
+        if (arrival) {
+          html += arrived
+            ? ' <span class="arrival-badge arrived-pill">✓ On site</span>'
+            : ' <span class="arrival-badge">arrives ' + JH.esc(JH.formatDate(arrival)) + '</span>';
+        }
         html += '</div>';
 
         rows.forEach(function (r) {
