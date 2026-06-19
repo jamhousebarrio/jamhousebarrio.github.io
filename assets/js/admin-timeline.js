@@ -102,16 +102,19 @@
 
   function getGridPeople() {
     var set = {};
-    // All approved members
     approvedMembers.forEach(function (m) { set[m] = true; });
-    // Plus anyone in entries — but skip observers (they shouldn't be in the build grid).
     state.entries.forEach(function (e) {
       if (e.Person && !observerNames[e.Person]) set[e.Person] = true;
     });
-    var result = [];
-    approvedMembers.forEach(function (m) { if (set[m]) { result.push(m); delete set[m]; } });
-    Object.keys(set).sort().forEach(function (p) { result.push(p); });
-    return result;
+    // Sort by arrival date ascending; people without a logged arrival sink to
+    // the bottom, alphabetical inside each tier.
+    return Object.keys(set).sort(function (a, b) {
+      var aa = getArrivalDate(a), bb = getArrivalDate(b);
+      if (aa && bb) return aa < bb ? -1 : aa > bb ? 1 : a.localeCompare(b);
+      if (aa) return -1;
+      if (bb) return 1;
+      return a.localeCompare(b);
+    });
   }
 
   function getTask(person, date, period) {
