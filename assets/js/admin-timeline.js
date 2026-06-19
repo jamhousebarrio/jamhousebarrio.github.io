@@ -64,25 +64,6 @@
     return row ? row.ArrivalDate : '';
   }
 
-  function todayISO() {
-    var d = new Date();
-    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-  }
-
-  function hasArrived(person) {
-    var arrival = getArrivalDate(person);
-    return !!(arrival && arrival <= todayISO());
-  }
-
-  // 'before' | 'arrival' | 'onsite' | '' (no arrival logged)
-  function arrivalKind(person, date) {
-    var arrival = getArrivalDate(person);
-    if (!arrival) return '';
-    if (date < arrival) return 'before';
-    if (date === arrival) return 'arrival';
-    return 'onsite';
-  }
-
   function isAvailable(person, date) {
     var arrival = getArrivalDate(person);
     if (!arrival) return true; // no logistics info = assume available
@@ -152,14 +133,9 @@
     // People rows
     people.forEach(function (person) {
       var arrival = getArrivalDate(person);
-      var arrived = hasArrived(person);
       html += '<tr>';
-      html += '<td class="name-cell' + (arrived ? ' arrived' : '') + '">' + JH.esc(person);
-      if (arrival) {
-        html += arrived
-          ? '<span class="arrival-badge arrived-pill" title="On-site since ' + JH.esc(JH.formatDate(arrival)) + '">✓ On site</span>'
-          : '<span class="arrival-badge future-pill">arrives ' + JH.formatDate(arrival) + '</span>';
-      }
+      html += '<td class="name-cell">' + JH.esc(person);
+      if (arrival) html += '<span class="arrival-badge">arr: ' + JH.formatDate(arrival) + '</span>';
       html += '</td>';
 
       dates.forEach(function (date) {
@@ -167,23 +143,16 @@
           var task = getTask(person, date, period);
           var available = isAvailable(person, date);
           var noorg = isNoOrg(person, date);
-          var kind = arrivalKind(person, date);
-          var arrivalCls = kind === 'onsite' ? ' on-site' : kind === 'arrival' ? ' arrival-day' : '';
-          // Show "↓ arrives" marker on the morning cell of the arrival day so it
-          // doesn't duplicate across morning+evening.
-          var arrivalMark = (kind === 'arrival' && period === 'Morning')
-            ? '<span class="arrival-day-mark">↓ arrives</span> '
-            : '';
 
+          var arrivedCls = (arrival && available) ? ' arrived' : '';
           if (noorg) {
-            html += '<td class="task-cell noorg' + arrivalCls + '" title="On NoOrg duty">NoOrg</td>';
+            html += '<td class="task-cell noorg" title="On NoOrg duty">NoOrg</td>';
           } else if (isAdmin && available) {
-            html += '<td class="task-cell' + arrivalCls + '" data-person="' + JH.esc(person) + '" data-date="' + JH.esc(date) + '" data-period="' + JH.esc(period) + '">' + arrivalMark + JH.esc(task) + '</td>';
+            html += '<td class="task-cell' + arrivedCls + '" data-person="' + JH.esc(person) + '" data-date="' + JH.esc(date) + '" data-period="' + JH.esc(period) + '">' + JH.esc(task) + '</td>';
           } else if (!available) {
-            var ttl = kind === 'arrival' ? 'Arrival day' : 'Not arrived yet';
-            html += '<td class="task-cell unavailable' + arrivalCls + '" title="' + ttl + '">' + arrivalMark + JH.esc(task) + '</td>';
+            html += '<td class="task-cell unavailable" title="Not arrived yet">' + JH.esc(task) + '</td>';
           } else {
-            html += '<td class="' + arrivalCls.trim() + '">' + arrivalMark + JH.esc(task) + '</td>';
+            html += '<td class="task-cell' + arrivedCls + '">' + JH.esc(task) + '</td>';
           }
         });
       });
@@ -248,16 +217,9 @@
 
     dates.forEach(function (date, di) {
       var openClass = di === 0 ? ' open' : '';
-      var arrivingToday = people.filter(function (p) { return getArrivalDate(p) === date; });
-      var arrivingTag = arrivingToday.length ? ' <span class="m-arrival-flag">' + arrivingToday.length + ' arriving</span>' : '';
       html += '<div class="m-acc' + openClass + '" data-date="' + JH.esc(date) + '">';
-      html += '<div class="m-acc-head">' + JH.esc(JH.formatDateLong(date)) + arrivingTag + '<span class="chev">&#9662;</span></div>';
+      html += '<div class="m-acc-head">' + JH.esc(JH.formatDateLong(date)) + '<span class="chev">&#9662;</span></div>';
       html += '<div class="m-acc-body">';
-
-      if (arrivingToday.length) {
-        html += '<div class="m-day-arrivals"><strong>↓ Arrivals:</strong> ' +
-          arrivingToday.map(function (p) { return JH.esc(p); }).join(', ') + '</div>';
-      }
 
       var anyPerson = false;
       people.forEach(function (person) {
@@ -274,19 +236,10 @@
         if (!hasContent) return;
         anyPerson = true;
 
+        html += '<div class="m-card">';
         var arrival = getArrivalDate(person);
-        var arrived = hasArrived(person);
-        var dayKind = arrivalKind(person, date);
-        var cardCls = dayKind === 'arrival' ? ' m-arrival-day' : dayKind === 'onsite' ? ' m-arrived' : '';
-        html += '<div class="m-card' + cardCls + '">';
-        html += '<div class="m-day-person' + (arrived ? ' arrived' : '') + '">' + JH.esc(person);
-        if (dayKind === 'arrival') {
-          html += ' <span class="m-arrival-flag">↓ Arrives</span>';
-        } else if (arrival) {
-          html += arrived
-            ? ' <span class="arrival-badge arrived-pill">✓ On site</span>'
-            : ' <span class="arrival-badge future-pill">arrives ' + JH.esc(JH.formatDate(arrival)) + '</span>';
-        }
+        html += '<div class="m-day-person">' + JH.esc(person);
+        if (arrival) html += ' <span class="arrival-badge">arr: ' + JH.esc(JH.formatDate(arrival)) + '</span>';
         html += '</div>';
 
         rows.forEach(function (r) {
