@@ -6,6 +6,13 @@ import { buildWeightIndex, typePoints, rolePoints, memberPoints, durationHours }
 
   var isAdmin = JH.isAdmin();
   var isObserver = !!(JH.currentUser && JH.currentUser.observer);
+  var myPlaya = ((JH.currentUser && JH.currentUser.playaName) || '').trim().toLowerCase();
+  var myLegal = ((JH.currentUser && JH.currentUser.name) || '').trim().toLowerCase();
+  function isMyName(person) {
+    var n = (person || '').trim().toLowerCase();
+    if (!n) return false;
+    return n === myPlaya || n === myLegal;
+  }
 
   var approvedMembers = members.filter(function (m) {
     return (JH.val(m, 'Status') || '').toLowerCase() === 'approved';
@@ -212,8 +219,11 @@ import { buildWeightIndex, typePoints, rolePoints, memberPoints, durationHours }
     var isFull = !isNaN(maxNum) && maxNum > 0 && people.length >= maxNum;
     people.forEach(function (person) {
       html += '<span class="shift-chip filled">' + JH.nameLink(person);
-      if (isAdmin) {
-        html += ' <button class="remove-btn remove-person-btn" data-id="' + JH.esc(s.ShiftID) + '" data-person="' + JH.esc(person) + '" title="Remove ' + JH.esc(person) + '">&times;</button>';
+      var canRemove = isAdmin || (!isObserver && isMyName(person));
+      if (canRemove) {
+        var selfAttr = (!isAdmin && isMyName(person)) ? ' data-self="1"' : '';
+        var ttl = isAdmin ? ('Remove ' + person) : 'Sign out of this shift';
+        html += ' <button class="remove-btn remove-person-btn" data-id="' + JH.esc(s.ShiftID) + '" data-person="' + JH.esc(person) + '"' + selfAttr + ' title="' + JH.esc(ttl) + '">&times;</button>';
       }
       html += '</span>';
     });
@@ -353,7 +363,11 @@ import { buildWeightIndex, typePoints, rolePoints, memberPoints, durationHours }
       e.stopPropagation();
       var person = btn.dataset.person;
       var shiftId = btn.dataset.id;
-      if (!confirm('Remove ' + person + ' from this shift?')) return;
+      var isSelf = btn.dataset.self === '1';
+      var prompt = isSelf
+        ? 'Sign out of this shift?\n\nIMPORTANT: you are responsible for finding someone to cover for you. Please arrange a replacement with another barrio member directly and ask them to sign up in your place BEFORE signing out.\n\nContinue?'
+        : 'Remove ' + person + ' from this shift?';
+      if (!confirm(prompt)) return;
       var r = await JH.apiFetch('/api/shifts', { action: 'remove-assignee', shiftId: shiftId, memberName: person });
       if (!r.ok) {
         var msg = 'Failed.';
