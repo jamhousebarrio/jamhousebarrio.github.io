@@ -81,6 +81,11 @@ access: general
     .task-panel-add input { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 0.82rem; padding: 6px 10px; flex: 1; }
     .task-panel-add button { padding: 6px 14px; background: var(--accent); border: none; border-radius: 6px; color: var(--bg); font-family: var(--heading); font-size: 0.8rem; font-weight: 600; cursor: pointer; }
     .arrival-badge { font-size: 0.65rem; color: var(--text-muted); display: block; }
+    .arrival-badge.no-time { color: #ff9800; font-weight: 600; }
+    .arrival-badge.no-time::after { content: ' ⚠'; font-weight: 700; }
+    .timeline-table td.name-cell.no-time { border-left: 3px solid #ff9800; padding-left: 5px; }
+    .m-day-person.no-time { color: #ff9800; }
+    .m-day-person.no-time .arrival-badge { color: #ff9800; font-weight: 600; }
     .mobile-dnd-hint { display: none; }
     @media (max-width: 768px) { .mobile-dnd-hint { display: block; color: var(--text-muted); font-size: 0.8rem; margin-bottom: 10px; } }
     /* Mobile day-accordion (≤480px; .mobile-cards visibility handled by admin.css) */

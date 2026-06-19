@@ -340,9 +340,13 @@
     people.forEach(function (person) {
       var arrival = getArrivalDate(person);
       var arrTime = getArrivalTime(person);
+      var noTime = !!(arrival && !arrTime);
       html += '<tr>';
-      html += '<td class="name-cell">' + JH.esc(person);
-      if (arrival) html += '<span class="arrival-badge">arr: ' + JH.formatDate(arrival) + (arrTime ? ' ' + JH.esc(arrTime) : '') + '</span>';
+      html += '<td class="name-cell' + (noTime ? ' no-time' : '') + '" title="' + (noTime ? 'Arrival time unknown' : '') + '">' + JH.esc(person);
+      if (arrival) {
+        var badgeCls = 'arrival-badge' + (noTime ? ' no-time' : '');
+        html += '<span class="' + badgeCls + '">arr: ' + JH.formatDate(arrival) + (arrTime ? ' ' + JH.esc(arrTime) : ' (time?)') + '</span>';
+      }
       html += '</td>';
 
       dates.forEach(function (date) {
@@ -459,8 +463,12 @@
         html += '<div class="m-card">';
         var arrival = getArrivalDate(person);
         var arrTime = getArrivalTime(person);
-        html += '<div class="m-day-person">' + JH.esc(person);
-        if (arrival) html += ' <span class="arrival-badge">arr: ' + JH.esc(JH.formatDate(arrival)) + (arrTime ? ' ' + JH.esc(arrTime) : '') + '</span>';
+        var noTime = !!(arrival && !arrTime);
+        html += '<div class="m-day-person' + (noTime ? ' no-time' : '') + '">' + JH.esc(person);
+        if (arrival) {
+          var badgeClsM = 'arrival-badge' + (noTime ? ' no-time' : '');
+          html += ' <span class="' + badgeClsM + '">arr: ' + JH.esc(JH.formatDate(arrival)) + (arrTime ? ' ' + JH.esc(arrTime) : ' (time?)') + '</span>';
+        }
         html += '</div>';
 
         rows.forEach(function (r) {
