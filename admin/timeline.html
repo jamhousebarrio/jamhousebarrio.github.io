@@ -32,6 +32,30 @@ access: general
     .timeline-table td.task-cell.unavailable:hover { background: rgba(255,255,255,0.02); }
     .timeline-table td.task-cell.arrived { background: rgba(76,175,80,0.10); }
     .timeline-table td.task-cell.arrived:hover { background: rgba(76,175,80,0.18); }
+    /* Team pill rendered at top of each cell */
+    .cell-team { display: inline-block; padding: 1px 7px; border-radius: 999px; font-size: 0.66rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: #fff; margin-bottom: 4px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: middle; }
+    .cell-team .cell-team-x { background: rgba(0,0,0,0.25); border: none; color: #fff; margin-left: 4px; padding: 0 4px; border-radius: 999px; cursor: pointer; font-size: 0.7rem; line-height: 1; }
+    .cell-team .cell-team-x:hover { background: rgba(0,0,0,0.5); }
+    .cell-team-row { display: block; margin-bottom: 3px; }
+    /* Teams editor panel (top of page) */
+    .teams-panel { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; margin-bottom: 14px; }
+    .teams-panel-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 8px; }
+    .teams-panel-head h2 { font-family: var(--heading); font-size: 0.95rem; color: var(--accent); margin: 0; }
+    .teams-list { display: flex; flex-wrap: wrap; gap: 8px; }
+    .team-chip { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px 5px 12px; border-radius: 16px; font-size: 0.78rem; color: #fff; font-weight: 700; cursor: grab; user-select: none; font-family: var(--heading); border: 2px solid transparent; }
+    .team-chip:hover { filter: brightness(1.15); }
+    .team-chip.dragging { opacity: 0.5; }
+    .team-chip button { background: rgba(0,0,0,0.20); border: none; color: #fff; border-radius: 999px; cursor: pointer; font-size: 0.78rem; line-height: 1; width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center; padding: 0; }
+    .team-chip button:hover { background: rgba(0,0,0,0.45); }
+    .team-empty { color: var(--text-muted); font-style: italic; font-size: 0.85rem; }
+    .team-add-row { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+    .team-add-row input[type="text"] { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 0.82rem; padding: 6px 10px; flex: 1; min-width: 140px; }
+    .team-add-row input[type="color"] { width: 38px; height: 32px; border: none; padding: 0; background: transparent; cursor: pointer; }
+    .team-add-row button { padding: 6px 14px; background: var(--accent); border: none; border-radius: 6px; color: var(--bg); font-family: var(--heading); font-size: 0.8rem; font-weight: 700; cursor: pointer; }
+    /* Cell highlight while dragging a team chip over it */
+    .task-cell.team-drag-over { outline: 2px dashed var(--accent); outline-offset: -2px; }
+    /* Mobile team chip in m-task-row */
+    .m-task-val .cell-team { font-size: 0.65rem; padding: 1px 8px; margin-right: 6px; }
     .timeline-table td.task-cell.noorg { background: rgba(244,67,54,0.08); cursor: not-allowed; color: #f44336; font-style: italic; }
     .timeline-table td.task-cell.noorg:hover { background: rgba(244,67,54,0.08); }
     .empty-state { color: var(--text-muted); font-size: 0.9rem; padding: 24px; text-align: center; }
@@ -81,7 +105,11 @@ access: general
 
   <div class="mobile-dnd-hint">Tip: tap a cell to edit &mdash; drag-and-drop is desktop-only.</div>
   <div class="mobile-edit-hint">Tap a task to edit. Drag-and-drop task chips are desktop-only.</div>
-  <div class="timeline-legend">Grey = not arrived yet. Red = on NoOrg duty.</div>
+  <div class="timeline-legend">Grey = not arrived yet. Red = on NoOrg duty. Drag a team chip onto a cell to assign a half-day.</div>
+
+  <!-- Teams editor (admin only; rendered by JS) -->
+  <div id="teams-panel-wrap"></div>
+
   <div id="timeline-wrap">Loading timeline...</div>
 </div>
 

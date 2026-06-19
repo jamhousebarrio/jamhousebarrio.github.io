@@ -3,8 +3,17 @@
   if (!members) return;
 
   var isAdmin = JH.isAdmin();
-  var state = { entries: [], logistics: [], tasks: [], noOrgMap: {} };
+  var state = { entries: [], logistics: [], tasks: [], teams: [], noOrgMap: {} };
   var taskPanelOpen = true;
+
+  // Fallback palette when a team is auto-discovered from existing entries that
+  // don't have a saved colour in localStorage.
+  var TEAM_PALETTE = ['#e8a84c', '#4caf50', '#2196f3', '#e91e63', '#9c27b0', '#00bcd4', '#ff9800', '#8bc34a', '#795548', '#607d8b', '#f44336', '#673ab7'];
+  function autoColor(i) { return TEAM_PALETTE[i % TEAM_PALETTE.length]; }
+  function teamColor(name) {
+    var t = state.teams.find(function (x) { return x.name === name; });
+    return t ? t.color : '#888';
+  }
 
   // Default tasks that need allocating
   var DEFAULT_TASKS = [
@@ -51,6 +60,7 @@
       dates.forEach(function (d) { state.noOrgMap[person][d] = true; });
     });
     loadTasks();
+    loadTeams();
   }
 
   function isNoOrg(person, date) {
@@ -68,6 +78,39 @@
 
   function saveTasks() {
     localStorage.setItem('jh_timeline_tasks', JSON.stringify(state.tasks));
+  }
+
+  // Teams persisted in localStorage; auto-discover any team names already
+  // present in Timeline entries so collaborating admins don't lose the team
+  // tagging set by someone else.
+  function loadTeams() {
+    var saved = [];
+    try {
+      var raw = JSON.parse(localStorage.getItem('jh_timeline_teams'));
+      if (Array.isArray(raw)) saved = raw.filter(function (t) { return t && t.name; });
+    } catch (e) {}
+    state.teams = saved;
+    var seen = {};
+    state.teams.forEach(function (t) { seen[t.name.toLowerCase()] = true; });
+    state.entries.forEach(function (e) {
+      if (!e.Team) return;
+      var key = e.Team.toLowerCase();
+      if (seen[key]) return;
+      state.teams.push({ name: e.Team, color: autoColor(state.teams.length) });
+      seen[key] = true;
+    });
+    saveTeams();
+  }
+
+  function saveTeams() {
+    localStorage.setItem('jh_timeline_teams', JSON.stringify(state.teams));
+  }
+
+  function getTeam(person, date, period) {
+    var entry = state.entries.find(function (e) {
+      return e.Person === person && e.Date === date && e.Period === period;
+    });
+    return entry ? (entry.Team || '') : '';
   }
 
   // ── Logistics helpers ─────────────────────────────────────────────────────
@@ -129,9 +172,118 @@
     return entry ? entry.Task : '';
   }
 
+  // ── Teams panel ───────────────────────────────────────────────────────────
+
+  function renderTeamsPanel() {
+    var wrap = document.getElementById('teams-panel-wrap');
+    if (!wrap) return;
+    if (!isAdmin) { wrap.innerHTML = ''; return; }
+    var html = '<div class="teams-panel">';
+    html += '<div class="teams-panel-head"><h2>Teams &nbsp;<span style="color:var(--text-muted);font-weight:400;font-size:0.78rem">drag onto a cell to assign</span></h2></div>';
+    html += '<div class="teams-list" id="teams-list">';
+    if (!state.teams.length) {
+      html += '<span class="team-empty">No teams yet. Add one below.</span>';
+    } else {
+      state.teams.forEach(function (t) {
+        var bg = t.color || '#888';
+        html += '<span class="team-chip" draggable="true" data-team="' + JH.esc(t.name) + '" style="background:' + JH.esc(bg) + '">' +
+          JH.esc(t.name) +
+          ' <button class="team-edit-btn" title="Rename / change colour" data-team="' + JH.esc(t.name) + '">&#9998;</button>' +
+          ' <button class="team-del-btn" title="Delete team" data-team="' + JH.esc(t.name) + '">&times;</button>' +
+          '</span>';
+      });
+    }
+    html += '</div>';
+    html += '<div class="team-add-row">' +
+      '<input type="text" id="new-team-name" placeholder="New team name (e.g. Electricity)">' +
+      '<input type="color" id="new-team-color" value="' + autoColor(state.teams.length) + '">' +
+      '<button id="add-team-btn">+ Add Team</button>' +
+      '</div>';
+    html += '</div>';
+    wrap.innerHTML = html;
+    bindTeamsPanel();
+  }
+
+  function bindTeamsPanel() {
+    var addBtn = document.getElementById('add-team-btn');
+    if (addBtn) addBtn.addEventListener('click', function () {
+      var name = document.getElementById('new-team-name').value.trim();
+      var color = document.getElementById('new-team-color').value || autoColor(state.teams.length);
+      if (!name) return;
+      if (state.teams.find(function (t) { return t.name.toLowerCase() === name.toLowerCase(); })) {
+        alert('Team already exists.');
+        return;
+      }
+      state.teams.push({ name: name, color: color });
+      saveTeams();
+      renderTeamsPanel();
+    });
+
+    document.querySelectorAll('.team-del-btn').forEach(function (btn) {
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var name = btn.dataset.team;
+        var inUse = state.entries.filter(function (en) { return en.Team === name; }).length;
+        var msg = inUse
+          ? 'Delete team "' + name + '"? ' + inUse + ' cell assignment(s) will be cleared.'
+          : 'Delete team "' + name + '"?';
+        if (!confirm(msg)) return;
+        state.teams = state.teams.filter(function (t) { return t.name !== name; });
+        saveTeams();
+        // Clear team from all entries that had it (locally + server)
+        var toClear = state.entries.filter(function (en) { return en.Team === name; });
+        toClear.forEach(function (en) {
+          en.Team = '';
+          JH.apiFetch('/api/timeline', { action: 'upsert', person: en.Person, date: en.Date, period: en.Period, team: '' });
+        });
+        rerenderPreservingView();
+      });
+    });
+
+    document.querySelectorAll('.team-edit-btn').forEach(function (btn) {
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var oldName = btn.dataset.team;
+        var team = state.teams.find(function (t) { return t.name === oldName; });
+        if (!team) return;
+        var newName = prompt('Rename team:', team.name);
+        if (newName === null) return;
+        newName = newName.trim();
+        if (!newName) return;
+        var newColor = prompt('Hex colour (e.g. #4caf50):', team.color || '#888');
+        if (newColor === null) return;
+        newColor = newColor.trim() || team.color;
+        // Update team list
+        team.name = newName;
+        team.color = newColor;
+        saveTeams();
+        // Propagate rename to entries (locally + server)
+        if (newName !== oldName) {
+          var toRename = state.entries.filter(function (en) { return en.Team === oldName; });
+          toRename.forEach(function (en) {
+            en.Team = newName;
+            JH.apiFetch('/api/timeline', { action: 'upsert', person: en.Person, date: en.Date, period: en.Period, team: newName });
+          });
+        }
+        rerenderPreservingView();
+      });
+    });
+
+    // Drag start for team chips
+    document.querySelectorAll('.team-chip').forEach(function (chip) {
+      chip.addEventListener('dragstart', function (e) {
+        e.dataTransfer.setData('application/jh-team', chip.dataset.team);
+        e.dataTransfer.setData('text/plain', '__team__:' + chip.dataset.team);
+        chip.classList.add('dragging');
+      });
+      chip.addEventListener('dragend', function () { chip.classList.remove('dragging'); });
+    });
+  }
+
   // ── Render ────────────────────────────────────────────────────────────────
 
   function renderTimeline() {
+    renderTeamsPanel();
     var wrap = document.getElementById('timeline-wrap');
     var dates = getGridDates();
     var people = getGridPeople();
@@ -165,18 +317,26 @@
       dates.forEach(function (date) {
         periods.forEach(function (period) {
           var task = getTask(person, date, period);
+          var team = getTeam(person, date, period);
           var available = isAvailable(person, date);
           var noorg = isNoOrg(person, date);
+
+          var teamPill = team ? (
+            '<span class="cell-team-row"><span class="cell-team" style="background:' + JH.esc(teamColor(team)) + '">' +
+            JH.esc(team) +
+            (isAdmin ? ' <button class="cell-team-x" data-person="' + JH.esc(person) + '" data-date="' + JH.esc(date) + '" data-period="' + JH.esc(period) + '" title="Remove team">&times;</button>' : '') +
+            '</span></span>'
+          ) : '';
 
           var arrivedCls = (arrival && available) ? ' arrived' : '';
           if (noorg) {
             html += '<td class="task-cell noorg" title="On NoOrg duty">NoOrg</td>';
           } else if (isAdmin && available) {
-            html += '<td class="task-cell' + arrivedCls + '" data-person="' + JH.esc(person) + '" data-date="' + JH.esc(date) + '" data-period="' + JH.esc(period) + '">' + JH.esc(task) + '</td>';
+            html += '<td class="task-cell' + arrivedCls + '" data-person="' + JH.esc(person) + '" data-date="' + JH.esc(date) + '" data-period="' + JH.esc(period) + '">' + teamPill + JH.esc(task) + '</td>';
           } else if (!available) {
-            html += '<td class="task-cell unavailable" title="Not arrived yet">' + JH.esc(task) + '</td>';
+            html += '<td class="task-cell unavailable" title="Not arrived yet">' + teamPill + JH.esc(task) + '</td>';
           } else {
-            html += '<td class="task-cell' + arrivedCls + '">' + JH.esc(task) + '</td>';
+            html += '<td class="task-cell' + arrivedCls + '">' + teamPill + JH.esc(task) + '</td>';
           }
         });
       });
@@ -252,10 +412,11 @@
         var hasContent = false;
         periods.forEach(function (period) {
           var task = getTask(person, date, period);
+          var team = getTeam(person, date, period);
           var available = isAvailable(person, date);
           var noorg = isNoOrg(person, date);
-          if (task || noorg) hasContent = true;
-          rows.push({ period: period, task: task, available: available, noorg: noorg });
+          if (task || team || noorg) hasContent = true;
+          rows.push({ period: period, task: task, team: team, available: available, noorg: noorg });
         });
         if (!hasContent) return;
         anyPerson = true;
@@ -270,17 +431,19 @@
         rows.forEach(function (r) {
           html += '<div class="m-task-row">';
           html += '<span class="m-task-period">' + JH.esc(r.period) + '</span>';
+          var teamPillM = r.team ? '<span class="cell-team" style="background:' + JH.esc(teamColor(r.team)) + '">' + JH.esc(r.team) + '</span>' : '';
           if (r.noorg) {
             html += '<span class="m-task-val noorg">NoOrg</span>';
           } else if (!r.available) {
-            html += '<span class="m-task-val unavailable">' + (r.task ? JH.esc(r.task) : 'not arrived') + '</span>';
+            html += '<span class="m-task-val unavailable">' + teamPillM + (r.task ? JH.esc(r.task) : 'not arrived') + '</span>';
           } else {
             var editable = isAdmin;
-            var cls = 'm-task-val' + (editable ? ' editable' : '') + (r.task ? '' : ' empty');
+            var cls = 'm-task-val' + (editable ? ' editable' : '') + ((r.task || r.team) ? '' : ' empty');
             var attrs = editable
               ? ' data-person="' + JH.esc(person) + '" data-date="' + JH.esc(date) + '" data-period="' + JH.esc(r.period) + '"'
               : '';
-            html += '<span class="' + cls + '"' + attrs + '>' + (r.task ? JH.esc(r.task) : '—') + '</span>';
+            var inner = teamPillM + (r.task ? JH.esc(r.task) : (r.team ? '' : '—'));
+            html += '<span class="' + cls + '"' + attrs + '>' + inner + '</span>';
           }
           html += '</div>';
         });
@@ -311,40 +474,62 @@
 
   function attachMobileEdit(span) {
     span.addEventListener('click', function () {
-      var currentVal = span.textContent === '—' ? '' : span.textContent;
       var person = span.dataset.person, date = span.dataset.date, period = span.dataset.period;
+      var currentTask = getTask(person, date, period);
+      var currentTeam = getTeam(person, date, period);
 
       var wrapEl = document.createElement('span');
       wrapEl.className = 'm-task-edit';
+      wrapEl.style.display = 'block';
+
+      var teamSel = document.createElement('select');
+      teamSel.style.cssText = 'display:block;width:100%;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:0.85rem;margin-bottom:6px;';
+      var optEmpty = document.createElement('option');
+      optEmpty.value = ''; optEmpty.textContent = '— no team —';
+      teamSel.appendChild(optEmpty);
+      state.teams.forEach(function (t) {
+        var opt = document.createElement('option');
+        opt.value = t.name; opt.textContent = t.name;
+        if (t.name === currentTeam) opt.selected = true;
+        teamSel.appendChild(opt);
+      });
+
       var textarea = document.createElement('textarea');
-      textarea.value = currentVal;
+      textarea.value = currentTask;
+      textarea.placeholder = 'Free-text task (optional)';
+
+      wrapEl.appendChild(teamSel);
       wrapEl.appendChild(textarea);
       span.replaceWith(wrapEl);
       textarea.focus();
 
-      function finish(newVal) {
-        var fresh = document.createElement('span');
-        fresh.className = 'm-task-val editable' + (newVal ? '' : ' empty');
-        fresh.dataset.person = person;
-        fresh.dataset.date = date;
-        fresh.dataset.period = period;
-        fresh.textContent = newVal || '—';
-        wrapEl.replaceWith(fresh);
-        attachMobileEdit(fresh);
+      var settled = false;
+      function commit() {
+        if (settled) return;
+        settled = true;
+        var newTask = textarea.value.trim();
+        var newTeam = teamSel.value;
+        var didChange = false;
+        if (newTeam !== currentTeam) { saveCellTeam(person, date, period, newTeam); didChange = true; }
+        if (newTask !== currentTask) { saveCell(person, date, period, newTask, currentTask); didChange = true; }
+        if (!didChange) rerenderPreservingView();
       }
 
-      function save() {
-        var newVal = textarea.value.trim();
-        finish(newVal);
-        if (newVal !== currentVal) {
-          saveCell(person, date, period, newVal, currentVal);
-        }
+      // Blur on either field commits — but the change between teamSel and
+      // textarea blurs the textarea, so we wait a tick to check active element.
+      function onBlur() {
+        setTimeout(function () {
+          var ae = document.activeElement;
+          if (ae === teamSel || ae === textarea) return;
+          commit();
+        }, 50);
       }
-
-      textarea.addEventListener('blur', save);
+      textarea.addEventListener('blur', onBlur);
+      teamSel.addEventListener('blur', onBlur);
+      teamSel.addEventListener('change', function () { /* keep editing — wait for blur to commit */ });
       textarea.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape') { finish(currentVal); }
-        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); save(); }
+        if (e.key === 'Escape') { settled = true; rerenderPreservingView(); }
+        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); commit(); }
       });
     });
   }
@@ -353,32 +538,44 @@
 
   function bindCellEditing() {
     document.querySelectorAll('.task-cell:not(.unavailable):not(.noorg)').forEach(function (td) {
-      td.addEventListener('click', function () {
+      td.addEventListener('click', function (e) {
         if (td.classList.contains('editing')) return;
+        // Ignore clicks on inner controls (e.g. team-remove ×).
+        if (e.target.closest('.cell-team-x')) return;
 
-        var currentVal = td.textContent;
+        var currentVal = getTask(td.dataset.person, td.dataset.date, td.dataset.period);
         td.classList.add('editing');
         var textarea = document.createElement('textarea');
         textarea.value = currentVal;
-        td.textContent = '';
+        td.innerHTML = '';
         td.appendChild(textarea);
         textarea.focus();
 
         function save() {
           var newVal = textarea.value.trim();
           td.classList.remove('editing');
-          td.textContent = newVal;
-
+          // Don't rebuild manually — rerenderPreservingView() below will repaint
+          // the team pill + new text together.
           if (newVal !== currentVal) {
             saveCell(td.dataset.person, td.dataset.date, td.dataset.period, newVal, currentVal);
+          } else {
+            rerenderPreservingView();
           }
         }
 
         textarea.addEventListener('blur', save);
         textarea.addEventListener('keydown', function (e) {
-          if (e.key === 'Escape') { td.classList.remove('editing'); td.textContent = currentVal; }
+          if (e.key === 'Escape') { td.classList.remove('editing'); rerenderPreservingView(); }
           if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); save(); }
         });
+      });
+    });
+
+    // Team-remove × button on cells.
+    document.querySelectorAll('.cell-team-x').forEach(function (btn) {
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        saveCellTeam(btn.dataset.person, btn.dataset.date, btn.dataset.period, '');
       });
     });
   }
@@ -417,11 +614,28 @@
       });
       if (newVal) {
         if (entry) entry.Task = newVal;
-        else state.entries.push({ Person: person, Date: date, Period: period, Task: newVal });
+        else state.entries.push({ Person: person, Date: date, Period: period, Task: newVal, Team: '' });
       } else if (entry) {
-        state.entries = state.entries.filter(function (e) { return e !== entry; });
+        if (entry.Team) { entry.Task = ''; }
+        else state.entries = state.entries.filter(function (e) { return e !== entry; });
       }
-      // Keep BOTH trees (desktop table + mobile accordion) in sync.
+      rerenderPreservingView();
+    }).catch(function () { rerenderPreservingView(); });
+  }
+
+  function saveCellTeam(person, date, period, newTeam) {
+    JH.apiFetch('/api/timeline', { action: 'upsert', person: person, date: date, period: period, team: newTeam }).then(function (r) {
+      if (!r.ok) { alert('Save failed.'); rerenderPreservingView(); return; }
+      var entry = state.entries.find(function (e) {
+        return e.Person === person && e.Date === date && e.Period === period;
+      });
+      if (newTeam) {
+        if (entry) entry.Team = newTeam;
+        else state.entries.push({ Person: person, Date: date, Period: period, Task: '', Team: newTeam });
+      } else if (entry) {
+        if (entry.Task) { entry.Team = ''; }
+        else state.entries = state.entries.filter(function (e) { return e !== entry; });
+      }
       rerenderPreservingView();
     }).catch(function () { rerenderPreservingView(); });
   }
@@ -442,20 +656,37 @@
     document.querySelectorAll('.task-cell:not(.unavailable):not(.noorg)').forEach(function (td) {
       td.addEventListener('dragover', function (e) {
         e.preventDefault();
-        td.classList.add('drag-over');
+        // Detect a team chip drag via the custom MIME we set on dragstart.
+        var types = Array.prototype.slice.call(e.dataTransfer.types || []);
+        if (types.indexOf('application/jh-team') !== -1) {
+          td.classList.add('team-drag-over');
+        } else {
+          td.classList.add('drag-over');
+        }
       });
       td.addEventListener('dragleave', function () {
         td.classList.remove('drag-over');
+        td.classList.remove('team-drag-over');
       });
       td.addEventListener('drop', function (e) {
         e.preventDefault();
         td.classList.remove('drag-over');
-        var taskName = e.dataTransfer.getData('text/plain');
-        if (!taskName) return;
-
-        var existing = td.textContent.trim();
-        var newVal = existing ? existing + '\n' + taskName : taskName;
-        td.textContent = newVal;
+        td.classList.remove('team-drag-over');
+        var teamName = e.dataTransfer.getData('application/jh-team');
+        if (teamName) {
+          saveCellTeam(td.dataset.person, td.dataset.date, td.dataset.period, teamName);
+          return;
+        }
+        var raw = e.dataTransfer.getData('text/plain');
+        if (!raw) return;
+        // text/plain duplicates of team chips are prefixed so they don't poison
+        // the task-text path on browsers that strip custom MIMEs.
+        if (raw.indexOf('__team__:') === 0) {
+          saveCellTeam(td.dataset.person, td.dataset.date, td.dataset.period, raw.slice('__team__:'.length));
+          return;
+        }
+        var existing = getTask(td.dataset.person, td.dataset.date, td.dataset.period);
+        var newVal = existing ? existing + '\n' + raw : raw;
         saveCell(td.dataset.person, td.dataset.date, td.dataset.period, newVal, existing);
       });
     });

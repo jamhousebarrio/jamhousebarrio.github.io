@@ -25,56 +25,90 @@ export default async function handler(req, res) {
     if (!auth.admin) return res.status(401).json({ error: 'Admin required' });
 
     if (action === 'upsert') {
-      const { person, date, period, task } = payload;
+      const { person, date, period, task, team } = payload;
       if (!person || !date || !period) return res.status(400).json({ error: 'person, date, period required' });
 
-      const rows = await safeGet(sheets, spreadsheetId, tab);
+      // We only touch fields the caller actually included so partial updates
+      // (team only / task only) don't clobber the other column.
+      const taskProvided = Object.prototype.hasOwnProperty.call(payload, 'task');
+      const teamProvided = Object.prototype.hasOwnProperty.call(payload, 'team');
+      const taskVal = (task || '').toString();
+      const teamVal = (team || '').toString();
+
+      let rows = await safeGet(sheets, spreadsheetId, tab);
       if (!rows.length) {
         await ensureTab(sheets, spreadsheetId, tab);
         await sheets.spreadsheets.values.update({
           spreadsheetId, range: tab + '!A1', valueInputOption: 'RAW',
-          requestBody: { values: [['Person', 'Date', 'Period', 'Task'], [person, date, period, task || '']] },
+          requestBody: { values: [['Person', 'Date', 'Period', 'Task', 'Team'], [person, date, period, taskVal, teamVal]] },
         });
         return res.status(200).json({ success: true });
       }
 
-      const headers = rows[0];
+      let headers = rows[0];
+      // Migrate: append Team column if missing.
+      if (headers.indexOf('Team') === -1) {
+        const newCol = headers.length;
+        const newLetter = String.fromCharCode(65 + newCol);
+        await sheets.spreadsheets.values.update({
+          spreadsheetId, range: tab + '!' + newLetter + '1',
+          valueInputOption: 'RAW',
+          requestBody: { values: [['Team']] },
+        });
+        rows = await safeGet(sheets, spreadsheetId, tab);
+        headers = rows[0];
+      }
+
       const personCol = headers.indexOf('Person');
       const dateCol = headers.indexOf('Date');
       const periodCol = headers.indexOf('Period');
       const taskCol = headers.indexOf('Task');
+      const teamCol = headers.indexOf('Team');
 
-      // Find existing row matching person+date+period
       const existingIdx = rows.findIndex((r, i) =>
         i > 0 && (r[personCol] || '') === person && (r[dateCol] || '') === date && (r[periodCol] || '') === period
       );
 
+      // Compute final cell values after this upsert.
+      const existingRow = existingIdx === -1 ? [] : rows[existingIdx];
+      const finalTask = taskProvided ? taskVal : (existingRow[taskCol] || '');
+      const finalTeam = teamProvided ? teamVal : (existingRow[teamCol] || '');
+
       if (existingIdx === -1) {
-        if (!task) return res.status(200).json({ success: true }); // don't add empty
+        if (!finalTask && !finalTeam) return res.status(200).json({ success: true });
+        const newRow = new Array(headers.length).fill('');
+        newRow[personCol] = person;
+        newRow[dateCol] = date;
+        newRow[periodCol] = period;
+        newRow[taskCol] = finalTask;
+        newRow[teamCol] = finalTeam;
         await sheets.spreadsheets.values.append({
           spreadsheetId, range: tab, valueInputOption: 'RAW',
-          requestBody: { values: [[person, date, period, task]] },
+          requestBody: { values: [newRow] },
         });
+      } else if (!finalTask && !finalTeam) {
+        const meta = await sheets.spreadsheets.get({ spreadsheetId, fields: 'sheets.properties' });
+        const sheet = meta.data.sheets.find(s => s.properties.title === tab);
+        if (sheet) {
+          await sheets.spreadsheets.batchUpdate({
+            spreadsheetId,
+            requestBody: {
+              requests: [{ deleteDimension: { range: { sheetId: sheet.properties.sheetId, dimension: 'ROWS', startIndex: existingIdx, endIndex: existingIdx + 1 } } }]
+            },
+          });
+        }
       } else {
-        if (!task) {
-          // Delete row if task cleared
-          const meta = await sheets.spreadsheets.get({ spreadsheetId, fields: 'sheets.properties' });
-          const sheet = meta.data.sheets.find(s => s.properties.title === tab);
-          if (sheet) {
-            await sheets.spreadsheets.batchUpdate({
-              spreadsheetId,
-              requestBody: {
-                requests: [{ deleteDimension: { range: { sheetId: sheet.properties.sheetId, dimension: 'ROWS', startIndex: existingIdx, endIndex: existingIdx + 1 } } }]
-              },
-            });
-          }
-        } else {
-          // Update task column
-          var colLetter = String.fromCharCode(65 + taskCol);
-          await sheets.spreadsheets.values.update({
-            spreadsheetId, range: tab + '!' + colLetter + (existingIdx + 1),
-            valueInputOption: 'RAW',
-            requestBody: { values: [[task]] },
+        const updates = [];
+        if (taskProvided) {
+          updates.push({ range: tab + '!' + String.fromCharCode(65 + taskCol) + (existingIdx + 1), values: [[finalTask]] });
+        }
+        if (teamProvided) {
+          updates.push({ range: tab + '!' + String.fromCharCode(65 + teamCol) + (existingIdx + 1), values: [[finalTeam]] });
+        }
+        if (updates.length) {
+          await sheets.spreadsheets.values.batchUpdate({
+            spreadsheetId,
+            requestBody: { valueInputOption: 'RAW', data: updates },
           });
         }
       }
