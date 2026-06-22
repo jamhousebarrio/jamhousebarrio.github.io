@@ -55,9 +55,19 @@ access: general
     .team-chip.dragging { opacity: 0.5; }
     .team-chip button { background: rgba(0,0,0,0.20); border: none; color: #fff; border-radius: 999px; cursor: pointer; font-size: 0.78rem; line-height: 1; width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center; padding: 0; }
     .team-chip button:hover { background: rgba(0,0,0,0.45); }
+    .team-chip .team-budget { background: rgba(0,0,0,0.28); padding: 1px 7px; border-radius: 999px; font-size: 0.70rem; font-weight: 600; letter-spacing: 0.02em; }
+    .team-chip .team-budget.over { background: rgba(244,67,54,0.85); }
+    .team-chip .team-budget.under { background: rgba(255,193,7,0.85); color: #1a1a1a; }
+    .team-chip .team-budget.ok { background: rgba(76,175,80,0.85); }
     .team-empty { color: var(--text-muted); font-style: italic; font-size: 0.85rem; }
+    .teams-total { color: var(--text-muted); font-size: 0.78rem; margin-top: 10px; }
+    .teams-total b { color: var(--text); }
+    .teams-total .delta.over { color: #f44336; font-weight: 700; }
+    .teams-total .delta.under { color: #ffc107; font-weight: 700; }
+    .teams-total .delta.ok { color: #4caf50; font-weight: 700; }
     .team-add-row { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
     .team-add-row input[type="text"] { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 0.82rem; padding: 6px 10px; flex: 1; min-width: 140px; }
+    .team-add-row input[type="number"] { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 0.82rem; padding: 6px 10px; width: 90px; }
     .team-add-row input[type="color"] { width: 38px; height: 32px; border: none; padding: 0; background: transparent; cursor: pointer; }
     .team-add-row button { padding: 6px 14px; background: var(--accent); border: none; border-radius: 6px; color: var(--bg); font-family: var(--heading); font-size: 0.8rem; font-weight: 700; cursor: pointer; }
     /* Cell highlight while dragging a team chip over it */

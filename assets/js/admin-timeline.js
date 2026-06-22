@@ -90,7 +90,9 @@
     var saved = [];
     try {
       var raw = JSON.parse(localStorage.getItem('jh_timeline_teams'));
-      if (Array.isArray(raw)) saved = raw.filter(function (t) { return t && t.name; });
+      if (Array.isArray(raw)) saved = raw.filter(function (t) { return t && t.name; }).map(function (t) {
+        return { name: t.name, color: t.color, budgetMandays: Number(t.budgetMandays) || 0 };
+      });
     } catch (e) {}
     state.teams = saved;
     var seen = {};
@@ -99,10 +101,33 @@
       if (!e.Team) return;
       var key = e.Team.toLowerCase();
       if (seen[key]) return;
-      state.teams.push({ name: e.Team, color: autoColor(state.teams.length) });
+      state.teams.push({ name: e.Team, color: autoColor(state.teams.length), budgetMandays: 0 });
       seen[key] = true;
     });
     saveTeams();
+  }
+
+  // Allocation: 1 cell = 1 half-day = 0.5 manday (morning + evening = 1 day).
+  // Count all timeline entries tagged with this team, including any past
+  // entries no longer in the visible date range (the budget is for the whole
+  // build effort, not just what's shown).
+  function allocatedMandays(teamName) {
+    if (!teamName) return 0;
+    var n = 0;
+    state.entries.forEach(function (e) { if (e.Team === teamName) n++; });
+    return n / 2;
+  }
+
+  function fmtMd(n) {
+    if (n === 0) return '0';
+    return (n % 1 === 0) ? String(n) : n.toFixed(1);
+  }
+
+  function budgetCls(alloc, budget) {
+    if (!budget) return '';
+    if (alloc > budget) return 'over';
+    if (alloc < budget) return 'under';
+    return 'ok';
   }
 
   function saveTeams() {
@@ -220,21 +245,39 @@
     var html = '<div class="teams-panel">';
     html += '<div class="teams-panel-head"><h2>Teams &nbsp;<span style="color:var(--text-muted);font-weight:400;font-size:0.78rem">drag onto a cell to assign</span></h2></div>';
     html += '<div class="teams-list" id="teams-list">';
+    var totalAlloc = 0, totalBudget = 0;
     if (!state.teams.length) {
       html += '<span class="team-empty">No teams yet. Add one below.</span>';
     } else {
       state.teams.forEach(function (t) {
         var bg = t.color || '#888';
+        var alloc = allocatedMandays(t.name);
+        var budget = Number(t.budgetMandays) || 0;
+        totalAlloc += alloc;
+        totalBudget += budget;
+        var bcls = budgetCls(alloc, budget);
+        var badge = budget
+          ? '<span class="team-budget ' + bcls + '" title="' + fmtMd(alloc) + ' allocated of ' + fmtMd(budget) + ' mandays">' + fmtMd(alloc) + '/' + fmtMd(budget) + 'md</span>'
+          : '<span class="team-budget" title="No budget set — click ✎ to set">' + fmtMd(alloc) + 'md</span>';
         html += '<span class="team-chip" draggable="true" data-team="' + JH.esc(t.name) + '" style="background:' + JH.esc(bg) + '">' +
-          JH.esc(t.name) +
-          ' <button class="team-edit-btn" title="Rename / change colour" data-team="' + JH.esc(t.name) + '">&#9998;</button>' +
+          JH.esc(t.name) + ' ' + badge +
+          ' <button class="team-edit-btn" title="Rename / colour / budget" data-team="' + JH.esc(t.name) + '">&#9998;</button>' +
           ' <button class="team-del-btn" title="Delete team" data-team="' + JH.esc(t.name) + '">&times;</button>' +
           '</span>';
       });
     }
     html += '</div>';
+    if (state.teams.length) {
+      var delta = totalAlloc - totalBudget;
+      var dcls = totalBudget ? budgetCls(totalAlloc, totalBudget) : '';
+      var deltaTxt = totalBudget
+        ? (delta === 0 ? 'on budget' : (delta > 0 ? '+' + fmtMd(delta) + 'md over' : fmtMd(delta) + 'md under'))
+        : 'no budget set';
+      html += '<div class="teams-total">Total allocated: <b>' + fmtMd(totalAlloc) + 'md</b> of <b>' + fmtMd(totalBudget) + 'md</b> budgeted · <span class="delta ' + dcls + '">' + deltaTxt + '</span></div>';
+    }
     html += '<div class="team-add-row">' +
       '<input type="text" id="new-team-name" placeholder="New team name (e.g. Electricity)">' +
+      '<input type="number" id="new-team-budget" placeholder="Mandays" min="0" step="0.5">' +
       '<input type="color" id="new-team-color" value="' + autoColor(state.teams.length) + '">' +
       '<button id="add-team-btn">+ Add Team</button>' +
       '</div>';
@@ -248,12 +291,13 @@
     if (addBtn) addBtn.addEventListener('click', function () {
       var name = document.getElementById('new-team-name').value.trim();
       var color = document.getElementById('new-team-color').value || autoColor(state.teams.length);
+      var budget = parseFloat(document.getElementById('new-team-budget').value) || 0;
       if (!name) return;
       if (state.teams.find(function (t) { return t.name.toLowerCase() === name.toLowerCase(); })) {
         alert('Team already exists.');
         return;
       }
-      state.teams.push({ name: name, color: color });
+      state.teams.push({ name: name, color: color, budgetMandays: budget });
       saveTeams();
       renderTeamsPanel();
     });
@@ -292,9 +336,14 @@
         var newColor = prompt('Hex colour (e.g. #4caf50):', team.color || '#888');
         if (newColor === null) return;
         newColor = newColor.trim() || team.color;
+        var newBudgetRaw = prompt('Expected effort (mandays, 1 person × 1 day = 1 md):', String(team.budgetMandays || 0));
+        if (newBudgetRaw === null) return;
+        var newBudget = parseFloat(newBudgetRaw);
+        if (isNaN(newBudget) || newBudget < 0) newBudget = team.budgetMandays || 0;
         // Update team list
         team.name = newName;
         team.color = newColor;
+        team.budgetMandays = newBudget;
         saveTeams();
         // Propagate rename to entries (locally + server)
         if (newName !== oldName) {
