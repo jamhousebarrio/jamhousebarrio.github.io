@@ -238,34 +238,55 @@
 
   // ── Teams panel ───────────────────────────────────────────────────────────
 
+  function statusLabel(alloc, budget) {
+    if (!budget) return { cls: 'none', txt: 'no budget' };
+    if (alloc > budget) return { cls: 'over', txt: 'over' };
+    if (alloc < budget) return { cls: 'under', txt: 'low' };
+    return { cls: 'ok', txt: 'on track' };
+  }
+
   function renderTeamsPanel() {
     var wrap = document.getElementById('teams-panel-wrap');
     if (!wrap) return;
     if (!isAdmin) { wrap.innerHTML = ''; return; }
     var html = '<div class="teams-panel">';
-    html += '<div class="teams-panel-head"><h2>Teams &nbsp;<span style="color:var(--text-muted);font-weight:400;font-size:0.78rem">drag onto a cell to assign</span></h2></div>';
+    html += '<div class="teams-panel-head"><h2>Teams &nbsp;<span style="color:var(--text-muted);font-weight:400;font-size:0.78rem">drag a card onto a cell to assign</span></h2></div>';
     html += '<div class="teams-list" id="teams-list">';
     var totalAlloc = 0, totalBudget = 0;
+    state.teams.forEach(function (t) {
+      var bg = t.color || '#888';
+      var alloc = allocatedMandays(t.name);
+      var budget = Number(t.budgetMandays) || 0;
+      totalAlloc += alloc;
+      totalBudget += budget;
+      var status = statusLabel(alloc, budget);
+      // Bar fill: 0–100% of card width. When over budget we cap visual fill at
+      // 100% and switch colour to red so the over case still reads as "full".
+      var pct = budget > 0 ? Math.min(100, (alloc / budget) * 100) : 0;
+      var fillCls = budget ? (alloc > budget ? 'over' : (alloc < budget ? 'under' : 'ok')) : '';
+      var statsHtml = budget
+        ? '<span class="nums"><b>' + fmtMd(alloc) + '</b> / ' + fmtMd(budget) + ' md</span>'
+        : '<span class="nums"><b>' + fmtMd(alloc) + '</b> md</span>';
+      html += '<div class="team-card" draggable="true" data-team="' + JH.esc(t.name) + '" title="Drag onto a half-day cell to assign">' +
+        '<div class="team-card-stripe" style="background:' + JH.esc(bg) + '"></div>' +
+        '<div class="team-card-head">' +
+          '<span class="team-card-name" title="' + JH.esc(t.name) + '">' + JH.esc(t.name) + '</span>' +
+          '<span class="team-card-actions">' +
+            '<button class="team-edit-btn" title="Edit team" data-team="' + JH.esc(t.name) + '">&#9998;</button>' +
+            '<button class="team-del-btn" title="Delete team" data-team="' + JH.esc(t.name) + '">&times;</button>' +
+          '</span>' +
+        '</div>' +
+        '<div class="team-card-stats">' + statsHtml + '<span class="status ' + status.cls + '">' + status.txt + '</span></div>' +
+        '<div class="team-card-bar" title="' + fmtMd(alloc) + ' / ' + fmtMd(budget) + ' md">' +
+          '<div class="fill ' + fillCls + '" style="width:' + pct + '%"></div>' +
+        '</div>' +
+      '</div>';
+    });
+    // Empty-state hint only when no teams AND no add card visible
     if (!state.teams.length) {
-      html += '<span class="team-empty">No teams yet. Add one below.</span>';
-    } else {
-      state.teams.forEach(function (t) {
-        var bg = t.color || '#888';
-        var alloc = allocatedMandays(t.name);
-        var budget = Number(t.budgetMandays) || 0;
-        totalAlloc += alloc;
-        totalBudget += budget;
-        var bcls = budgetCls(alloc, budget);
-        var badge = budget
-          ? '<span class="team-budget ' + bcls + '" title="' + fmtMd(alloc) + ' allocated of ' + fmtMd(budget) + ' mandays">' + fmtMd(alloc) + '/' + fmtMd(budget) + 'md</span>'
-          : '<span class="team-budget" title="No budget set — click ✎ to set">' + fmtMd(alloc) + 'md</span>';
-        html += '<span class="team-chip" draggable="true" data-team="' + JH.esc(t.name) + '" style="background:' + JH.esc(bg) + '">' +
-          JH.esc(t.name) + ' ' + badge +
-          ' <button class="team-edit-btn" title="Rename / colour / budget" data-team="' + JH.esc(t.name) + '">&#9998;</button>' +
-          ' <button class="team-del-btn" title="Delete team" data-team="' + JH.esc(t.name) + '">&times;</button>' +
-          '</span>';
-      });
+      html += '<span class="team-empty">No teams yet — click + Add Team to create one.</span>';
     }
+    html += '<button class="team-add-card" id="add-team-btn" title="Add a new team">+ Add Team</button>';
     html += '</div>';
     if (state.teams.length) {
       var delta = totalAlloc - totalBudget;
@@ -275,12 +296,6 @@
         : 'no budget set';
       html += '<div class="teams-total">Total allocated: <b>' + fmtMd(totalAlloc) + 'md</b> of <b>' + fmtMd(totalBudget) + 'md</b> budgeted · <span class="delta ' + dcls + '">' + deltaTxt + '</span></div>';
     }
-    html += '<div class="team-add-row">' +
-      '<input type="text" id="new-team-name" placeholder="New team name (e.g. Electricity)">' +
-      '<input type="number" id="new-team-budget" placeholder="Mandays" min="0" step="0.5">' +
-      '<input type="color" id="new-team-color" value="' + autoColor(state.teams.length) + '">' +
-      '<button id="add-team-btn">+ Add Team</button>' +
-      '</div>';
     html += '</div>';
     wrap.innerHTML = html;
     bindTeamsPanel();
@@ -289,17 +304,7 @@
   function bindTeamsPanel() {
     var addBtn = document.getElementById('add-team-btn');
     if (addBtn) addBtn.addEventListener('click', function () {
-      var name = document.getElementById('new-team-name').value.trim();
-      var color = document.getElementById('new-team-color').value || autoColor(state.teams.length);
-      var budget = parseFloat(document.getElementById('new-team-budget').value) || 0;
-      if (!name) return;
-      if (state.teams.find(function (t) { return t.name.toLowerCase() === name.toLowerCase(); })) {
-        alert('Team already exists.');
-        return;
-      }
-      state.teams.push({ name: name, color: color, budgetMandays: budget });
-      saveTeams();
-      renderTeamsPanel();
+      openTeamModal(null);
     });
 
     document.querySelectorAll('.team-del-btn').forEach(function (btn) {
@@ -326,46 +331,117 @@
     document.querySelectorAll('.team-edit-btn').forEach(function (btn) {
       btn.addEventListener('click', function (e) {
         e.stopPropagation();
-        var oldName = btn.dataset.team;
-        var team = state.teams.find(function (t) { return t.name === oldName; });
-        if (!team) return;
-        var newName = prompt('Rename team:', team.name);
-        if (newName === null) return;
-        newName = newName.trim();
-        if (!newName) return;
-        var newColor = prompt('Hex colour (e.g. #4caf50):', team.color || '#888');
-        if (newColor === null) return;
-        newColor = newColor.trim() || team.color;
-        var newBudgetRaw = prompt('Expected effort (mandays, 1 person × 1 day = 1 md):', String(team.budgetMandays || 0));
-        if (newBudgetRaw === null) return;
-        var newBudget = parseFloat(newBudgetRaw);
-        if (isNaN(newBudget) || newBudget < 0) newBudget = team.budgetMandays || 0;
-        // Update team list
-        team.name = newName;
-        team.color = newColor;
-        team.budgetMandays = newBudget;
-        saveTeams();
-        // Propagate rename to entries (locally + server)
-        if (newName !== oldName) {
-          var toRename = state.entries.filter(function (en) { return en.Team === oldName; });
-          toRename.forEach(function (en) {
-            en.Team = newName;
-            JH.apiFetch('/api/timeline', { action: 'upsert', person: en.Person, date: en.Date, period: en.Period, team: newName });
-          });
-        }
-        rerenderPreservingView();
+        openTeamModal(btn.dataset.team);
       });
     });
 
-    // Drag start for team chips
-    document.querySelectorAll('.team-chip').forEach(function (chip) {
-      chip.addEventListener('dragstart', function (e) {
-        e.dataTransfer.setData('application/jh-team', chip.dataset.team);
-        e.dataTransfer.setData('text/plain', '__team__:' + chip.dataset.team);
-        chip.classList.add('dragging');
+    // Drag start for team cards
+    document.querySelectorAll('.team-card').forEach(function (card) {
+      card.addEventListener('dragstart', function (e) {
+        // Don't start a drag from a click on an action button.
+        if (e.target.closest('.team-card-actions')) { e.preventDefault(); return; }
+        e.dataTransfer.setData('application/jh-team', card.dataset.team);
+        e.dataTransfer.setData('text/plain', '__team__:' + card.dataset.team);
+        card.classList.add('dragging');
       });
-      chip.addEventListener('dragend', function () { chip.classList.remove('dragging'); });
+      card.addEventListener('dragend', function () { card.classList.remove('dragging'); });
     });
+  }
+
+  // ── Team add/edit modal ───────────────────────────────────────────────────
+
+  // editName === null → add mode; otherwise edit mode for that team.
+  function openTeamModal(editName) {
+    var modal = document.getElementById('team-modal');
+    if (!modal) return;
+    var title = document.getElementById('team-modal-title');
+    var nameInp = document.getElementById('tm-name');
+    var colorInp = document.getElementById('tm-color');
+    var hexInp = document.getElementById('tm-color-hex');
+    var budgetInp = document.getElementById('tm-budget');
+    var saveBtn = document.getElementById('tm-save');
+    var cancelBtn = document.getElementById('tm-cancel');
+    var closeBtn = document.getElementById('team-modal-close');
+
+    var existing = editName ? state.teams.find(function (t) { return t.name === editName; }) : null;
+    var defaultColor = existing ? (existing.color || '#888') : autoColor(state.teams.length);
+
+    title.firstChild.textContent = existing ? 'Edit team ' : 'Add team ';
+    nameInp.value = existing ? existing.name : '';
+    colorInp.value = normalizeHex(defaultColor);
+    hexInp.value = defaultColor;
+    budgetInp.value = existing && existing.budgetMandays ? existing.budgetMandays : '';
+
+    function syncColor(from) {
+      if (from === 'picker') hexInp.value = colorInp.value;
+      else {
+        var v = normalizeHex(hexInp.value.trim());
+        if (v) colorInp.value = v;
+      }
+    }
+    colorInp.oninput = function () { syncColor('picker'); };
+    hexInp.oninput = function () { syncColor('text'); };
+
+    function close() {
+      modal.classList.remove('active');
+      document.removeEventListener('keydown', onKey);
+    }
+    function onKey(e) {
+      if (e.key === 'Escape') close();
+      if (e.key === 'Enter' && document.activeElement !== budgetInp) { e.preventDefault(); commit(); }
+    }
+    function commit() {
+      var name = nameInp.value.trim();
+      if (!name) { nameInp.focus(); return; }
+      var color = hexInp.value.trim() || colorInp.value || defaultColor;
+      var budget = parseFloat(budgetInp.value);
+      if (isNaN(budget) || budget < 0) budget = 0;
+      var dup = state.teams.find(function (t) {
+        return t.name.toLowerCase() === name.toLowerCase() && t !== existing;
+      });
+      if (dup) { alert('A team named "' + name + '" already exists.'); nameInp.focus(); return; }
+
+      if (existing) {
+        var oldName = existing.name;
+        existing.name = name;
+        existing.color = color;
+        existing.budgetMandays = budget;
+        saveTeams();
+        if (name !== oldName) {
+          var toRename = state.entries.filter(function (en) { return en.Team === oldName; });
+          toRename.forEach(function (en) {
+            en.Team = name;
+            JH.apiFetch('/api/timeline', { action: 'upsert', person: en.Person, date: en.Date, period: en.Period, team: name });
+          });
+        }
+      } else {
+        state.teams.push({ name: name, color: color, budgetMandays: budget });
+        saveTeams();
+      }
+      close();
+      rerenderPreservingView();
+    }
+
+    saveBtn.onclick = commit;
+    cancelBtn.onclick = close;
+    closeBtn.onclick = close;
+    modal.onclick = function (e) { if (e.target === modal) close(); };
+
+    document.addEventListener('keydown', onKey);
+    modal.classList.add('active');
+    setTimeout(function () { nameInp.focus(); nameInp.select(); }, 30);
+  }
+
+  function normalizeHex(v) {
+    if (!v) return '#888888';
+    v = v.trim();
+    if (!v.startsWith('#')) v = '#' + v;
+    if (/^#[0-9a-fA-F]{3}$/.test(v)) {
+      // expand #abc → #aabbcc for the colour picker which only accepts #rrggbb
+      return '#' + v[1] + v[1] + v[2] + v[2] + v[3] + v[3];
+    }
+    if (/^#[0-9a-fA-F]{6}$/.test(v)) return v;
+    return '#888888';
   }
 
   // ── Render ────────────────────────────────────────────────────────────────

@@ -49,27 +49,43 @@ access: general
     .teams-panel { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; margin-bottom: 14px; }
     .teams-panel-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 8px; }
     .teams-panel-head h2 { font-family: var(--heading); font-size: 0.95rem; color: var(--accent); margin: 0; }
-    .teams-list { display: flex; flex-wrap: wrap; gap: 8px; }
-    .team-chip { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px 5px 12px; border-radius: 16px; font-size: 0.78rem; color: #fff; font-weight: 700; cursor: grab; user-select: none; font-family: var(--heading); border: 2px solid transparent; }
-    .team-chip:hover { filter: brightness(1.15); }
-    .team-chip.dragging { opacity: 0.5; }
-    .team-chip button { background: rgba(0,0,0,0.20); border: none; color: #fff; border-radius: 999px; cursor: pointer; font-size: 0.78rem; line-height: 1; width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center; padding: 0; }
-    .team-chip button:hover { background: rgba(0,0,0,0.45); }
-    .team-chip .team-budget { background: rgba(0,0,0,0.28); padding: 1px 7px; border-radius: 999px; font-size: 0.70rem; font-weight: 600; letter-spacing: 0.02em; }
-    .team-chip .team-budget.over { background: rgba(244,67,54,0.85); }
-    .team-chip .team-budget.under { background: rgba(255,193,7,0.85); color: #1a1a1a; }
-    .team-chip .team-budget.ok { background: rgba(76,175,80,0.85); }
+    .teams-list { display: flex; flex-wrap: wrap; gap: 10px; }
+    /* Team card (draggable as a unit). */
+    .team-card { width: 168px; border-radius: 10px; overflow: hidden; background: var(--surface2); border: 1px solid var(--border); cursor: grab; user-select: none; display: flex; flex-direction: column; transition: transform 0.1s, border-color 0.1s; }
+    .team-card:hover { border-color: var(--accent); transform: translateY(-1px); }
+    .team-card.dragging { opacity: 0.5; }
+    .team-card-stripe { height: 6px; background: #888; }
+    .team-card-head { display: flex; justify-content: space-between; align-items: center; padding: 8px 10px 3px; gap: 4px; }
+    .team-card-name { font-family: var(--heading); font-weight: 700; font-size: 0.85rem; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1 1 auto; min-width: 0; }
+    .team-card-actions { display: inline-flex; gap: 2px; flex: 0 0 auto; }
+    .team-card-actions button { background: transparent; border: none; color: var(--text-muted); cursor: pointer; padding: 2px 5px; border-radius: 4px; font-size: 0.8rem; line-height: 1; }
+    .team-card-actions button:hover { background: var(--bg); color: var(--text); }
+    .team-card-stats { display: flex; justify-content: space-between; align-items: baseline; padding: 0 10px 6px; font-size: 0.72rem; color: var(--text-muted); gap: 6px; }
+    .team-card-stats .nums b { color: var(--text); font-size: 0.92rem; font-weight: 700; font-family: var(--heading); }
+    .team-card-stats .status { font-weight: 700; text-transform: uppercase; font-size: 0.62rem; letter-spacing: 0.05em; padding: 1px 6px; border-radius: 999px; }
+    .team-card-stats .status.over { background: rgba(244,67,54,0.18); color: #f44336; }
+    .team-card-stats .status.under { background: rgba(255,193,7,0.18); color: #ffc107; }
+    .team-card-stats .status.ok { background: rgba(76,175,80,0.18); color: #4caf50; }
+    .team-card-stats .status.none { background: rgba(140,140,140,0.18); color: var(--text-muted); }
+    .team-card-bar { height: 8px; background: rgba(255,255,255,0.05); margin: 0 10px 10px; border-radius: 4px; overflow: hidden; position: relative; }
+    .team-card-bar .fill { height: 100%; background: #888; transition: width 0.2s; }
+    .team-card-bar .fill.under { background: #ffc107; }
+    .team-card-bar .fill.ok { background: #4caf50; }
+    .team-card-bar .fill.over { background: #f44336; }
+    .team-card-bar .marker { position: absolute; top: 0; bottom: 0; width: 2px; background: rgba(255,255,255,0.55); pointer-events: none; }
+    .team-add-card { width: 168px; height: 78px; border: 2px dashed var(--border); border-radius: 10px; background: transparent; color: var(--text-muted); font-family: var(--heading); font-weight: 700; font-size: 0.82rem; cursor: pointer; transition: border-color 0.15s, color 0.15s; display: flex; align-items: center; justify-content: center; }
+    .team-add-card:hover { border-color: var(--accent); color: var(--accent); }
     .team-empty { color: var(--text-muted); font-style: italic; font-size: 0.85rem; }
-    .teams-total { color: var(--text-muted); font-size: 0.78rem; margin-top: 10px; }
+    .teams-total { color: var(--text-muted); font-size: 0.82rem; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border); }
     .teams-total b { color: var(--text); }
     .teams-total .delta.over { color: #f44336; font-weight: 700; }
     .teams-total .delta.under { color: #ffc107; font-weight: 700; }
     .teams-total .delta.ok { color: #4caf50; font-weight: 700; }
-    .team-add-row { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
-    .team-add-row input[type="text"] { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 0.82rem; padding: 6px 10px; flex: 1; min-width: 140px; }
-    .team-add-row input[type="number"] { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 0.82rem; padding: 6px 10px; width: 90px; }
-    .team-add-row input[type="color"] { width: 38px; height: 32px; border: none; padding: 0; background: transparent; cursor: pointer; }
-    .team-add-row button { padding: 6px 14px; background: var(--accent); border: none; border-radius: 6px; color: var(--bg); font-family: var(--heading); font-size: 0.8rem; font-weight: 700; cursor: pointer; }
+    /* Team modal */
+    .modal-hint { font-size: 0.72rem; color: var(--text-muted); margin: 4px 0 0; }
+    .tm-color-row { display: flex; align-items: center; gap: 10px; }
+    .tm-color-row input[type="color"] { width: 44px; height: 32px; border: 1px solid var(--border); border-radius: 6px; padding: 0; background: transparent; cursor: pointer; }
+    .tm-color-row input[type="text"] { flex: 1; }
     /* Cell highlight while dragging a team chip over it */
     .task-cell.team-drag-over { outline: 2px dashed var(--accent); outline-offset: -2px; }
     /* Mobile team chip in m-task-row */
@@ -138,6 +154,35 @@ access: general
   <div id="teams-panel-wrap"></div>
 
   <div id="timeline-wrap">Loading timeline...</div>
+</div>
+
+<!-- Team add/edit modal -->
+<div class="modal-overlay" id="team-modal">
+  <div class="modal" style="max-width:420px">
+    <h2 id="team-modal-title">Edit team <button class="modal-close" id="team-modal-close" title="Close">&times;</button></h2>
+    <div class="modal-body">
+      <div>
+        <label>Team name</label>
+        <input type="text" id="tm-name" placeholder="e.g. Electricity">
+      </div>
+      <div>
+        <label>Colour</label>
+        <div class="tm-color-row">
+          <input type="color" id="tm-color" value="#e8a84c">
+          <input type="text" id="tm-color-hex" placeholder="#e8a84c">
+        </div>
+      </div>
+      <div>
+        <label>Expected effort (mandays)</label>
+        <input type="number" id="tm-budget" min="0" step="0.5" placeholder="0">
+        <p class="modal-hint">1 person on-site for 1 full day = 1 manday. Each half-day cell (morning or evening) you assign counts as 0.5 md.</p>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-primary" id="tm-save">Save</button>
+      <button class="btn-secondary" id="tm-cancel">Cancel</button>
+    </div>
+  </div>
 </div>
 
 <script src="/assets/js/admin-auth.js"></script>
