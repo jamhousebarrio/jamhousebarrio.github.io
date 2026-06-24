@@ -52,16 +52,19 @@
       var name = val(m, 'Name');
       var phone = val(m, 'Phone');
       var telegram = val(m, 'Telegram');
+      var icons = JH.contactLinks(phone || '', telegram || '');
       var contactCell = '';
       if (phone) contactCell += esc(phone);
       if (telegram) contactCell += (contactCell ? '<br>' : '') + '<span class="emerg-meta">@' + esc(telegram.replace(/^@/, '')) + '</span>';
       if (!contactCell) contactCell = '<span class="dim">—</span>';
-      html += '<tr>' +
-        '<td class="emerg-name">' + esc(playa || '—') + '</td>' +
-        cell(name) +
+      var emergName = val(m, 'Emergency Contact Name');
+      var missing = !emergName || !emergName.trim();
+      html += '<tr' + (missing ? ' class="emerg-missing"' : '') + '>' +
+        '<td class="emerg-name">' + esc(playa || '—') + icons + '</td>' +
+        '<td>' + (name ? esc(name) + icons : '<span class="dim">—</span>') + '</td>' +
         '<td>' + contactCell + '</td>' +
         cell(val(m, 'Medical Conditions')) +
-        cell(val(m, 'Emergency Contact Name')) +
+        (missing ? '<td class="emerg-missing-cell">missing</td>' : cell(emergName)) +
         cell(val(m, 'Emergency Contact Phone')) +
         cell(val(m, 'Emergency Contact Relation')) +
       '</tr>';

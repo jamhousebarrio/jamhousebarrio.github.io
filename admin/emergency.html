@@ -22,6 +22,9 @@ access: admin
     .emerg-table td.dim { color: var(--text-muted); font-style: italic; }
     .emerg-name { font-weight: 700; }
     .emerg-meta { color: var(--text-muted); font-size: 0.75rem; }
+    .emerg-table tr.emerg-missing td { background: rgba(232, 88, 76, 0.12); }
+    .emerg-table tr.emerg-missing:hover td { background: rgba(232, 88, 76, 0.2); }
+    .emerg-table td.emerg-missing-cell { color: #e8584c; font-weight: 600; text-transform: uppercase; font-size: 0.72rem; letter-spacing: 0.06em; }
     .emerg-toolbar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; }
     .emerg-toolbar .btn-primary { padding: 8px 16px; }
     .emerg-toolbar input { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); padding: 7px 10px; font-size: 0.85rem; min-width: 200px; }
@@ -36,6 +39,8 @@ access: admin
       .emerg-table th { background: #eee !important; }
       .emerg-table tr:hover td { background: #fff !important; }
       .emerg-table td.dim { color: #555 !important; }
+      .emerg-table tr.emerg-missing td { background: #fde8e6 !important; }
+      .emerg-table td.emerg-missing-cell { color: #b91c1c !important; }
       .emerg-table { font-size: 11pt; page-break-inside: auto; }
       .emerg-table tr { page-break-inside: avoid; page-break-after: auto; }
       @page { size: A4 landscape; margin: 12mm; }
