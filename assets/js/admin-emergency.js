@@ -57,11 +57,12 @@
       if (phone) contactCell += esc(phone);
       if (telegram) contactCell += (contactCell ? '<br>' : '') + '<span class="emerg-meta">@' + esc(telegram.replace(/^@/, '')) + '</span>';
       if (!contactCell) contactCell = '<span class="dim">—</span>';
+      else contactCell += icons;
       var emergName = val(m, 'Emergency Contact Name');
       var missing = !emergName || !emergName.trim();
       html += '<tr' + (missing ? ' class="emerg-missing"' : '') + '>' +
-        '<td class="emerg-name">' + esc(playa || '—') + icons + '</td>' +
-        '<td>' + (name ? esc(name) + icons : '<span class="dim">—</span>') + '</td>' +
+        '<td class="emerg-name">' + esc(playa || '—') + '</td>' +
+        cell(name) +
         '<td>' + contactCell + '</td>' +
         cell(val(m, 'Medical Conditions')) +
         (missing ? '<td class="emerg-missing-cell">missing</td>' : cell(emergName)) +
