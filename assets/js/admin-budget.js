@@ -405,6 +405,54 @@
   };
   TotalRenderer.prototype.getGui = function() { return this.eGui; };
 
+  function ReceiptRenderer() {}
+  ReceiptRenderer.prototype.init = function(params) {
+    this.eGui = document.createElement('span');
+    var wrap = this.eGui;
+    var url = (params.value || '').trim();
+    if (url) {
+      var a = document.createElement('a');
+      a.href = url;
+      a.target = '_blank';
+      a.rel = 'noopener';
+      a.textContent = '🧾';
+      a.title = 'View receipt';
+      a.style.textDecoration = 'none';
+      wrap.appendChild(a);
+    }
+    if (!isAdmin) return;
+    var btn = document.createElement('span');
+    btn.textContent = url ? ' ↻' : '+ 🧾';
+    btn.title = url ? 'Replace receipt' : 'Upload receipt';
+    btn.style.cssText = 'color:#555;cursor:pointer;';
+    btn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      var input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/*,.pdf';
+      input.addEventListener('change', async function() {
+        var file = input.files[0];
+        if (!file) return;
+        if (file.size > RECEIPT_MAX_BYTES) { alert('Receipt must be under 10 MB'); return; }
+        btn.textContent = '…';
+        try {
+          var newUrl = await uploadReceipt(file);
+          var item = items.find(function(it) { return it._row === params.data._row; });
+          if (item) item.Receipt = newUrl;
+          params.data.Receipt = newUrl;
+          saveBudgetField(params.data._row, 'Receipt', newUrl);
+        } catch (err) {
+          console.error('Receipt upload failed:', err);
+          alert('Receipt upload failed');
+        }
+        gridApi.refreshCells({ force: true, columns: ['Receipt'] });
+      });
+      input.click();
+    });
+    wrap.appendChild(btn);
+  };
+  ReceiptRenderer.prototype.getGui = function() { return this.eGui; };
+
   function DeleteBtnRenderer() {}
   DeleteBtnRenderer.prototype.init = function(params) {
     this.eGui = document.createElement('button');
@@ -450,6 +498,7 @@
         return '<a href="' + safe + '" target="_blank" rel="noopener" title="' + safe + '" style="color:#e8a84c;text-decoration:none;">Link</a>';
       }
     },
+    { field: 'Receipt', cellRenderer: ReceiptRenderer, width: 90, suppressSizeToFit: true, sortable: false, editable: false },
     { field: 'Comment', sortable: true, filter: true, editable: isAdmin, flex: 1, minWidth: 200,
       cellEditor: 'agLargeTextCellEditor', cellEditorPopup: true, cellEditorParams: { maxLength: 500 },
       tooltipField: 'Comment' },
@@ -589,6 +638,21 @@
     });
   }
 
+  // Upload a receipt file to Supabase Storage, return its public URL.
+  var RECEIPT_MAX_BYTES = 10 * 1024 * 1024;
+  async function uploadReceipt(file) {
+    var extMatch = file.name.match(/\.([a-zA-Z0-9]+)$/);
+    var ext = (extMatch ? extMatch[1] : 'jpg').toLowerCase();
+    var key = 'receipts/' + Date.now() + '-' + Math.random().toString(36).slice(2, 8) + '.' + ext;
+    var up = await JH.supabase.storage.from('build-photos').upload(key, file, {
+      contentType: file.type || 'application/octet-stream',
+    });
+    if (up.error) throw up.error;
+    var pub = JH.supabase.storage.from('build-photos').getPublicUrl(key);
+    if (!pub.data || !pub.data.publicUrl) throw new Error('No public URL');
+    return pub.data.publicUrl;
+  }
+
   // Shared add-item logic. `data` carries every field collected from the modal.
   async function doAddItem(data, msgEl, onSuccess) {
     if (!data.Category || !data.Item) { msgEl.textContent = 'Category and Item required'; msgEl.style.color = '#f44336'; return; }
@@ -598,7 +662,7 @@
       if (!res.ok) throw new Error('Failed');
       var result = await res.json();
       var row = Object.assign(
-        { Category: '', Item: '', Qty: '1', Price: '0', 'Total Actual': '', Paid: 'FALSE', Discuss: 'FALSE', 'Paid by': '', Link: '', Comment: '' },
+        { Category: '', Item: '', Qty: '1', Price: '0', 'Total Actual': '', Paid: 'FALSE', Discuss: 'FALSE', 'Paid by': '', Link: '', Comment: '', Receipt: '' },
         data, { _row: result.row }
       );
       items.push(row);
@@ -631,6 +695,7 @@
     var paid = d.Paid === true || d.Paid === 'TRUE' || d.Paid === 'true';
     var discuss = d.Discuss === true || d.Discuss === 'TRUE' || d.Discuss === 'true';
     var editable = isAdmin || isNew;
+    var receiptLink = d.Receipt ? '<a href="' + esc(d.Receipt) + '" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none;">Receipt ↗</a>' : '';
     var catOpts = categories.map(function(c) {
       return '<option' + (c === d.Category ? ' selected' : '') + '>' + esc(c) + '</option>';
     }).join('');
@@ -645,6 +710,12 @@
       '<div class="budget-detail-row"><span class="label">Discuss</span><span class="value"><input data-field="Discuss" type="checkbox"' + (discuss ? ' checked' : '') + (editable ? '' : ' disabled') + ' style="accent-color:#ff9800;width:18px;height:18px;"></span></div>' +
       '<div class="budget-detail-row"><span class="label">Paid by</span><span class="value">' + (editable ? '<input data-field="Paid by" value="' + esc(d['Paid by'] || '') + '" style="' + w + '">' : esc(d['Paid by'] || '')) + '</span></div>' +
       '<div class="budget-detail-row"><span class="label">Link</span><span class="value">' + (editable ? '<input data-field="Link" value="' + esc(d.Link || '') + '" style="' + w + '">' : (d.Link ? '<a href="' + esc(normalizeUrl(d.Link)) + '" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none;">Link ↗</a>' : '')) + '</span></div>' +
+      '<div class="budget-detail-row"><span class="label">Receipt</span><span class="value">' + (editable
+        ? '<input type="hidden" data-field="Receipt" value="' + esc(d.Receipt || '') + '">' +
+          '<span data-receipt-link>' + receiptLink + '</span> ' +
+          '<input type="file" data-receipt-file accept="image/*,.pdf" style="font-size:0.75rem;max-width:180px;"> ' +
+          '<span data-receipt-status style="font-size:0.75rem;color:#888;"></span>'
+        : receiptLink) + '</span></div>' +
       '<div class="budget-detail-row"><span class="label">Comment</span><span class="value">' + (editable ? '<textarea data-field="Comment" style="' + w + 'min-height:50px;resize:vertical;">' + esc(d.Comment || '') + '</textarea>' : esc(d.Comment || '')) + '</span></div>' +
       (editable ? '<div style="margin-top:12px;display:flex;gap:8px;"><button id="budget-detail-save" style="' + btnStyle + '">' + (isNew ? 'Add Item' : 'Save') + '</button><span id="budget-detail-msg" style="font-size:0.8rem;color:#888;align-self:center;"></span></div>' : '');
   }
@@ -662,6 +733,30 @@
     priceEl.addEventListener('input', recompute);
   }
 
+  // Upload a picked receipt file, store its URL in the hidden Receipt field
+  function wireReceiptUpload() {
+    var fileEl = detailBody.querySelector('[data-receipt-file]');
+    if (!fileEl) return;
+    var hiddenEl = detailBody.querySelector('input[data-field="Receipt"]');
+    var linkEl = detailBody.querySelector('[data-receipt-link]');
+    var statusEl = detailBody.querySelector('[data-receipt-status]');
+    fileEl.addEventListener('change', async function() {
+      var file = fileEl.files[0];
+      if (!file) return;
+      if (file.size > RECEIPT_MAX_BYTES) { statusEl.textContent = 'Max 10 MB'; statusEl.style.color = '#f44336'; return; }
+      statusEl.textContent = 'Uploading…'; statusEl.style.color = '#888';
+      try {
+        var url = await uploadReceipt(file);
+        hiddenEl.value = url;
+        linkEl.innerHTML = '<a href="' + esc(url) + '" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none;">Receipt ↗</a>';
+        statusEl.textContent = 'Uploaded'; statusEl.style.color = '#4caf50';
+      } catch (err) {
+        console.error('Receipt upload failed:', err);
+        statusEl.textContent = 'Upload failed'; statusEl.style.color = '#f44336';
+      }
+    });
+  }
+
   // "+ Add Item" opens detail modal in add mode
   if (isAdmin) {
     var addBtn = document.getElementById('mobile-add-btn');
@@ -670,6 +765,7 @@
       detailTitle.textContent = 'Add Item';
       detailBody.innerHTML = buildModalFields({}, true);
       wireModalTotal();
+      wireReceiptUpload();
       document.getElementById('budget-detail-save').onclick = function() {
         var data = {};
         detailBody.querySelectorAll('[data-field]').forEach(function(el) {
@@ -696,6 +792,7 @@
     detailTitle.textContent = d.Item || '';
     detailBody.innerHTML = buildModalFields(d, false);
     wireModalTotal();
+    wireReceiptUpload();
     if (isAdmin) document.getElementById('budget-detail-save').onclick = function() {
       var msg = document.getElementById('budget-detail-msg');
       var item = items.find(function(it) { return it._row === d._row; });

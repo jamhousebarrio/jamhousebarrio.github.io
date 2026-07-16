@@ -302,8 +302,8 @@ export default async function handler(req, res) {
     if (headers.length === 0) {
       return res.status(500).json({ error: "Budget sheet has no headers" });
     }
-    // Ensure audit columns exist; add them at the end of the header row if missing.
-    const auditCols = ['UpdatedAt', 'UpdatedBy'].filter(h => headers.indexOf(h) === -1);
+    // Ensure receipt + audit columns exist; add them at the end of the header row if missing.
+    const auditCols = ['Receipt', 'UpdatedAt', 'UpdatedBy'].filter(h => headers.indexOf(h) === -1);
     if (auditCols.length) {
       const startCol = headers.length;
       headers = headers.concat(auditCols);
