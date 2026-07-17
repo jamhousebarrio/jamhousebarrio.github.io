@@ -99,6 +99,8 @@ access: general
     <h1><span class="icon">&#9733;</span> Budget</h1>
     <div class="subtitle">Budget tracking by category</div>
   </div>
+  <button class="fullscreen-btn" id="overview-toggle" style="margin-bottom:16px;">&#9656; Show overview &amp; charts</button>
+  <div id="overview-wrap" style="display:none;">
   <div class="stats-row">
     <div class="stat-card">
       <div class="stat-label">Barrio Fees Received</div>
@@ -151,6 +153,20 @@ access: general
       <div style="height:300px;"><canvas id="budget-bar-chart"></canvas></div>
     </div>
   </div>
+  </div>
+  <details id="expense-help" style="margin-bottom:16px;border:1px solid var(--border);border-radius:8px;background:var(--surface);">
+    <summary style="cursor:pointer;padding:10px 14px;font-size:0.85rem;color:var(--accent);font-weight:600;user-select:none;">&#128161; How to add an expense</summary>
+    <div style="padding:0 14px 12px;font-size:0.85rem;color:var(--text-muted);line-height:1.6;">
+      <ol style="margin:0;padding-left:20px;">
+        <li>Tap <strong>+ Add Item</strong> below.</li>
+        <li>Fill in category, item name, quantity and price.</li>
+        <li>Tick <strong>Paid</strong> if it's already bought, and put your name in <strong>Paid by</strong> if you paid out of pocket (that's how you get reimbursed).</li>
+        <li>Attach a photo of the receipt with the <strong>Receipt</strong> field (photo or PDF, up to 10&nbsp;MB) &mdash; on the phone you can take the picture right there.</li>
+        <li>Tap <strong>Add Item</strong> &mdash; done.</li>
+      </ol>
+      <p style="margin:8px 0 0;">To fix an existing expense: on desktop click a cell and type; on phone tap the row and edit in the popup. If you only want to <em>suggest</em> a purchase, use <strong>+ Request Item</strong> under Shopping Requests at the bottom.</p>
+    </div>
+  </details>
   <div class="panel" id="budget-panel">
     <div class="panel-header">
       <h2>Budget Items</h2>
@@ -215,6 +231,11 @@ access: general
       <input id="req-link" placeholder="https://..." style="background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:0.85rem;padding:7px 10px;">
       <label style="font-size:0.78rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:0.05em;">Price estimate (€)</label>
       <input id="req-price" type="number" step="0.01" placeholder="0.00" style="background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:0.85rem;padding:7px 10px;">
+      <label style="font-size:0.78rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:0.05em;">Receipt (optional)</label>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <input id="req-receipt-file" type="file" accept="image/*,.pdf" style="font-size:0.8rem;color:var(--text);flex:1;min-width:0;">
+        <span id="req-receipt-status" style="font-size:0.75rem;color:#888;white-space:nowrap;"></span>
+      </div>
     </div>
     <div style="display:flex;gap:8px;margin-top:4px;">
       <button id="req-submit-btn" style="padding:0.45rem 1rem;background:var(--accent);border:none;border-radius:6px;color:var(--bg);font-family:var(--heading);font-size:0.85rem;font-weight:600;cursor:pointer;">Submit Request</button>

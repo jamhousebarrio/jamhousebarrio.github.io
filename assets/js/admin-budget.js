@@ -13,6 +13,9 @@
   }
 
   var isAdmin = JH.isAdmin();
+  // Item add/edit is open to all approved members; observers stay read-only.
+  // Delete, request moderation, fees and snapshot remain admin-only.
+  var canEdit = isAdmin || !(JH.currentUser && JH.currentUser.observer);
   var esc = JH.esc;
 
   // Independent reads (history snapshots + fees received) start in parallel
@@ -363,7 +366,7 @@
     this.eGui.type = 'checkbox';
     this.eGui.checked = params.value === true || params.value === 'TRUE' || params.value === 'true';
     this.eGui.style.accentColor = '#e8a84c';
-    if (!isAdmin) this.eGui.disabled = true;
+    if (!canEdit) this.eGui.disabled = true;
     var self = this;
     this.eGui.addEventListener('change', function() {
       var item = items.find(function(it) { return it._row === params.data._row; });
@@ -420,7 +423,7 @@
       a.style.textDecoration = 'none';
       wrap.appendChild(a);
     }
-    if (!isAdmin) return;
+    if (!canEdit) return;
     var btn = document.createElement('span');
     btn.textContent = url ? ' ↻' : '+ 🧾';
     btn.title = url ? 'Replace receipt' : 'Upload receipt';
@@ -479,27 +482,27 @@
   DeleteBtnRenderer.prototype.getGui = function() { return this.eGui; };
 
   var columnDefs = [
-    { field: 'Category', sortable: true, filter: true, editable: isAdmin, cellEditor: 'agSelectCellEditor',
+    { field: 'Category', sortable: true, filter: true, editable: canEdit, cellEditor: 'agSelectCellEditor',
       cellEditorParams: { values: categories }, width: 150, suppressSizeToFit: true },
-    { field: 'Item', sortable: true, filter: true, editable: isAdmin, width: 250, suppressSizeToFit: true },
-    { field: 'Qty', sortable: true, filter: true, editable: isAdmin, width: 80, suppressSizeToFit: true },
-    { field: 'Price', sortable: true, filter: true, editable: isAdmin, width: 110, suppressSizeToFit: true,
+    { field: 'Item', sortable: true, filter: true, editable: canEdit, width: 250, suppressSizeToFit: true },
+    { field: 'Qty', sortable: true, filter: true, editable: canEdit, width: 80, suppressSizeToFit: true },
+    { field: 'Price', sortable: true, filter: true, editable: canEdit, width: 110, suppressSizeToFit: true,
       valueFormatter: function(p) { return p.value ? eur(parseFloat(p.value)) : ''; } },
     { headerName: 'Total', field: '_total', cellRenderer: TotalRenderer, width: 120, suppressSizeToFit: true, sortable: true,
       valueGetter: function(p) { return (parseFloat(p.data.Qty) || 0) * (parseFloat(p.data.Price) || 0); } },
     { field: 'Paid', cellRenderer: PaidRenderer, width: 80, suppressSizeToFit: true, sortable: true },
     { field: 'Discuss', cellRenderer: DiscussRenderer, width: 80, suppressSizeToFit: true, sortable: true, filter: true },
-    { field: 'Paid by', sortable: true, filter: true, editable: isAdmin, width: 120, suppressSizeToFit: true },
-    { field: 'Link', sortable: true, editable: isAdmin, width: 80, suppressSizeToFit: true,
+    { field: 'Paid by', sortable: true, filter: true, editable: canEdit, width: 120, suppressSizeToFit: true },
+    { field: 'Link', sortable: true, editable: canEdit, width: 80, suppressSizeToFit: true,
       cellRenderer: function(params) {
         var v = (params.value || '').trim();
-        if (!v) return isAdmin ? '<span style="color:#555;cursor:pointer;">+ link</span>' : '';
+        if (!v) return canEdit ? '<span style="color:#555;cursor:pointer;">+ link</span>' : '';
         var safe = normalizeUrl(v).replace(/"/g, '&quot;');
         return '<a href="' + safe + '" target="_blank" rel="noopener" title="' + safe + '" style="color:#e8a84c;text-decoration:none;">Link</a>';
       }
     },
     { field: 'Receipt', cellRenderer: ReceiptRenderer, width: 90, suppressSizeToFit: true, sortable: false, editable: false },
-    { field: 'Comment', sortable: true, filter: true, editable: isAdmin, flex: 1, minWidth: 200,
+    { field: 'Comment', sortable: true, filter: true, editable: canEdit, flex: 1, minWidth: 200,
       cellEditor: 'agLargeTextCellEditor', cellEditorPopup: true, cellEditorParams: { maxLength: 500 },
       tooltipField: 'Comment' },
     { headerName: 'Updated', field: 'UpdatedBy', sortable: true, filter: true, editable: false, width: 170, suppressSizeToFit: true,
@@ -530,14 +533,14 @@
     initialState: { sort: { sortModel: [{ colId: 'Category', sort: 'asc' }] } },
     pagination: true,
     paginationPageSize: 50,
-    suppressCellFocus: !isAdmin,
+    suppressCellFocus: !canEdit,
     singleClickEdit: true,
     getRowClass: function(params) {
       var d = params.data.Discuss;
       return (d === true || d === 'TRUE' || d === 'true') ? 'row-discuss' : '';
     },
     onCellValueChanged: function(event) {
-      if (!isAdmin) return;
+      if (!canEdit) return;
       var field = event.colDef.field;
       if (field === '_total') return;
       var newVal = event.newValue || '';
@@ -694,7 +697,7 @@
     var total = qty * price;
     var paid = d.Paid === true || d.Paid === 'TRUE' || d.Paid === 'true';
     var discuss = d.Discuss === true || d.Discuss === 'TRUE' || d.Discuss === 'true';
-    var editable = isAdmin || isNew;
+    var editable = canEdit || isNew;
     var receiptLink = d.Receipt ? '<a href="' + esc(d.Receipt) + '" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none;">Receipt ↗</a>' : '';
     var catOpts = categories.map(function(c) {
       return '<option' + (c === d.Category ? ' selected' : '') + '>' + esc(c) + '</option>';
@@ -758,7 +761,7 @@
   }
 
   // "+ Add Item" opens detail modal in add mode
-  if (isAdmin) {
+  if (canEdit) {
     var addBtn = document.getElementById('mobile-add-btn');
     addBtn.style.display = '';
     addBtn.addEventListener('click', function() {
@@ -793,7 +796,7 @@
     detailBody.innerHTML = buildModalFields(d, false);
     wireModalTotal();
     wireReceiptUpload();
-    if (isAdmin) document.getElementById('budget-detail-save').onclick = function() {
+    if (canEdit) document.getElementById('budget-detail-save').onclick = function() {
       var msg = document.getElementById('budget-detail-msg');
       var item = items.find(function(it) { return it._row === d._row; });
       if (!item) return;
@@ -817,6 +820,16 @@
       setTimeout(function() { detailOverlay.classList.remove('active'); }, 600);
     };
     detailOverlay.classList.add('active');
+  });
+
+  // Overview (stats + charts) collapsed by default so the page opens on the grid
+  var ovWrap = document.getElementById('overview-wrap');
+  var ovBtn = document.getElementById('overview-toggle');
+  ovBtn.addEventListener('click', function() {
+    var opening = ovWrap.style.display === 'none';
+    ovWrap.style.display = opening ? '' : 'none';
+    ovBtn.innerHTML = opening ? '&#9662; Hide overview &amp; charts' : '&#9656; Show overview &amp; charts';
+    if (opening) { pieChart.resize(); barChart.resize(); }
   });
 
   // Fullscreen toggle
@@ -862,6 +875,7 @@
     wrap.innerHTML = shoppingRequests.map(function(r) {
       var statusClass = 'status-' + (r.Status || 'pending').toLowerCase();
       var linkHtml = r.Link ? '<a href="' + esc(normalizeUrl(r.Link)) + '" target="_blank" rel="noopener" class="req-link" style="color:var(--accent);font-size:0.8rem;">View ↗</a>' : '';
+      if (r.Receipt) linkHtml += ' <a href="' + esc(r.Receipt) + '" target="_blank" rel="noopener" class="req-link" style="color:var(--accent);font-size:0.8rem;">Receipt ↗</a>';
       var deleteBtn = isAdmin ? '<button class="req-delete-btn" data-id="' + esc(r.RequestID) + '" title="Delete request" style="background:none;border:none;color:#f44336;font-size:1.1rem;cursor:pointer;padding:4px 8px;line-height:1;">&times;</button>' : '';
       return '<div class="request-row" data-id="' + esc(r.RequestID) + '" style="cursor:pointer;">' +
         '<div>' +
@@ -934,6 +948,7 @@
       if (r.Description) body += '<div><span style="' + lbl + '">Why</span><div>' + esc(r.Description) + '</div></div>';
       if (r.Price) body += '<div><span style="' + lbl + '">Price estimate</span><div>&euro;' + esc(r.Price) + '</div></div>';
       if (r.Link) body += '<div><span style="' + lbl + '">Link</span><div><a href="' + esc(normalizeUrl(r.Link)) + '" target="_blank" rel="noopener" style="color:var(--accent);word-break:break-all">' + esc(r.Link) + '</a></div></div>';
+      if (r.Receipt) body += '<div><span style="' + lbl + '">Receipt</span><div><a href="' + esc(r.Receipt) + '" target="_blank" rel="noopener" style="color:var(--accent);">Receipt ↗</a></div></div>';
       body += '<div><span style="' + lbl + '">Status</span><div><span class="request-status status-' + status.toLowerCase() + '">' + esc(status) + '</span></div></div>';
     }
     document.getElementById('req-detail-body').innerHTML = body;
@@ -1039,6 +1054,27 @@
     if (e.target === this) this.classList.remove('active');
   });
 
+  // Receipt upload for new requests (reuses uploadReceipt)
+  var reqReceiptUrl = '';
+  var reqReceiptUploading = false;
+  var reqReceiptFile = document.getElementById('req-receipt-file');
+  var reqReceiptStatus = document.getElementById('req-receipt-status');
+  reqReceiptFile.addEventListener('change', async function() {
+    var file = reqReceiptFile.files[0];
+    if (!file) return;
+    if (file.size > RECEIPT_MAX_BYTES) { reqReceiptStatus.textContent = 'Max 10 MB'; reqReceiptStatus.style.color = '#f44336'; return; }
+    reqReceiptUploading = true;
+    reqReceiptStatus.textContent = 'Uploading…'; reqReceiptStatus.style.color = '#888';
+    try {
+      reqReceiptUrl = await uploadReceipt(file);
+      reqReceiptStatus.textContent = 'Uploaded'; reqReceiptStatus.style.color = '#4caf50';
+    } catch (err) {
+      console.error('Receipt upload failed:', err);
+      reqReceiptStatus.textContent = 'Upload failed'; reqReceiptStatus.style.color = '#f44336';
+    }
+    reqReceiptUploading = false;
+  });
+
   // Submit request
   document.getElementById('req-submit-btn').addEventListener('click', async function() {
     var submittedBy = document.getElementById('req-submitter').value;
@@ -1052,12 +1088,15 @@
     if (!submittedBy || !category || !item) {
       msg.textContent = 'Name, category and item are required'; msg.style.color = '#f44336'; return;
     }
+    if (reqReceiptUploading) {
+      msg.textContent = 'Wait for the receipt upload to finish'; msg.style.color = '#f44336'; return;
+    }
     msg.textContent = 'Submitting...'; msg.style.color = '#888';
     var requestId = Date.now() + '-' + Math.random().toString(36).slice(2, 7);
     try {
-      var r = await JH.apiFetch('/api/budget', { action: 'shopping-request', requestId: requestId, category: category, item: item, description: desc, link: link, price: price, submittedBy: submittedBy });
+      var r = await JH.apiFetch('/api/budget', { action: 'shopping-request', requestId: requestId, category: category, item: item, description: desc, link: link, price: price, submittedBy: submittedBy, receipt: reqReceiptUrl });
       if (!r.ok) throw new Error('Failed');
-      shoppingRequests.push({ RequestID: requestId, Category: category, Item: item, Description: desc, Link: link, Price: price, SubmittedBy: submittedBy, Status: 'pending' });
+      shoppingRequests.push({ RequestID: requestId, Category: category, Item: item, Description: desc, Link: link, Price: price, SubmittedBy: submittedBy, Status: 'pending', Receipt: reqReceiptUrl });
       renderShoppingRequests();
       document.getElementById('request-modal').classList.remove('active');
       document.getElementById('req-category').value = '';
@@ -1065,6 +1104,9 @@
       document.getElementById('req-desc').value = '';
       document.getElementById('req-link').value = '';
       document.getElementById('req-price').value = '';
+      reqReceiptFile.value = '';
+      reqReceiptStatus.textContent = '';
+      reqReceiptUrl = '';
       msg.textContent = '';
     } catch (e) {
       msg.textContent = 'Error submitting'; msg.style.color = '#f44336';

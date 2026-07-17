@@ -243,33 +243,37 @@ export default async function handler(req, res) {
       if ((memberResult.member.Status || '').toLowerCase() === 'observer') {
         return res.status(403).json({ error: 'Observer accounts are read-only' });
       }
-      const { requestId, category, item, description, link, price, submittedBy } = payload;
+      const { requestId, category, item, description, link, price, submittedBy, receipt } = payload;
       if (!requestId || !category || !item || !submittedBy) {
         return res.status(400).json({ error: 'requestId, category, item, submittedBy required' });
       }
       const headerRes = await sheets.spreadsheets.values.get({ spreadsheetId, range: 'ShoppingRequests!1:1' });
       let srHeaders = (headerRes.data.values || [[]])[0] || [];
       if (!srHeaders.length) {
-        srHeaders = ['RequestID','Item','Description','Link','Price','SubmittedBy','Status','Category'];
+        srHeaders = ['RequestID','Item','Description','Link','Price','SubmittedBy','Status','Category','Receipt'];
         await sheets.spreadsheets.values.update({
           spreadsheetId,
           range: 'ShoppingRequests!1:1',
           valueInputOption: 'RAW',
           requestBody: { values: [srHeaders] },
         });
-      } else if (srHeaders.indexOf('Category') === -1) {
-        const newHeaders = srHeaders.concat(['Category']);
-        await sheets.spreadsheets.values.update({
-          spreadsheetId,
-          range: 'ShoppingRequests!1:1',
-          valueInputOption: 'RAW',
-          requestBody: { values: [newHeaders] },
-        });
-        srHeaders = newHeaders;
+      } else {
+        const missing = ['Category', 'Receipt'].filter(h => srHeaders.indexOf(h) === -1);
+        if (missing.length) {
+          const newHeaders = srHeaders.concat(missing);
+          await sheets.spreadsheets.values.update({
+            spreadsheetId,
+            range: 'ShoppingRequests!1:1',
+            valueInputOption: 'RAW',
+            requestBody: { values: [newHeaders] },
+          });
+          srHeaders = newHeaders;
+        }
       }
       const fieldVals = {
         RequestID: requestId, Item: item, Description: description || '', Link: link || '',
         Price: price || '', SubmittedBy: submittedBy, Status: 'pending', Category: category,
+        Receipt: receipt || '',
       };
       const row = srHeaders.map(h => fieldVals[h] !== undefined ? fieldVals[h] : '');
       await sheets.spreadsheets.values.append({
@@ -281,8 +285,15 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true });
     }
 
-    // ── Write actions below require admin ─────────────────────────────────
-    if (!isWrite) {
+    // ── Write actions ──────────────────────────────────────────────────────
+    // Budget item add/update are open to approved members (observers read-only);
+    // delete, request moderation, fees and snapshot stay admin-only.
+    if (action === 'add' || action === 'update') {
+      const memberStatus = (memberResult.member.Status || '').toLowerCase();
+      if (!isWrite && memberStatus !== 'approved') {
+        return res.status(403).json({ error: 'Observer accounts are read-only' });
+      }
+    } else if (!isWrite) {
       return res.status(401).json({ error: 'Admin required' });
     }
 
@@ -544,6 +555,7 @@ export default async function handler(req, res) {
             if (h === 'Price') return reqPrice || 0;
             if (h === 'Link') return reqLink || '';
             if (h === 'Comment') return comment;
+            if (h === 'Receipt') return get('Receipt');
             if (h === 'Total Actual') return '';
             return '';
           });
