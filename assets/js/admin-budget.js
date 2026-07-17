@@ -556,33 +556,44 @@
     onModelUpdated: function() {
       var count = gridApi ? gridApi.getDisplayedRowCount() : 0;
       document.getElementById('item-count').textContent = count + ' items';
+      renderMobileCards();
     }
   };
 
   var gridApi = agGrid.createGrid(document.getElementById('budget-grid'), gridOptions);
 
-  if (JH.isMobile) {
-    var hideFields = columnDefs.filter(function(c) {
-      var keep = (c.field && ['Item', '_total'].indexOf(c.field) !== -1) ||
-                 (c.headerName && c.headerName === 'Total');
-      return !keep;
-    }).map(function(c) { return c.field || c.headerName || ''; }).filter(Boolean);
-    gridApi.setColumnsVisible(hideFields, false);
-    gridApi.setColumnsVisible(['Item', '_total'], true);
-    columnDefs.forEach(function(col) { col.editable = false; });
-    gridApi.setGridOption('suppressCellFocus', true);
-    var itemCol = columnDefs.find(function(c) { return c.field === 'Item'; });
-    if (itemCol) { itemCol.cellRenderer = JH.NameLinkRenderer; itemCol.flex = 2; }
-    var totalCol = columnDefs.find(function(c) { return c.field === '_total'; });
-    if (totalCol) { delete totalCol.flex; totalCol.width = 90; totalCol.maxWidth = 100; delete totalCol.suppressSizeToFit; }
-    if (itemCol) { delete itemCol.width; delete itemCol.suppressSizeToFit; }
-    gridApi.setGridOption('columnDefs', columnDefs);
-    gridApi.sizeColumnsToFit();
-  }
-
   gridApi.addEventListener('firstDataRendered', function() {
     gridApi.sizeColumnsToFit();
   });
+
+  // Mobile (<480px): the grid is hidden (.hide-on-mobile) and a card list is
+  // shown instead. Cards rebuild from the grid's filtered+sorted model on every
+  // modelUpdated, so category/discuss filters and edits stay in sync for free.
+  function renderMobileCards() {
+    var cardsEl = document.getElementById('budget-cards');
+    if (!cardsEl || !gridApi) return;
+    var html = '';
+    gridApi.forEachNodeAfterFilterAndSort(function(node) {
+      var d = node.data;
+      var total = (parseFloat(d.Qty) || 0) * (parseFloat(d.Price) || 0);
+      var paid = d.Paid === true || d.Paid === 'TRUE' || d.Paid === 'true';
+      var discuss = d.Discuss === true || d.Discuss === 'TRUE' || d.Discuss === 'true';
+      html += '<div class="m-card" data-row="' + d._row + '"' + (discuss ? ' style="border-color:#ff9800;"' : '') + '>' +
+        '<div class="m-card-title">' + esc(d.Item || '') + '<span style="color:var(--accent);white-space:nowrap;">' + eur(total) + '</span></div>' +
+        '<div class="m-card-row"><span class="m-card-label">Category</span><span class="m-card-val">' + esc(d.Category || '') + '</span></div>' +
+        '<div class="m-card-row"><span class="m-card-label">Qty &times; Price</span><span class="m-card-val">' + esc(String(d.Qty || 0)) + ' &times; ' + eur(parseFloat(d.Price) || 0) + '</span></div>' +
+        '<div class="m-card-row"><span class="m-card-label">Paid</span><span class="m-card-val">' + (paid ? 'Yes' + (d['Paid by'] ? ' &middot; ' + esc(d['Paid by']) : '') : 'No') + (d.Receipt ? ' &#129534;' : '') + '</span></div>' +
+      '</div>';
+    });
+    cardsEl.innerHTML = html || '<p style="color:var(--text-muted);font-size:0.9rem;">No items.</p>';
+  }
+  document.getElementById('budget-cards').addEventListener('click', function(e) {
+    var card = e.target.closest('.m-card');
+    if (!card) return;
+    var item = items.find(function(it) { return String(it._row) === card.dataset.row; });
+    if (item) openItemModal(item);
+  });
+  renderMobileCards();
 
   function updateCategorySummary(cat) {
     var el = document.getElementById('category-summary');
@@ -788,10 +799,12 @@
     });
   }
 
-  // Mobile: tap row opens detail modal in edit mode
+  // Mobile: tap row (grid) or card opens detail modal in edit mode
   gridApi.addEventListener('rowClicked', function(event) {
     if (!JH.isMobile) return;
-    var d = event.data;
+    openItemModal(event.data);
+  });
+  function openItemModal(d) {
     detailTitle.textContent = d.Item || '';
     detailBody.innerHTML = buildModalFields(d, false);
     wireModalTotal();
@@ -820,7 +833,7 @@
       setTimeout(function() { detailOverlay.classList.remove('active'); }, 600);
     };
     detailOverlay.classList.add('active');
-  });
+  }
 
   // Overview (stats + charts) collapsed by default so the page opens on the grid
   var ovWrap = document.getElementById('overview-wrap');
