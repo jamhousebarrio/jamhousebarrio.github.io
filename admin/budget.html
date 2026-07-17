@@ -154,24 +154,24 @@ access: general
     </div>
   </div>
   </div>
-  <details id="expense-help" style="margin-bottom:16px;border:1px solid var(--border);border-radius:8px;background:var(--surface);">
-    <summary style="cursor:pointer;padding:10px 14px;font-size:0.85rem;color:var(--accent);font-weight:600;user-select:none;">&#128161; How to add an expense</summary>
-    <div style="padding:0 14px 12px;font-size:0.85rem;color:var(--text-muted);line-height:1.6;">
-      <ol style="margin:0;padding-left:20px;">
-        <li>Tap <strong>+ Add Item</strong> below.</li>
-        <li>Fill in category, item name, quantity and price.</li>
-        <li>Tick <strong>Paid</strong> if it's already bought, and put your name in <strong>Paid by</strong> if you paid out of pocket (that's how you get reimbursed).</li>
-        <li>Attach a photo of the receipt with the <strong>Receipt</strong> field (photo or PDF, up to 10&nbsp;MB) &mdash; on the phone you can take the picture right there.</li>
-        <li>Tap <strong>Add Item</strong> &mdash; done.</li>
-      </ol>
-      <p style="margin:8px 0 0;">To fix an existing expense: on desktop click a cell and type; on phone tap the row and edit in the popup. If you only want to <em>suggest</em> a purchase, use <strong>+ Request Item</strong> under Shopping Requests at the bottom.</p>
-    </div>
-  </details>
   <div class="panel" id="budget-panel">
     <div class="panel-header">
       <h2>Budget Items</h2>
       <button class="fullscreen-btn" id="fullscreenBtn" title="Toggle fullscreen">Expand</button>
     </div>
+    <details id="expense-help" open style="margin-bottom:14px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);">
+      <summary style="cursor:pointer;padding:10px 14px;font-size:0.85rem;color:var(--accent);font-weight:600;user-select:none;">&#128161; How to add an expense</summary>
+      <div style="padding:0 14px 12px;font-size:0.85rem;color:var(--text-muted);line-height:1.6;">
+        <ol style="margin:0;padding-left:20px;">
+          <li>Tap <strong>+ Add Item</strong> below.</li>
+          <li>Fill in category, item name, quantity and price.</li>
+          <li>Tick <strong>Paid</strong> if it's already bought, and put your name in <strong>Paid by</strong> if you paid out of pocket (that's how you get reimbursed).</li>
+          <li>Attach a photo of the receipt with the <strong>Receipt</strong> field (photo or PDF, up to 10&nbsp;MB) &mdash; on the phone you can take the picture right there.</li>
+          <li>Tap <strong>Add Item</strong> &mdash; done.</li>
+        </ol>
+        <p style="margin:8px 0 0;">To fix an existing expense: on desktop click a cell and type; on phone tap the row and edit in the popup. If you only want to <em>suggest</em> a purchase, use <strong>+ Request Item</strong> under Shopping Requests at the bottom.</p>
+      </div>
+    </details>
     <div class="filter-row">
       <button id="mobile-add-btn" style="display:none;">&plus; Add Item</button>
       <label id="discussFilter" style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:0.82rem;color:var(--text-muted);padding:0.35rem 0.75rem;border:1px solid var(--border);border-radius:20px;background:var(--surface);user-select:none;"><input type="checkbox" id="discussCheck" style="accent-color:#ff9800;width:15px;height:15px;"> Discuss</label>
