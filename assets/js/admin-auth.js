@@ -145,18 +145,6 @@ JH.authenticate = async function() {
       return null;
     }
 
-    // Hard gate: every approved member must fill emergency info before they can
-    // use the portal. Empty (or missing column) on any of the four fields counts
-    // as not filled. Observers are exempt — they're read-only so they can't
-    // satisfy the gate anyway. The profile page is exempt so they can save.
-    if (me && !data.observer) {
-      var emergencyFields = ['Medical Conditions', 'Emergency Contact Name', 'Emergency Contact Phone', 'Emergency Contact Relation'];
-      var missingEmergency = emergencyFields.some(function (f) { return !(JH.val(me, f) || '').trim(); });
-      if (missingEmergency && window.location.pathname.indexOf('/admin/profile') === -1) {
-        window.location.href = '/admin/profile?prompt=emergency';
-        return null;
-      }
-    }
     JH.filterNav(data.admin, !!data.observer);
     if (data.observer) {
       var badge = document.getElementById('sidebar-role-badge');
